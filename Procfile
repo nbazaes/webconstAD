@@ -1,1 +1,1 @@
-web: gunicorn webConstAD.wsgi
+web: python manage.py collectstatic --noinput && gunicorn webConstAD.wsgi
