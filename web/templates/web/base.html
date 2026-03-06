@@ -26,7 +26,23 @@
           <img src="{% static 'web/assets/g345.png' %}" alt="Constant Archivos Digitales">
         </div>
       </div>
+      <!-- Hamburger button (mobile only) -->
+      <button class="hamburger" aria-label="Abrir menú" aria-expanded="false" onclick="this.classList.toggle('open');document.querySelector('.mobile-nav').classList.toggle('open');this.setAttribute('aria-expanded',this.classList.contains('open'))">
+        <span></span><span></span><span></span>
+      </button>
     </header>
+
+    <!-- Mobile dropdown nav -->
+    <nav class="mobile-nav" aria-label="Navegación móvil">
+      <ul>
+        <li><a href="{% url 'home' %}" {% if page == 'inicio' %}class="active" aria-current="page"{% endif %}>Inicio</a></li>
+        <li><a href="{% url 'productos' %}" {% if page == 'productos' %}class="active" aria-current="page"{% endif %}>Productos</a></li>
+        <li><a href="{% url 'uso' %}" {% if page == 'uso' %}class="active" aria-current="page"{% endif %}>Uso</a></li>
+        <li><a href="{% url 'canva' %}" {% if page == 'canva' %}class="active" aria-current="page"{% endif %}>Canva</a></li>
+        <li><a href="{% url 'gratis' %}" {% if page == 'gratis' %}class="active" aria-current="page"{% endif %}>Gratis</a></li>
+        <li><a href="{% url 'contacto' %}" {% if page == 'contacto' %}class="active" aria-current="page"{% endif %}>Contacto</a></li>
+      </ul>
+    </nav>
 
     <aside class="side-nav">
       <ul>
