@@ -1,0 +1,47 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{% block title %}Constant Archivos Digitales{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'web/styles.css' %}">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Great+Vibes&family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="page-wrap">
+    <!-- Decoración: esquina superior derecha (blobs rosa + línea verde) -->
+    <img src="{% static 'web/assets/g51.svg' %}" alt="" class="decor decor-top-right" aria-hidden="true">
+
+    <!-- Decoración: esquina inferior izquierda (blob rosa + hojas) -->
+    <img src="{% static 'web/assets/g40.svg' %}" alt="" class="decor decor-bottom-left" aria-hidden="true">
+
+    <!-- Decoración: rama/hoja izquierda -->
+    <img src="{% static 'web/assets/g45.svg' %}" alt="" class="decor decor-leaf-left" aria-hidden="true">
+
+    <header class="site-header">
+      <div class="brand">
+        <img src="{% static 'web/assets/logo.svg' %}" alt="Logo" class="logo">
+        <div class="site-title">
+          <img src="{% static 'web/assets/g345.png' %}" alt="Constant Archivos Digitales">
+        </div>
+      </div>
+    </header>
+
+    <aside class="side-nav">
+      <ul>
+        <li><a href="{% url 'home' %}" {% if page == 'inicio' %}class="active" aria-current="page"{% endif %}>Inicio</a></li>
+        <li><a href="{% url 'productos' %}" {% if page == 'productos' %}class="active" aria-current="page"{% endif %}>Productos</a></li>
+        <li><a href="{% url 'uso' %}" {% if page == 'uso' %}class="active" aria-current="page"{% endif %}>Uso</a></li>
+        <li><a href="{% url 'canva' %}" {% if page == 'canva' %}class="active" aria-current="page"{% endif %}>Canva</a></li>
+        <li><a href="{% url 'gratis' %}" {% if page == 'gratis' %}class="active" aria-current="page"{% endif %}>Gratis</a></li>
+        <li><a href="{% url 'contacto' %}" {% if page == 'contacto' %}class="active" aria-current="page"{% endif %}>Contacto</a></li>
+      </ul>
+    </aside>
+
+    {% block content %}{% endblock %}
+
+    <footer class="site-footer"></footer>
+  </div>
+</body>
+</html>

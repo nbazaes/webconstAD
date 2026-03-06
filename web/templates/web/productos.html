@@ -1,0 +1,53 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Productos — Constant Archivos Digitales{% endblock %}
+
+{% block content %}
+<main class="content">
+  <section class="products-hero">
+    <h2>PRODUCTOS</h2>
+    <p class="lead">Archivos para <em>imprimir</em> o trabajar <em>digitalmente</em></p>
+  </section>
+
+  <section class="products-grid">
+    <!-- Row 1 -->
+    <article class="product">
+      <img src="{% static 'web/assets/products/artezen_mujeres.jpg' %}" alt="Artezen Mujeres">
+      <a href="#" class="caption">Artezen<br><span>Mujeres #1</span></a>
+    </article>
+
+    <article class="product">
+      <img src="{% static 'web/assets/products/artezen_pattern.jpg' %}" alt="Artezen Pattern">
+      <a href="#" class="caption">Artezen<br><span>Pattern #1</span></a>
+    </article>
+
+    <article class="product">
+      <img src="{% static 'web/assets/products/artezen_animales.jpg' %}" alt="Artezen Animales">
+      <a href="#" class="caption">Artezen<br><span>Animales #1</span></a>
+    </article>
+
+    <!-- Row 2 -->
+    <article class="product">
+      <img src="{% static 'web/assets/products/trazos_v1.jpg' %}" alt="Trazos Volumen 1">
+      <a href="#" class="caption">Trazos<br><span>Volumen #1</span></a>
+    </article>
+
+    <article class="product">
+      <img src="{% static 'web/assets/products/trazos_v2.jpg' %}" alt="Trazos Volumen 2">
+      <a href="#" class="caption">Trazos<br><span>Volumen #2</span></a>
+    </article>
+
+    <article class="product">
+      <img src="{% static 'web/assets/products/desahogo.jpg' %}" alt="Desahogo Diario">
+      <a href="#" class="caption">Desahogo<br><span>Diario de</span></a>
+    </article>
+
+    <!-- Row 3 -->
+    <article class="product">
+      <img src="{% static 'web/assets/products/gratitud_desahogo.jpg' %}" alt="Gratitud y Desahogo">
+      <a href="#" class="caption">Gratitud y Desahogo<br><span>Diario de</span></a>
+    </article>
+  </section>
+</main>
+{% endblock %}
