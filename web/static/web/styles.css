@@ -5,8 +5,21 @@
   --ribbon:#cbd9cf;
 }
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;font-family: "Georgia", "PT Serif", serif;color:var(--text);background:#d8e5dc}
-.page-wrap{min-height:100%;position:relative;padding-right:220px;overflow:hidden;background:#fff}
+html,body{height:100%;margin:0;font-family: "Georgia", "PT Serif", serif;color:var(--text);background:#f0dbdb}
+img{color:transparent}
+
+/* ── Fade-in animation ── */
+@keyframes fadeIn{
+  from{opacity:0;transform:translateY(8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes bgReveal{
+  from{background:#fff}
+  to{background:#f0dbdb}
+}
+body{animation:bgReveal 0s .6s both}
+.page-wrap{min-height:100%;position:relative;padding-right:220px;overflow:hidden;background:#fff;animation:fadeIn .6s ease-out both}
+.site-footer{animation:fadeIn .6s ease-out .15s both}
 
 /* ── Decorative elements ── */
 .decor{position:absolute;pointer-events:none;z-index:0}
