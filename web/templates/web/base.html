@@ -13,9 +13,6 @@
     <!-- Decoración: esquina superior derecha (blobs rosa + línea verde) -->
     <img src="{% static 'web/assets/g51.svg' %}" alt="" class="decor decor-top-right" aria-hidden="true">
 
-    <!-- Decoración: esquina inferior izquierda (blob rosa + hojas) -->
-    <img src="{% static 'web/assets/g40.svg' %}" alt="" class="decor decor-bottom-left" aria-hidden="true">
-
     <!-- Decoración: rama/hoja izquierda -->
     <img src="{% static 'web/assets/g45.svg' %}" alt="" class="decor decor-leaf-left" aria-hidden="true">
 
@@ -57,7 +54,17 @@
 
     {% block content %}{% endblock %}
 
-    <footer class="site-footer"></footer>
   </div>
+
+  <footer class="site-footer">
+    <img src="{% static 'web/assets/g40.svg' %}" alt="" class="decor decor-bottom-left" aria-hidden="true">
+    <p>Constant Archivos Digitales &copy; 2026</p>
+    <p class="footer-credit">
+      Web construida por <a href="https://github.com/nbazaes">nbazaes</a>
+      <svg class="github-logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M12 .5a12 12 0 0 0-3.79 23.39c.6.12.82-.26.82-.58v-2.23c-3.33.73-4.03-1.4-4.03-1.4-.55-1.4-1.34-1.78-1.34-1.78-1.1-.74.08-.72.08-.72 1.22.09 1.86 1.24 1.86 1.24 1.08 1.84 2.84 1.31 3.53 1 .11-.78.42-1.31.76-1.61-2.66-.3-5.47-1.32-5.47-5.87 0-1.29.47-2.34 1.24-3.17-.12-.3-.54-1.53.12-3.19 0 0 1-.32 3.3 1.21a11.6 11.6 0 0 1 6 0c2.3-1.53 3.3-1.21 3.3-1.21.66 1.66.24 2.89.12 3.19.77.83 1.24 1.88 1.24 3.17 0 4.56-2.82 5.56-5.5 5.86.43.37.82 1.1.82 2.22v3.29c0 .32.22.7.83.58A12 12 0 0 0 12 .5Z"/>
+      </svg>
+    </p>
+  </footer>
 </body>
 </html>

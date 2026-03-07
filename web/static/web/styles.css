@@ -5,8 +5,8 @@
   --ribbon:#cbd9cf;
 }
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;font-family: "Georgia", "PT Serif", serif;color:var(--text)}
-.page-wrap{min-height:100%;position:relative;padding-right:220px;overflow:hidden}
+html,body{height:100%;margin:0;font-family: "Georgia", "PT Serif", serif;color:var(--text);background:#d8e5dc}
+.page-wrap{min-height:100%;position:relative;padding-right:220px;overflow:hidden;background:#fff}
 
 /* ── Decorative elements ── */
 .decor{position:absolute;pointer-events:none;z-index:0}
@@ -21,6 +21,7 @@ html,body{height:100%;margin:0;font-family: "Georgia", "PT Serif", serif;color:v
 .decor-bottom-left{
   bottom:-20px;left:-20px;
   width:min(380px,35vw);
+  z-index:2;
 }
 
 /* Small leaf/branch on the left (g45) */
@@ -39,7 +40,7 @@ html,body{height:100%;margin:0;font-family: "Georgia", "PT Serif", serif;color:v
   z-index:1;
 }
 
-.site-header{display:flex;align-items:flex-start;gap:20px;padding:30px 30px 10px 60px;position:relative;z-index:1}
+.site-header{display:flex;align-items:flex-start;gap:20px;padding:30px 30px 10px 60px;position:relative;z-index:1100}
 .brand{display:flex;align-items:center;gap:18px}
 .logo{width:110px;height:110px;object-fit:cover;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.08)}
 .site-title h1{margin:0;font-size:28px;line-height:1;font-weight:400;letter-spacing:1px}
@@ -74,7 +75,43 @@ html,body{height:100%;margin:0;font-family: "Georgia", "PT Serif", serif;color:v
 .card{position:relative;z-index:2;background:linear-gradient(180deg,#fff,#fafafa);padding:18px;border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,0.04)}
 .card img{width:100%;height:360px;object-fit:cover;display:block;border-radius:2px}
 
-.site-footer{height:40px;background:transparent}
+.site-footer{
+  width:100%;
+  min-height:min(100px, 27.6vw);
+  padding:20px 20px;
+  background:#d8e5dc;
+  text-align:center;
+  position:relative;
+  z-index:1;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  align-items:center;
+}
+.site-footer p{
+  margin:0;
+  font-family: PT Serif, serif;
+  line-height:1.5;
+  position:relative;
+  z-index:1;
+}
+.site-footer a{
+  color:inherit;
+  text-decoration:none;
+}
+.site-footer a:hover{
+  text-decoration:underline;
+  cursor:pointer;
+}
+.footer-credit{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
+.github-logo{
+  width:20px;
+  height:20px;
+}
 
 /* ── Hamburger button (hidden on desktop) ── */
 .hamburger{
@@ -145,9 +182,9 @@ html,body{height:100%;margin:0;font-family: "Georgia", "PT Serif", serif;color:v
 }
 
 /* Productos grid */
-.products-hero{max-width:1100px;margin:30px auto 10px;text-align:left;font-family:'PT Serif', serif;}
+.products-hero{max-width:1100px;margin:30px auto 10px;padding:0 20px;text-align:left;font-family:'PT Serif', serif;}
 .products-hero h2{font-size:32px;margin:0 0 8px}
-.products-hero .lead{color:#333;margin:0 0 26px;font-size: 24px;}
+.products-hero .lead{color:#333;font-size: 24px;text-align: left;}
 .products-grid{max-width:1100px;margin:0 auto;padding:0 20px 80px;display:grid;grid-template-columns:repeat(3,1fr);gap:36px}
 .product{display:flex;flex-direction:column;align-items:center;text-align:center}
 .product img{width:220px;height:300px;object-fit:cover;border-radius:6px;box-shadow:0 8px 18px rgba(0,0,0,0.06);background:#fff}
@@ -164,7 +201,7 @@ html,body{height:100%;margin:0;font-family: "Georgia", "PT Serif", serif;color:v
   .product img{width:180px;height:220px}
   .side-nav{display:none}
   .hamburger{display:flex}
-  .mobile-nav{display:block}
+  .mobile-nav{display:block;top:130px;padding:16px 20px 24px;transform:translateY(calc(-100% - 130px))}
   .site-header{align-items:center}
   .decor-top-right{width:180px}
   .decor-bottom-left{width:140px}
