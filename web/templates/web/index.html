@@ -1,21 +1,17 @@
-{% extends "web/base.html" %}
 {% load static %}
-
-{% block title %}Constant Archivos Digitales{% endblock %}
-
-{% block content %}
-<main class="hero">
-  <h2 class="subtitle">Archivos para <em>imprimir</em> o trabajar <em>digitalmente</em></h2>
-
-  <section class="showcase">
-    <div class="card">
-      <img src="{% static 'web/assets/hero1.svg' %}" alt="Mockup 1">
-    </div>
-    <!-- Decoración: puntos/círculos entre las imágenes -->
-    <img src="{% static 'web/assets/path63.svg' %}" alt="" class="decor decor-dots" aria-hidden="true">
-    <div class="card">
-      <img src="{% static 'web/assets/hero2.svg' %}" alt="Mockup 2">
-    </div>
-  </section>
-</main>
-{% endblock %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>webConstAD Frontend Astro</title>
+  <meta http-equiv="refresh" content="0; url={% static 'frontend/index.html' %}" />
+</head>
+<body>
+  <p>Redirigiendo al frontend Astro...</p>
+  <p>
+    Si no redirige automaticamente, abre
+    <a href="{% static 'frontend/index.html' %}">frontend Astro</a>.
+  </p>
+</body>
+</html>

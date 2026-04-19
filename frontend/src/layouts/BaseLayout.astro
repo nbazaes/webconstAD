@@ -1,0 +1,469 @@
+---
+import '../styles/global.css'
+
+const { title = 'Constant Archivos Digitales', page = 'inicio' } = Astro.props
+const navItems = [
+  { id: 'inicio', label: 'Inicio', href: '/' },
+  { id: 'productos', label: 'Productos', href: '/productos/' },
+  { id: 'uso', label: 'Uso', href: '/uso/' },
+  // { id: 'canva', label: 'Canva', href: '/canva/' },
+  { id: 'gratis', label: 'Gratis', href: '/gratis/' },
+  { id: 'cuenta', label: 'Cuenta', href: '/cuenta/' },
+  { id: 'contacto', label: 'Contacto', href: '/contacto/' },
+]
+
+const asset = (path) => `/${path}`
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Great+Vibes&family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+    />
+  </head>
+  <body
+    style={`--ribbon-unsel: url('${asset('static/web/assets/ribbon-unsel.svg')}'); --ribbon-sel: url('${asset('static/web/assets/ribbon-sel.svg')}')`}
+  >
+    <div class="page-wrap">
+      <img src={asset('static/web/assets/g51.svg')} alt="" class="decor decor-top-right" aria-hidden="true" />
+      <img src={asset('static/web/assets/g45.svg')} alt="" class="decor decor-leaf-left" aria-hidden="true" />
+
+      <header class="site-header">
+        <a href="/" class="home-link">
+          <div class="brand">
+            <img src={asset('static/web/assets/logo.svg')} alt="Logo" class="logo" />
+            <div class="site-title">
+              <img src={asset('static/web/assets/g345.png')} alt="Constant Archivos Digitales" />
+            </div>
+          </div>
+        </a>
+        <button class="hamburger" aria-label="Abrir menu" aria-expanded="false" data-menu-toggle>
+          <span></span><span></span><span></span>
+        </button>
+      </header>
+
+      <nav class="mobile-nav" aria-label="Navegacion movil" data-mobile-nav>
+        <ul>
+          {navItems.map((item) => (
+            <li>
+              <a href={item.href} data-nav-id={item.id} class={page === item.id ? 'active' : ''} aria-current={page === item.id ? 'page' : undefined}>
+                {item.label}
+              </a>
+            </li>
+          ))}
+          <li>
+            <a href="#" data-auth-tab>Iniciar sesion</a>
+          </li>
+          <li data-publish-nav hidden>
+            <a href="/publicar/" data-publish-tab class={page === 'publicar' ? 'active' : ''} aria-current={page === 'publicar' ? 'page' : undefined}>Publicar</a>
+          </li>
+        </ul>
+      </nav>
+
+      <aside class="side-nav">
+        <ul>
+          {navItems.map((item) => (
+            <li>
+              <a href={item.href} data-nav-id={item.id} class={page === item.id ? 'active' : ''} aria-current={page === item.id ? 'page' : undefined}>
+                {item.label}
+              </a>
+            </li>
+          ))}
+          <li>
+            <a href="#" data-auth-tab>Iniciar sesion</a>
+          </li>
+          <li data-publish-nav hidden>
+            <a href="/publicar/" data-publish-tab class={page === 'publicar' ? 'active' : ''} aria-current={page === 'publicar' ? 'page' : undefined}>Publicar</a>
+          </li>
+        </ul>
+      </aside>
+
+      <slot />
+    </div>
+
+    <div class="auth-modal" data-auth-modal hidden>
+      <div class="auth-modal__backdrop" data-auth-close></div>
+      <div class="auth-modal__panel" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+        <button class="auth-modal__close" type="button" aria-label="Cerrar" data-auth-close>×</button>
+
+        <section data-auth-view="login">
+          <h3 id="auth-modal-title">Iniciar sesion</h3>
+          <form class="auth-form" data-login-form>
+            <label for="login-identifier">Usuario o email</label>
+            <input id="login-identifier" name="identifier" type="text" required />
+
+            <label for="login-password">Password</label>
+            <input id="login-password" name="password" type="password" required />
+
+            <button class="btn" type="submit">Iniciar sesion</button>
+            <button class="auth-link" type="button" data-open-register>
+              No tienes cuenta de usuario? Registrate aqui
+            </button>
+          </form>
+        </section>
+
+        <section data-auth-view="register" hidden>
+          <h3 id="auth-modal-title">Registrarse</h3>
+          <form class="auth-form" data-register-form>
+            <label for="register-username">Username</label>
+            <input id="register-username" name="username" type="text" required minlength="3" />
+
+            <label for="register-email">Email</label>
+            <input id="register-email" name="email" type="email" required />
+
+            <label for="register-nombre">Nombre</label>
+            <input id="register-nombre" name="nombre" type="text" required />
+
+            <label for="register-apellido">Apellido</label>
+            <input id="register-apellido" name="apellido" type="text" required />
+
+            <label for="register-pais">Pais</label>
+            <input id="register-pais" name="pais" type="text" required />
+
+            <label for="register-password">Password</label>
+            <input id="register-password" name="password" type="password" required minlength="8" />
+
+            <label for="register-password-confirm">Confirmar password</label>
+            <input id="register-password-confirm" name="password_confirm" type="password" required minlength="8" />
+
+            <button class="btn" type="submit">Crear cuenta</button>
+            <button class="auth-link" type="button" data-open-login>
+              Ya tienes cuenta? Inicia sesion aqui
+            </button>
+          </form>
+        </section>
+
+        <p class="auth-message" data-auth-message aria-live="polite"></p>
+      </div>
+    </div>
+
+    <div class="confirm-modal" data-confirm-modal hidden>
+      <div class="confirm-modal__backdrop" data-confirm-cancel></div>
+      <div class="confirm-modal__panel" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+        <h3 id="confirm-modal-title">Confirmacion</h3>
+        <p data-confirm-message></p>
+        <div class="confirm-modal__actions">
+          <button class="btn btn-secondary" type="button" data-confirm-cancel>Cancelar</button>
+          <button class="btn" type="button" data-confirm-accept>Aceptar</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <img src={asset('static/web/assets/g40.svg')} alt="" class="decor decor-bottom-left" aria-hidden="true" />
+      <p>Constant Archivos Digitales © 2026</p>
+      <p class="footer-credit">
+        Web construida por <a href="https://github.com/nbazaes">nbazaes</a>
+      </p>
+    </footer>
+
+    <script>
+      const toggle = document.querySelector('[data-menu-toggle]')
+      const mobileNav = document.querySelector('[data-mobile-nav]')
+
+      const authModal = document.querySelector('[data-auth-modal]')
+      const authMessage = document.querySelector('[data-auth-message]')
+      const authViews = document.querySelectorAll('[data-auth-view]')
+      const loginForm = document.querySelector('[data-login-form]')
+      const registerForm = document.querySelector('[data-register-form]')
+      const authTabs = document.querySelectorAll('[data-auth-tab]')
+      const navAccountLinks = document.querySelectorAll('[data-nav-id="cuenta"]')
+      const publishNavItems = document.querySelectorAll('[data-publish-nav]')
+      const modalClosers = document.querySelectorAll('[data-auth-close]')
+      const openRegisterButtons = document.querySelectorAll('[data-open-register]')
+      const openLoginButtons = document.querySelectorAll('[data-open-login]')
+
+      const confirmModal = document.querySelector('[data-confirm-modal]')
+      const confirmTitle = document.querySelector('#confirm-modal-title')
+      const confirmMessage = document.querySelector('[data-confirm-message]')
+      const confirmAcceptButton = document.querySelector('[data-confirm-accept]')
+      const confirmCancelButton = document.querySelector('.confirm-modal [data-confirm-cancel].btn-secondary')
+      const confirmCancelButtons = document.querySelectorAll('[data-confirm-cancel]')
+
+      let authState = { authenticated: false, user: null }
+      let confirmResolver = null
+
+      const backendOrigin = window.location.origin
+      const backendUrl = (path) => `${backendOrigin}${path}`
+
+      const setAuthMessage = (text = '', isError = false) => {
+        if (!authMessage) return
+        authMessage.textContent = text
+        authMessage.classList.toggle('error', isError)
+      }
+
+      const getCookie = (name) => {
+        const value = `; ${document.cookie}`
+        const parts = value.split(`; ${name}=`)
+        if (parts.length === 2) return parts.pop().split(';').shift()
+        return ''
+      }
+
+      const setVisibleAuthView = (view) => {
+        authViews.forEach((section) => {
+          section.hidden = section.getAttribute('data-auth-view') !== view
+        })
+        setAuthMessage('')
+      }
+
+      const openAuthModal = (view) => {
+        if (!authModal) return
+        setVisibleAuthView(view)
+        authModal.removeAttribute('hidden')
+      }
+
+      const closeAuthModal = () => {
+        if (!authModal) return
+        authModal.setAttribute('hidden', '')
+        setAuthMessage('')
+      }
+
+      const closeConfirmModal = (accepted = false) => {
+        if (!confirmModal) return
+        confirmModal.setAttribute('hidden', '')
+        if (confirmResolver) {
+          confirmResolver(accepted)
+          confirmResolver = null
+        }
+      }
+
+      const showStyledConfirm = (message) => {
+        if (!confirmModal || !confirmMessage) {
+          return Promise.resolve(window.confirm(message))
+        }
+
+        if (confirmTitle) confirmTitle.textContent = 'Confirmacion'
+        if (confirmCancelButton) confirmCancelButton.hidden = false
+        if (confirmAcceptButton) confirmAcceptButton.textContent = 'Aceptar'
+        confirmMessage.textContent = message
+        confirmModal.removeAttribute('hidden')
+        return new Promise((resolve) => {
+          confirmResolver = resolve
+        })
+      }
+
+      const showStyledAlert = (message, title = 'Aviso') => {
+        if (!confirmModal || !confirmMessage) {
+          window.alert(message)
+          return Promise.resolve(true)
+        }
+
+        if (confirmTitle) confirmTitle.textContent = title
+        if (confirmCancelButton) confirmCancelButton.hidden = true
+        if (confirmAcceptButton) confirmAcceptButton.textContent = 'Entendido'
+        if (/<[a-z][\s\S]*>/i.test(message)) {
+          confirmMessage.innerHTML = message
+        } else {
+          confirmMessage.textContent = message
+        }
+        confirmModal.removeAttribute('hidden')
+
+        return new Promise((resolve) => {
+          confirmResolver = resolve
+        })
+      }
+
+      window.showStyledConfirm = showStyledConfirm
+      window.showStyledAlert = showStyledAlert
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeAuthModal()
+      })
+
+      confirmAcceptButton?.addEventListener('click', () => closeConfirmModal(true))
+      confirmCancelButtons.forEach((button) => {
+        button.addEventListener('click', () => closeConfirmModal(false))
+      })
+
+      const renderAuthTabs = () => {
+        const accountLabel = authState.authenticated ? 'Cuenta' : 'Registrarse'
+        const authLabel = authState.authenticated ? 'Cerrar sesion' : 'Iniciar sesion'
+        navAccountLinks.forEach((tab) => {
+          tab.textContent = accountLabel
+          tab.setAttribute('href', authState.authenticated ? '/cuenta/' : '#')
+        })
+
+        authTabs.forEach((tab) => {
+          tab.textContent = authLabel
+        })
+
+        const isAdmin = Boolean(
+          authState.authenticated &&
+          (authState.user?.rol === 'admin' || authState.user?.is_staff || authState.user?.is_superuser)
+        )
+        publishNavItems.forEach((item) => {
+          item.hidden = !isAdmin
+        })
+      }
+
+      const refreshSession = async () => {
+        try {
+          const response = await fetch(backendUrl('/api/auth/session/'), { credentials: 'include' })
+          const data = await response.json()
+          authState = data
+        } catch {
+          authState = { authenticated: false, user: null }
+        }
+        renderAuthTabs()
+      }
+
+      if (toggle && mobileNav) {
+        toggle.addEventListener('click', () => {
+          const isOpen = toggle.classList.toggle('open')
+          mobileNav.classList.toggle('open', isOpen)
+          toggle.setAttribute('aria-expanded', String(isOpen))
+        })
+      }
+
+      authTabs.forEach((tab) => {
+        tab.addEventListener('click', async (event) => {
+          event.preventDefault()
+
+          if (!authState.authenticated) {
+            openAuthModal('login')
+            return
+          }
+
+          const shouldLogout = await showStyledConfirm('Quieres cerrar sesion?')
+          if (!shouldLogout) {
+            return
+          }
+
+          await fetch(backendUrl('/api/auth/logout/'), {
+            method: 'POST',
+            credentials: 'include',
+          })
+          authState = { authenticated: false, user: null }
+          renderAuthTabs()
+          window.location.href = '/'
+        })
+      })
+
+      navAccountLinks.forEach((link) => {
+        link.addEventListener('click', (event) => {
+          if (authState.authenticated) return
+          event.preventDefault()
+          openAuthModal('register')
+        })
+      })
+
+      modalClosers.forEach((button) => {
+        button.addEventListener('click', closeAuthModal)
+      })
+
+      openRegisterButtons.forEach((button) => {
+        button.addEventListener('click', () => setVisibleAuthView('register'))
+      })
+
+      openLoginButtons.forEach((button) => {
+        button.addEventListener('click', () => setVisibleAuthView('login'))
+      })
+
+      loginForm?.addEventListener('submit', async (event) => {
+        event.preventDefault()
+        const formData = new FormData(loginForm)
+        const identifier = String(formData.get('identifier') || '').trim()
+        const password = String(formData.get('password') || '')
+
+        if (!identifier || !password) {
+          setAuthMessage('Completa usuario/email y password.', true)
+          return
+        }
+
+        const payload = new URLSearchParams()
+        payload.append('username', identifier)
+        payload.append('password', password)
+
+        const response = await fetch(backendUrl('/api/auth/login/'), {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: payload,
+        })
+
+        let data = null
+        try {
+          data = await response.json()
+        } catch {
+          setAuthMessage('No se pudo procesar la respuesta del servidor.', true)
+          return
+        }
+        if (!response.ok || !data.ok) {
+          setAuthMessage(data.message || 'No se pudo iniciar sesion.', true)
+          return
+        }
+
+        await refreshSession()
+        loginForm.reset()
+        closeAuthModal()
+      })
+
+      registerForm?.addEventListener('submit', async (event) => {
+        event.preventDefault()
+        const formData = new FormData(registerForm)
+        const username = String(formData.get('username') || '').trim()
+        const email = String(formData.get('email') || '').trim()
+        const nombre = String(formData.get('nombre') || '').trim()
+        const apellido = String(formData.get('apellido') || '').trim()
+        const pais = String(formData.get('pais') || '').trim()
+        const password = String(formData.get('password') || '')
+        const passwordConfirm = String(formData.get('password_confirm') || '')
+
+        if (!username || !email || !nombre || !apellido || !pais || !password || !passwordConfirm) {
+          setAuthMessage('Completa todos los campos.', true)
+          return
+        }
+
+        if (password !== passwordConfirm) {
+          setAuthMessage('Las contrasenas no coinciden.', true)
+          return
+        }
+
+        const wantsRegister = await showStyledConfirm(
+          `Confirmas los datos?\n\nUsername: ${username}\nEmail: ${email}\nNombre: ${nombre}\nApellido: ${apellido}\nPais: ${pais}`
+        )
+
+        if (!wantsRegister) {
+          return
+        }
+
+        const payload = new URLSearchParams()
+        payload.append('username', username)
+        payload.append('email', email)
+        payload.append('nombre', nombre)
+        payload.append('apellido', apellido)
+        payload.append('pais', pais)
+        payload.append('password', password)
+
+        const response = await fetch(backendUrl('/api/auth/register/'), {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: payload,
+        })
+
+        const data = await response.json()
+        if (!response.ok || !data.ok) {
+          setAuthMessage(data.message || 'No se pudo crear la cuenta.', true)
+          return
+        }
+
+        authState = { authenticated: true, user: data.user }
+        renderAuthTabs()
+        registerForm.reset()
+        closeAuthModal()
+      })
+
+      refreshSession()
+    </script>
+  </body>
+</html>

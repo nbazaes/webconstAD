@@ -1,0 +1,206 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+
+const buildApiOrigin = import.meta.env.BUILD_API_ORIGIN || 'http://127.0.0.1:8000'
+const response = await fetch(`${buildApiOrigin}/api/productos/`)
+const data = await response.json()
+const products = data.results || []
+---
+
+<BaseLayout title="Productos - Constant Archivos Digitales" page="productos">
+  <main class="content">
+    <section class="products-hero">
+      <h2>PRODUCTOS</h2>
+      <p class="lead">Archivos para <em>imprimir</em> o trabajar <em>digitalmente</em></p>
+    </section>
+
+    {products.length > 0 ? (
+      <section class="products-grid">
+        {products.map((product) => (
+          <article class="product" data-admin-product data-product-id={product.id} data-product-json={JSON.stringify(product)}>
+            <img src={product.imagen || '/static/web/assets/hero1.svg'} alt={product.descripcion || product.nombre} />
+            <a href="#" class="caption" title={product.descripcion || product.nombre}>
+              {product.nombre}
+              <span>{product.coleccion || 'Coleccion'} · ${product.precio || '-'}</span>
+            </a>
+            <div class="published-actions" data-admin-actions hidden>
+              <button class="btn" type="button" data-edit-product>Editar</button>
+              <button class="btn btn-secondary" type="button" data-delete-product>Eliminar</button>
+            </div>
+          </article>
+        ))}
+      </section>
+    ) : (
+      <section class="products-hero text-block">
+        <p>Aun no hay productos de pago publicados.</p>
+      </section>
+    )}
+
+    <div class="global-loading-modal" data-global-loading hidden>
+      <div class="global-loading-modal__backdrop"></div>
+      <div class="global-loading-modal__panel">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <p>Procesando...</p>
+      </div>
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  const backendOrigin = window.location.origin
+  const backendUrl = (path) => `${backendOrigin}${path}`
+  const cards = document.querySelectorAll('[data-admin-product]')
+  const globalLoading = document.querySelector('[data-global-loading]')
+
+  const openLoadingModal = (text = 'Procesando...') => {
+    if (!globalLoading) return
+    const p = globalLoading.querySelector('p')
+    if (p) p.textContent = text
+    globalLoading.removeAttribute('hidden')
+  }
+
+  const closeLoadingModal = () => {
+    globalLoading?.setAttribute('hidden', '')
+  }
+
+  const ensureAdminUi = async () => {
+    const response = await fetch(backendUrl('/api/auth/session/'), { credentials: 'include' })
+    if (!response.ok) return false
+    const data = await response.json()
+    return Boolean(data.authenticated && (data.user?.rol === 'admin' || data.user?.is_staff || data.user?.is_superuser))
+  }
+
+  const createEditModal = async (product) => {
+    const [catRes, colRes] = await Promise.all([
+      fetch(backendUrl('/api/catalog/categorias/'), { credentials: 'include' }),
+      fetch(backendUrl('/api/catalog/colecciones/'), { credentials: 'include' }),
+    ])
+    const catData = await catRes.json()
+    const colData = await colRes.json()
+    const categorias = (catData.results || []).filter((c) => c.es_gratuita)
+    const colecciones = colData.results || []
+
+    const modal = document.createElement('div')
+    modal.className = 'edit-modal'
+    modal.innerHTML = `
+      <div class="edit-modal__backdrop" data-close-edit></div>
+      <div class="edit-modal__panel" role="dialog" aria-modal="true">
+        <h3>Editar producto</h3>
+        <form class="auth-form" data-edit-form>
+          <label>Nombre</label><input name="nombre" type="text" value="${product.nombre || ''}" required />
+          <label>Descripcion</label><textarea name="descripcion" rows="3">${product.descripcion || ''}</textarea>
+          <label>Imagen preview (opcional)</label><input name="imagen" type="file" accept="image/*" />
+          <label>Es gratuito?</label>
+          <select name="es_gratuito" data-edit-gratis>
+            <option value="true" ${product.es_gratuito ? 'selected' : ''}>Si</option>
+            <option value="false" ${!product.es_gratuito ? 'selected' : ''}>No</option>
+          </select>
+          <div data-edit-categoria-wrap ${product.es_gratuito ? '' : 'hidden'}>
+            <label>Categoria</label>
+            <select name="categoria_id">
+              <option value="">Sin categoria</option>
+              ${categorias.map((c) => `<option value="${c.id}" ${product.categoria_id === c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+            </select>
+          </div>
+          <div data-edit-coleccion-wrap ${product.es_gratuito ? 'hidden' : ''}>
+            <label>Coleccion</label>
+            <select name="coleccion_id">
+              <option value="">Sin coleccion</option>
+              ${colecciones.map((c) => `<option value="${c.id}" ${product.coleccion_id === c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+            </select>
+          </div>
+          <label>Paginas</label><input name="paginas" type="number" min="1" step="1" value="${product.paginas || ''}" />
+          <div data-edit-precio-wrap ${product.es_gratuito ? 'hidden' : ''}>
+            <label>Precio</label><input name="precio" type="number" min="0" step="0.01" value="${product.precio || ''}" />
+          </div>
+          <label>Activo?</label>
+          <select name="activo"><option value="true" ${product.activo ? 'selected' : ''}>Si</option><option value="false" ${!product.activo ? 'selected' : ''}>No</option></select>
+          <div class="published-actions">
+            <button class="btn" type="submit">Guardar</button>
+            <button class="btn btn-secondary" type="button" data-close-edit>Cancelar</button>
+          </div>
+        </form>
+      </div>
+    `
+
+    document.body.appendChild(modal)
+    const close = () => modal.remove()
+    modal.querySelectorAll('[data-close-edit]').forEach((el) => el.addEventListener('click', close))
+
+    const gratisSelect = modal.querySelector('[data-edit-gratis]')
+    const categoriaWrap = modal.querySelector('[data-edit-categoria-wrap]')
+    const coleccionWrap = modal.querySelector('[data-edit-coleccion-wrap]')
+    const precioWrap = modal.querySelector('[data-edit-precio-wrap]')
+    const categoriaField = modal.querySelector('select[name="categoria_id"]')
+    const coleccionField = modal.querySelector('select[name="coleccion_id"]')
+    const precioField = modal.querySelector('input[name="precio"]')
+
+    const applyEditRules = () => {
+      const isFree = gratisSelect?.value === 'true'
+      if (categoriaWrap) categoriaWrap.hidden = !isFree
+      if (coleccionWrap) coleccionWrap.hidden = isFree
+      if (precioWrap) precioWrap.hidden = isFree
+      if (categoriaField) categoriaField.disabled = !isFree
+      if (coleccionField) coleccionField.disabled = isFree
+      if (precioField) precioField.disabled = isFree
+      if (isFree) {
+        if (coleccionField) coleccionField.value = ''
+        if (precioField) precioField.value = ''
+      } else if (categoriaField) {
+        categoriaField.value = ''
+      }
+    }
+    gratisSelect?.addEventListener('change', applyEditRules)
+    applyEditRules()
+
+    const form = modal.querySelector('[data-edit-form]')
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault()
+      const ok = await (window.showStyledConfirm
+        ? window.showStyledConfirm(`Confirmas guardar cambios en ${product.nombre}?`)
+        : Promise.resolve(confirm(`Confirmas guardar cambios en ${product.nombre}?`)))
+      if (!ok) return
+
+      const formData = new FormData(form)
+      openLoadingModal('Guardando cambios...')
+      const response = await fetch(backendUrl(`/api/admin/productos/${product.id}/editar/`), {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      })
+      closeLoadingModal()
+      if (!response.ok) return
+      window.location.reload()
+    })
+  }
+
+  ensureAdminUi().then((isAdmin) => {
+    if (!isAdmin) {
+      document.querySelectorAll('[data-admin-actions]').forEach((actions) => actions.setAttribute('hidden', ''))
+      return
+    }
+
+    document.querySelectorAll('[data-admin-actions]').forEach((actions) => actions.removeAttribute('hidden'))
+    cards.forEach((card) => {
+      const product = JSON.parse(card.getAttribute('data-product-json') || '{}')
+
+      card.querySelector('[data-delete-product]')?.addEventListener('click', async () => {
+        const ok = await (window.showStyledConfirm
+          ? window.showStyledConfirm(`Confirmas eliminar ${product.nombre}?`)
+          : Promise.resolve(confirm(`Confirmas eliminar ${product.nombre}?`)))
+        if (!ok) return
+
+        openLoadingModal('Eliminando producto...')
+        const response = await fetch(backendUrl(`/api/admin/productos/${product.id}/eliminar/`), {
+          method: 'POST',
+          credentials: 'include',
+        })
+        closeLoadingModal()
+        if (!response.ok) return
+        window.location.reload()
+      })
+
+      card.querySelector('[data-edit-product]')?.addEventListener('click', () => createEditModal(product))
+    })
+  })
+</script>

@@ -1,0 +1,171 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+---
+
+<BaseLayout title="Cuenta - Constant Archivos Digitales" page="cuenta">
+  <main class="content">
+    <section class="products-hero text-block">
+      <h2>CUENTA</h2>
+      <p class="lead">Revisa y actualiza tus datos personales.</p>
+    </section>
+
+    <section class="products-hero text-block account-page-card" data-account-page>
+      <p>Cargando informacion de tu cuenta...</p>
+    </section>
+
+    <section class="products-hero text-block account-page-card" data-login-page hidden>
+      <h3>Iniciar sesion</h3>
+      <form class="auth-form" data-page-login-form>
+        <label for="page-login-identifier">Usuario o email</label>
+        <input id="page-login-identifier" name="identifier" type="text" required />
+
+        <label for="page-login-password">Password</label>
+        <input id="page-login-password" name="password" type="password" required />
+
+        <button class="btn" type="submit">Iniciar sesion</button>
+      </form>
+    </section>
+  </main>
+</BaseLayout>
+
+<script>
+  const accountContainer = document.querySelector('[data-account-page]')
+  const loginContainer = document.querySelector('[data-login-page]')
+  const pageLoginForm = document.querySelector('[data-page-login-form]')
+
+  const backendOrigin = window.location.origin
+  const backendUrl = (path) => `${backendOrigin}${path}`
+
+  const renderAccount = (user) => {
+    if (!accountContainer) return
+    accountContainer.innerHTML = `
+      <h3>Datos de cuenta</h3>
+      <form class="auth-form" data-page-account-form>
+        <label for="page-account-username">Username</label>
+        <input id="page-account-username" type="text" value="${user.username || ''}" disabled />
+
+        <label for="page-account-email">Email</label>
+        <input id="page-account-email" type="email" value="${user.email || ''}" disabled />
+
+        <label for="page-account-nombre">Nombre</label>
+        <input id="page-account-nombre" name="nombre" type="text" value="${user.nombre || ''}" required />
+
+        <label for="page-account-apellido">Apellido</label>
+        <input id="page-account-apellido" name="apellido" type="text" value="${user.apellido || ''}" required />
+
+        <label for="page-account-pais">Pais</label>
+        <input id="page-account-pais" name="pais" type="text" value="${user.pais || ''}" required />
+
+        <label for="page-account-password">Nueva password (opcional)</label>
+        <input id="page-account-password" name="password" type="password" minlength="8" />
+
+        <label for="page-account-password-confirm">Confirmar nueva password</label>
+        <input id="page-account-password-confirm" name="password_confirm" type="password" minlength="8" />
+
+        <button class="btn" type="submit">Guardar cambios</button>
+      </form>
+      <p class="auth-message" data-page-account-message></p>
+    `
+
+    const form = accountContainer.querySelector('[data-page-account-form]')
+    const message = accountContainer.querySelector('[data-page-account-message]')
+
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault()
+      const formData = new FormData(form)
+      const nombre = String(formData.get('nombre') || '').trim()
+      const apellido = String(formData.get('apellido') || '').trim()
+      const pais = String(formData.get('pais') || '').trim()
+      const password = String(formData.get('password') || '')
+      const passwordConfirm = String(formData.get('password_confirm') || '')
+
+      if (!nombre || !apellido || !pais) {
+        message.textContent = 'Nombre, apellido y pais son obligatorios.'
+        message.classList.add('error')
+        return
+      }
+
+      if ((password || passwordConfirm) && password !== passwordConfirm) {
+        message.textContent = 'Las contrasenas no coinciden.'
+        message.classList.add('error')
+        return
+      }
+
+      const wantsSave = await (window.showStyledConfirm
+        ? window.showStyledConfirm(`Confirmas actualizar tu cuenta?\n\nNombre: ${nombre}\nApellido: ${apellido}\nPais: ${pais}${password ? '\nPassword: (se actualizara)' : ''}`)
+        : Promise.resolve(confirm(`Confirmas actualizar tu cuenta?\n\nNombre: ${nombre}\nApellido: ${apellido}\nPais: ${pais}${password ? '\nPassword: (se actualizara)' : ''}`)))
+
+      if (!wantsSave) {
+        return
+      }
+
+      const payload = new URLSearchParams()
+      payload.append('nombre', nombre)
+      payload.append('apellido', apellido)
+      payload.append('pais', pais)
+      payload.append('password', password)
+      payload.append('password_confirm', passwordConfirm)
+
+      const response = await fetch(backendUrl('/api/auth/account/update/'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: payload,
+      })
+
+      const data = await response.json()
+      if (!response.ok || !data.ok) {
+        message.textContent = data.message || 'No se pudo actualizar la cuenta.'
+        message.classList.add('error')
+        return
+      }
+
+      message.textContent = 'Cuenta actualizada correctamente.'
+      message.classList.remove('error')
+      renderAccount(data.user)
+    })
+  }
+
+  const loadSession = async () => {
+    const response = await fetch(backendUrl('/api/auth/session/'), { credentials: 'include' })
+    const data = await response.json()
+
+    if (!data.authenticated) {
+      accountContainer?.setAttribute('hidden', '')
+      loginContainer?.removeAttribute('hidden')
+      return
+    }
+
+    loginContainer?.setAttribute('hidden', '')
+    accountContainer?.removeAttribute('hidden')
+    renderAccount(data.user)
+  }
+
+  pageLoginForm?.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    const formData = new FormData(pageLoginForm)
+    const identifier = String(formData.get('identifier') || '').trim()
+    const password = String(formData.get('password') || '')
+
+    const payload = new URLSearchParams()
+    payload.append('username', identifier)
+    payload.append('password', password)
+
+    const response = await fetch(backendUrl('/api/auth/login/'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: payload,
+    })
+
+    if (!response.ok) return
+    pageLoginForm.reset()
+    loadSession()
+  })
+
+  loadSession()
+</script>

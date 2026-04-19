@@ -1,0 +1,125 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+
+const buildApiOrigin = import.meta.env.BUILD_API_ORIGIN || 'http://127.0.0.1:8000'
+
+const respuesta = await fetch(`${buildApiOrigin}/api/categorias/`)
+const datos = await respuesta.json()
+const categorias = datos.results || []
+
+const allCategoriasRes = await fetch(`${buildApiOrigin}/api/catalog/categorias/`)
+const allCategoriasData = await allCategoriasRes.json()
+const categoriasGratis = (allCategoriasData.results || []).filter((c) => c.es_gratuita)
+
+const categoriasConImagen = new Map(categorias.map((item) => [item.slug, item]))
+const categoriasRender = categoriasGratis.map((item) => {
+  const fromList = categoriasConImagen.get(item.slug)
+  return {
+    ...item,
+    descripcion: fromList?.descripcion || '',
+    imagen: fromList?.imagen || null,
+  }
+})
+---
+
+<BaseLayout title="Gratis - Constant Archivos Digitales" page="gratis">
+  <main class="content">
+    <section class="products-hero text-block">
+      <h2>GRATIS</h2>
+      <p class="lead">Recursos gratuitos para probar el estilo de trabajo digital e impreso.</p>
+    </section>
+
+    {categoriasRender.length > 0 ? (
+      <section class="products-grid">
+        {categoriasRender.map((cat) => (
+          <div class="product">
+            <a href={`/gratis/${cat.slug}/`} class="product-link" title={cat.descripcion || ''}>
+              {cat.imagen ? (
+                <img 
+                  src={cat.imagen} 
+                  alt={cat.descripcion || cat.nombre}
+                />
+              ) : (
+                <div class="card">
+                  <img src="/static/web/assets/g345.png" alt="Sin imagen" />
+                </div>
+              )}
+            </a>
+            <a href={`/gratis/${cat.slug}/`} class="product-title" title={cat.descripcion || ''}>
+              {cat.nombre}
+            </a>
+          </div>
+        ))}
+      </section>
+    ) : (
+      <section class="products-hero text-block">
+        <p>Próximamente recursos gratuitos.</p>
+        <ul>
+          <li>Plantillas de práctica</li>
+          <li>Mini colecciones de muestra</li>
+          <li>Recursos estacionales</li>
+        </ul>
+      </section>
+    )}
+  </main>
+</BaseLayout>
+
+<style>
+  .product-link {
+    display: block;
+    text-decoration: none;
+    width: 286px;
+    height: 372px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .product-link img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 6px;
+    box-shadow: none;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .product-link:hover img,
+  .product-link:focus-visible img,
+  .product-link:active img {
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+    transform: translateY(-3px);
+  }
+  .product-title {
+    display: block;
+    margin-top: 12px;
+    color: #111;
+    text-decoration: none;
+    font-family: 'PT Serif', serif;
+    font-weight: 600;
+    font-size: 1.2rem;
+  }
+  .product-title span {
+    display: block;
+    font-weight: 400;
+    color: #333;
+    font-size: 1rem;
+  }
+
+  @media (max-width: 700px) {
+    .products-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      padding: 0 8px;
+    }
+
+    .product-link {
+      width: 150px;
+      height: 195px;
+    }
+
+    .product-title {
+      font-size: 1rem;
+      margin-top: 8px;
+    }
+  }
+</style>

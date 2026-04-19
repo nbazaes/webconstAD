@@ -1,0 +1,596 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+---
+
+<BaseLayout title="Publicar - Constant Archivos Digitales" page="publicar">
+  <main class="content">
+    <section class="products-hero text-block">
+      <h2>PUBLICAR</h2>
+      <p class="lead">Sube productos gratis o de pago desde un solo formulario.</p>
+    </section>
+
+    <section class="products-hero text-block account-page-card" data-publicar-section>
+      <div class="published-actions" style="justify-content: flex-start; margin-bottom: 12px;" data-open-create-row hidden>
+        <button class="btn" type="button" data-open-create-catalogo>Crear categoria o coleccion</button>
+      </div>
+
+      <p data-publicar-loading>Cargando formulario...</p>
+
+      <form class="auth-form" data-publicar-form hidden>
+        <label for="pub-nombre">Nombre</label>
+        <input id="pub-nombre" name="nombre" type="text" required />
+
+        <input id="pub-slug" name="slug" type="text" hidden />
+
+        <label for="pub-descripcion">Descripcion</label>
+        <textarea id="pub-descripcion" name="descripcion" rows="4"></textarea>
+
+        <label for="pub-es-gratuito">Es gratuito?</label>
+        <select id="pub-es-gratuito" name="es_gratuito" required>
+          <option value="false" selected>No (de pago)</option>
+          <option value="true">Si (gratis)</option>
+        </select>
+
+        <label for="pub-precio" data-price-label>Precio</label>
+        <input id="pub-precio" name="precio" type="number" min="0" step="0.01" placeholder="10000" />
+
+        <label for="pub-paginas">Paginas (opcional)</label>
+        <input id="pub-paginas" name="paginas" type="number" min="1" step="1" />
+
+        <label for="pub-activo">Activo?</label>
+        <select id="pub-activo" name="activo" required>
+          <option value="true" selected>Si</option>
+          <option value="false">No</option>
+        </select>
+
+        <div data-categoria-block>
+          <label for="pub-categoria">Categoria (para gratis)</label>
+          <select id="pub-categoria" name="categoria_id">
+            <option value="">Sin categoria</option>
+          </select>
+        </div>
+
+        <div data-coleccion-block>
+          <label for="pub-coleccion">Coleccion (para pago)</label>
+          <select id="pub-coleccion" name="coleccion_id">
+            <option value="">Sin coleccion</option>
+          </select>
+        </div>
+
+        <label for="pub-imagen">Imagen (preview)</label>
+        <input id="pub-imagen" name="imagen" type="file" accept="image/*" />
+
+        <label for="pub-archivo">Archivo (producto)</label>
+        <input id="pub-archivo" name="archivo" type="file" />
+
+        <button class="btn" type="submit">Publicar producto</button>
+      </form>
+
+      <div class="publicar-list" data-publicar-list hidden>
+        <h3>Productos publicados</h3>
+        <div data-publicar-items></div>
+      </div>
+
+      <p class="auth-message" data-publicar-message aria-live="polite"></p>
+    </section>
+
+    <div class="catalog-modal" data-catalogo-modal hidden>
+      <div class="catalog-modal__backdrop" data-close-catalogo></div>
+      <div class="catalog-modal__panel" role="dialog" aria-modal="true">
+        <h3>Crear categoria o coleccion</h3>
+        <form class="auth-form" data-catalogo-form>
+          <label for="cat-tipo">Tipo</label>
+          <select id="cat-tipo" name="tipo" required>
+            <option value="categoria">Categoria</option>
+            <option value="coleccion">Coleccion</option>
+          </select>
+
+          <label for="cat-nombre">Nombre</label>
+          <input id="cat-nombre" name="nombre" type="text" required />
+
+          <label for="cat-descripcion">Descripcion</label>
+          <textarea id="cat-descripcion" name="descripcion" rows="3"></textarea>
+
+          <div data-cat-gratuita-wrap>
+            <label for="cat-es-gratuita">Es gratuita?</label>
+            <select id="cat-es-gratuita" name="es_gratuita">
+              <option value="true" selected>Si</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+
+          <label for="cat-imagen">Imagen (opcional)</label>
+          <input id="cat-imagen" name="imagen" type="file" accept="image/*" />
+
+          <div class="published-actions">
+            <button class="btn" type="submit">Crear</button>
+            <button class="btn btn-secondary" type="button" data-close-catalogo>Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="global-loading-modal" data-global-loading hidden>
+      <div class="global-loading-modal__backdrop"></div>
+      <div class="global-loading-modal__panel">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <p>Procesando...</p>
+      </div>
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  const publicarForm = document.querySelector('[data-publicar-form]')
+  const publicarMessage = document.querySelector('[data-publicar-message]')
+  const publicarLoading = document.querySelector('[data-publicar-loading]')
+  const categoriaSelect = document.querySelector('#pub-categoria')
+  const coleccionSelect = document.querySelector('#pub-coleccion')
+  const categoriaBlock = document.querySelector('[data-categoria-block]')
+  const coleccionBlock = document.querySelector('[data-coleccion-block]')
+  const gratuitoSelect = document.querySelector('#pub-es-gratuito')
+  const precioInput = document.querySelector('#pub-precio')
+  const nombreInput = document.querySelector('#pub-nombre')
+  const slugInput = document.querySelector('#pub-slug')
+  const publicarList = document.querySelector('[data-publicar-list]')
+  const publicarItems = document.querySelector('[data-publicar-items]')
+  const openCreateRow = document.querySelector('[data-open-create-row]')
+  const openCreateCatalogoButton = document.querySelector('[data-open-create-catalogo]')
+  const catalogoModal = document.querySelector('[data-catalogo-modal]')
+  const closeCatalogoButtons = document.querySelectorAll('[data-close-catalogo]')
+  const catalogoForm = document.querySelector('[data-catalogo-form]')
+  const catalogoTipoSelect = document.querySelector('#cat-tipo')
+  const catalogoGratisWrap = document.querySelector('[data-cat-gratuita-wrap]')
+  const globalLoading = document.querySelector('[data-global-loading]')
+
+  let allCategorias = []
+  let allColecciones = []
+
+  const backendOrigin = window.location.origin
+  const backendUrl = (path) => `${backendOrigin}${path}`
+
+  const setMessage = (text = '', isError = false) => {
+    if (!publicarMessage) return
+    publicarMessage.textContent = text
+    publicarMessage.classList.toggle('error', isError)
+  }
+
+  const openLoadingModal = (text = 'Procesando...') => {
+    if (globalLoading) {
+      const p = globalLoading.querySelector('p')
+      if (p) p.textContent = text
+      globalLoading.removeAttribute('hidden')
+    }
+  }
+
+  const closeLoadingModal = () => {
+    globalLoading?.setAttribute('hidden', '')
+  }
+
+  const waitForBuildReady = async () => {
+    let attempts = 0
+    while (attempts < 120) {
+      attempts += 1
+      const response = await fetch(backendUrl('/api/build/status/'), { credentials: 'include' })
+      if (response.ok) {
+        const data = await response.json()
+        const status = data?.build?.status
+        if (status === 'ready') {
+          return { ok: true }
+        }
+        if (status === 'error') {
+          return { ok: false, message: data?.build?.last_error || 'Build failed' }
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    }
+    return { ok: false, message: 'Build timeout' }
+  }
+
+  const openCatalogoModal = () => catalogoModal?.removeAttribute('hidden')
+  const closeCatalogoModal = () => catalogoModal?.setAttribute('hidden', '')
+
+  const ensureAdmin = async () => {
+    const response = await fetch(backendUrl('/api/auth/session/'), { credentials: 'include' })
+    const data = await response.json()
+
+    if (!data.authenticated) {
+      window.location.href = '/'
+      return false
+    }
+
+    const isAdmin = data.user?.rol === 'admin' || data.user?.is_staff || data.user?.is_superuser
+    if (!isAdmin) {
+      window.location.href = '/'
+      return false
+    }
+
+    return true
+  }
+
+  const fillSelect = (select, items, valueKey = 'id', labelKey = 'nombre') => {
+    if (!select) return
+    items.forEach((item) => {
+      const option = document.createElement('option')
+      option.value = String(item[valueKey])
+      option.textContent = item[labelKey]
+      select.appendChild(option)
+    })
+  }
+
+  const loadCatalogs = async () => {
+    const [catRes, colRes] = await Promise.all([
+      fetch(backendUrl('/api/catalog/categorias/'), { credentials: 'include' }),
+      fetch(backendUrl('/api/catalog/colecciones/'), { credentials: 'include' }),
+    ])
+
+    const categoriasData = await catRes.json()
+    const coleccionesData = await colRes.json()
+    allCategorias = categoriasData.results || []
+    allColecciones = coleccionesData.results || []
+
+    if (categoriaSelect) categoriaSelect.innerHTML = '<option value="">Sin categoria</option>'
+    if (coleccionSelect) coleccionSelect.innerHTML = '<option value="">Sin coleccion</option>'
+    fillSelect(categoriaSelect, allCategorias.filter((item) => item.es_gratuita))
+    fillSelect(coleccionSelect, allColecciones)
+  }
+
+  const applyPricingRules = () => {
+    const isFree = gratuitoSelect?.value === 'true'
+    if (precioInput) {
+      precioInput.disabled = isFree
+      if (isFree) precioInput.value = ''
+    }
+
+    if (categoriaBlock) categoriaBlock.hidden = !isFree
+    if (coleccionBlock) coleccionBlock.hidden = isFree
+
+    if (categoriaSelect) categoriaSelect.disabled = !isFree
+    if (coleccionSelect) coleccionSelect.disabled = isFree
+    if (isFree) {
+      if (coleccionSelect) coleccionSelect.value = ''
+    } else {
+      if (categoriaSelect) categoriaSelect.value = ''
+    }
+  }
+
+  const loadPublishedProducts = async () => {
+    const response = await fetch(backendUrl('/api/admin/productos/'), { credentials: 'include' })
+    if (!response.ok || !publicarItems || !publicarList) return
+    const data = await response.json()
+    const items = data.results || []
+
+    if (!items.length) {
+      publicarItems.innerHTML = '<p>Aun no hay productos publicados.</p>'
+      publicarList.removeAttribute('hidden')
+      return
+    }
+
+    publicarItems.innerHTML = items
+      .map(
+        (item) => `
+          <article class="published-item" data-published-item data-product-id="${item.id}">
+            <div>
+              <h4>${item.nombre}</h4>
+              <p>${item.es_gratuito ? 'Gratis' : 'Pago'} · ${item.es_gratuito ? (item.categoria_nombre || 'Sin categoria') : (item.coleccion_nombre || 'Sin coleccion')}</p>
+            </div>
+            <div class="published-actions">
+              <button class="btn" type="button" data-edit-product>Editar</button>
+              <button class="btn btn-secondary" type="button" data-delete-product>Eliminar</button>
+            </div>
+          </article>
+        `
+      )
+      .join('')
+
+    publicarList.removeAttribute('hidden')
+  }
+
+  const createEditModal = (product) => {
+    const modal = document.createElement('div')
+    modal.className = 'edit-modal'
+    modal.innerHTML = `
+      <div class="edit-modal__backdrop" data-close-edit></div>
+      <div class="edit-modal__panel" role="dialog" aria-modal="true">
+        <h3>Editar producto</h3>
+        <form class="auth-form" data-edit-form>
+          <label>Nombre</label>
+          <input name="nombre" type="text" value="${product.nombre || ''}" required />
+
+          <label>Descripcion</label>
+          <textarea name="descripcion" rows="3">${product.descripcion || ''}</textarea>
+
+          <label>Imagen preview (opcional)</label>
+          <input name="imagen" type="file" accept="image/*" />
+
+          <label>Es gratuito?</label>
+          <select name="es_gratuito" data-edit-gratis>
+            <option value="true" ${product.es_gratuito ? 'selected' : ''}>Si</option>
+            <option value="false" ${!product.es_gratuito ? 'selected' : ''}>No</option>
+          </select>
+
+          <div data-edit-categoria-wrap ${product.es_gratuito ? '' : 'hidden'}>
+            <label>Categoria</label>
+            <select name="categoria_id">
+              <option value="">Sin categoria</option>
+              ${allCategorias.filter((c) => c.es_gratuita).map((c) => `<option value="${c.id}" ${product.categoria_id === c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+            </select>
+          </div>
+
+          <div data-edit-coleccion-wrap ${product.es_gratuito ? 'hidden' : ''}>
+            <label>Coleccion</label>
+            <select name="coleccion_id">
+              <option value="">Sin coleccion</option>
+              ${allColecciones.map((c) => `<option value="${c.id}" ${product.coleccion_id === c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+            </select>
+          </div>
+
+          <label>Paginas</label>
+          <input name="paginas" type="number" min="1" step="1" value="${product.paginas || ''}" />
+
+          <div data-edit-precio-wrap ${product.es_gratuito ? 'hidden' : ''}>
+            <label>Precio</label>
+            <input name="precio" type="number" min="0" step="0.01" value="${product.precio || ''}" />
+          </div>
+
+          <label>Activo?</label>
+          <select name="activo">
+            <option value="true" ${product.activo ? 'selected' : ''}>Si</option>
+            <option value="false" ${!product.activo ? 'selected' : ''}>No</option>
+          </select>
+
+          <div class="published-actions">
+            <button class="btn" type="submit">Guardar</button>
+            <button class="btn btn-secondary" type="button" data-close-edit>Cancelar</button>
+          </div>
+        </form>
+      </div>
+    `
+
+    document.body.appendChild(modal)
+    const close = () => modal.remove()
+    modal.querySelectorAll('[data-close-edit]').forEach((el) => el.addEventListener('click', close))
+
+    const gratisSelect = modal.querySelector('[data-edit-gratis]')
+    const categoriaWrap = modal.querySelector('[data-edit-categoria-wrap]')
+    const coleccionWrap = modal.querySelector('[data-edit-coleccion-wrap]')
+    const precioWrap = modal.querySelector('[data-edit-precio-wrap]')
+    const categoriaField = modal.querySelector('select[name="categoria_id"]')
+    const coleccionField = modal.querySelector('select[name="coleccion_id"]')
+    const precioField = modal.querySelector('input[name="precio"]')
+
+    const applyEditRules = () => {
+      const isFree = gratisSelect?.value === 'true'
+      if (categoriaWrap) categoriaWrap.hidden = !isFree
+      if (coleccionWrap) coleccionWrap.hidden = isFree
+      if (precioWrap) precioWrap.hidden = isFree
+      if (categoriaField) categoriaField.disabled = !isFree
+      if (coleccionField) coleccionField.disabled = isFree
+      if (precioField) precioField.disabled = isFree
+      if (isFree) {
+        if (coleccionField) coleccionField.value = ''
+        if (precioField) precioField.value = ''
+      } else if (categoriaField) {
+        categoriaField.value = ''
+      }
+    }
+
+    gratisSelect?.addEventListener('change', applyEditRules)
+    applyEditRules()
+
+    const form = modal.querySelector('[data-edit-form]')
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault()
+      const ok = await (window.showStyledConfirm
+        ? window.showStyledConfirm(`Confirmas guardar cambios en ${product.nombre}?`)
+        : Promise.resolve(confirm(`Confirmas guardar cambios en ${product.nombre}?`)))
+      if (!ok) return
+
+      const formData = new FormData(form)
+      openLoadingModal('Guardando cambios...')
+      const response = await fetch(backendUrl(`/api/admin/productos/${product.id}/editar/`), {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      })
+      closeLoadingModal()
+
+      if (!response.ok) {
+        setMessage('No se pudo editar el producto.', true)
+        return
+      }
+
+      close()
+      await loadPublishedProducts()
+      setMessage('Producto actualizado correctamente.')
+    })
+  }
+
+  gratuitoSelect?.addEventListener('change', applyPricingRules)
+
+  const slugify = (text) =>
+    text
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+
+  let slugTouchedManually = false
+  slugInput?.addEventListener('input', () => {
+    slugTouchedManually = true
+  })
+  nombreInput?.addEventListener('input', () => {
+    if (!slugInput || slugTouchedManually) return
+    slugInput.value = slugify(nombreInput.value || '')
+  })
+
+  publicarForm?.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    setMessage('')
+
+    const isAdmin = await ensureAdmin()
+    if (!isAdmin) return
+
+    const formData = new FormData(publicarForm)
+    const esGratuito = String(formData.get('es_gratuito')) === 'true'
+    const precio = String(formData.get('precio') || '').trim()
+    const nombre = String(formData.get('nombre') || '').trim()
+
+    if (!nombre) {
+      setMessage('Nombre es obligatorio.', true)
+      return
+    }
+    if (!esGratuito && !precio) {
+      setMessage('Precio es obligatorio para productos de pago.', true)
+      return
+    }
+
+    const wantsPublish = await (window.showStyledConfirm
+      ? window.showStyledConfirm(`Confirmas publicar este producto?\n\nNombre: ${nombre}\nTipo: ${esGratuito ? 'Gratis' : 'Pago'}`)
+      : Promise.resolve(confirm(`Confirmas publicar este producto?\n\nNombre: ${nombre}\nTipo: ${esGratuito ? 'Gratis' : 'Pago'}`)))
+    if (!wantsPublish) return
+
+    formData.set('es_gratuito', esGratuito ? 'true' : 'false')
+
+    openLoadingModal('Publicando producto...')
+    const response = await fetch(backendUrl('/api/publicar/producto/'), {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    })
+    const data = await response.json()
+    closeLoadingModal()
+
+    if (!response.ok || !data.ok) {
+      setMessage(data.message || 'No se pudo publicar el producto.', true)
+      return
+    }
+
+    publicarForm.reset()
+    slugTouchedManually = false
+    applyPricingRules()
+    setMessage('')
+
+    await (window.showStyledAlert
+      ? window.showStyledAlert(`Publicacion ${data.producto?.nombre || ''} exitosa!`, 'Publicacion')
+      : Promise.resolve(alert(`Publicacion ${data.producto?.nombre || ''} exitosa!`)))
+
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    await loadPublishedProducts()
+  })
+
+  const applyCatalogoTypeRules = () => {
+    if (!catalogoTipoSelect || !catalogoGratisWrap) return
+    catalogoGratisWrap.hidden = catalogoTipoSelect.value !== 'categoria'
+  }
+
+  openCreateCatalogoButton?.addEventListener('click', openCatalogoModal)
+  closeCatalogoButtons.forEach((button) => button.addEventListener('click', closeCatalogoModal))
+  catalogoTipoSelect?.addEventListener('change', applyCatalogoTypeRules)
+
+  catalogoForm?.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    const formData = new FormData(catalogoForm)
+    const tipo = String(formData.get('tipo') || '')
+    const nombre = String(formData.get('nombre') || '').trim()
+
+    if (!nombre) {
+      setMessage('Nombre es obligatorio para crear catalogo.', true)
+      return
+    }
+
+    const ok = await (window.showStyledConfirm
+      ? window.showStyledConfirm(`Confirmas crear ${tipo}: ${nombre}?`)
+      : Promise.resolve(confirm(`Confirmas crear ${tipo}: ${nombre}?`)))
+    if (!ok) return
+
+    openLoadingModal('Creando categoria...')
+    const response = await fetch(backendUrl('/api/admin/catalogo/crear/'), {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    })
+    const data = await response.json()
+
+    if (!response.ok || !data.ok) {
+      closeLoadingModal()
+      setMessage(data.message || 'No se pudo crear el catalogo.', true)
+      return
+    }
+
+    openLoadingModal('Creando categoria...')
+    const buildResult = await waitForBuildReady()
+    closeLoadingModal()
+    if (!buildResult.ok) {
+      setMessage(`Categoria/Coleccion creada, pero el build fallo: ${buildResult.message}`, true)
+      return
+    }
+
+    catalogoForm.reset()
+    applyCatalogoTypeRules()
+    closeCatalogoModal()
+    setMessage(`${data.tipo} creada: ${data.nombre}`)
+
+    await loadCatalogs()
+    applyPricingRules()
+  })
+
+  publicarItems?.addEventListener('click', async (event) => {
+    const card = event.target.closest('[data-published-item]')
+    if (!card) return
+
+    const productId = card.getAttribute('data-product-id')
+    if (!productId) return
+
+    if (event.target.matches('[data-delete-product]')) {
+      const productName = card.querySelector('h4')?.textContent || 'producto'
+      const ok = await (window.showStyledConfirm
+        ? window.showStyledConfirm(`Confirmas eliminar ${productName}?`)
+        : Promise.resolve(confirm(`Confirmas eliminar ${productName}?`)))
+      if (!ok) return
+
+      openLoadingModal('Eliminando producto...')
+      const response = await fetch(backendUrl(`/api/admin/productos/${productId}/eliminar/`), {
+        method: 'POST',
+        credentials: 'include',
+      })
+      closeLoadingModal()
+
+      if (!response.ok) {
+        setMessage('No se pudo eliminar el producto.', true)
+        return
+      }
+
+      await loadPublishedProducts()
+      setMessage('Producto eliminado correctamente.')
+    }
+
+    if (event.target.matches('[data-edit-product]')) {
+      const response = await fetch(backendUrl('/api/admin/productos/'), { credentials: 'include' })
+      if (!response.ok) return
+      const data = await response.json()
+      const product = (data.results || []).find((item) => String(item.id) === String(productId))
+      if (!product) return
+      createEditModal(product)
+    }
+  })
+
+  const init = async () => {
+    const isAdmin = await ensureAdmin()
+    if (!isAdmin) return
+
+    if (openCreateRow) openCreateRow.hidden = false
+    await loadCatalogs()
+    applyPricingRules()
+    applyCatalogoTypeRules()
+    await loadPublishedProducts()
+
+    publicarLoading?.setAttribute('hidden', '')
+    publicarForm?.removeAttribute('hidden')
+  }
+
+  init()
+</script>

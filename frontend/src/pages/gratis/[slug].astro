@@ -1,0 +1,512 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'
+
+export async function getStaticPaths() {
+  const buildApiOrigin = import.meta.env.BUILD_API_ORIGIN || 'http://127.0.0.1:8000'
+  const res = await fetch(`${buildApiOrigin}/api/catalog/categorias/`)
+  const data = await res.json()
+  const categorias = (data.results || []).filter((c) => c.es_gratuita)
+
+  return categorias.map((categoria) => ({
+    params: { slug: categoria.slug },
+  }))
+}
+
+---
+
+<BaseLayout title="Categoria Gratis - Constant Archivos Digitales" page="gratis">
+  <main class="content">
+    <section class="products-hero text-block">
+      <h2 data-cat-title>Categoria</h2>
+      <p class="lead" data-cat-description hidden></p>
+    </section>
+
+    <section class="products-grid" data-cat-products hidden></section>
+    <section class="products-hero text-block" data-cat-empty hidden>
+      <p>No hay productos en esta categoria todavia.</p>
+    </section>
+  </main>
+
+  <div class="download-modal" data-download-modal hidden>
+    <div class="download-modal__backdrop" data-close-modal></div>
+    <div class="download-modal__panel" role="dialog" aria-modal="true" aria-labelledby="download-modal-title">
+      <h3 id="download-modal-title">Descargar producto</h3>
+      <p data-modal-message></p>
+      <div class="download-modal__actions">
+        <button type="button" class="btn btn-secondary" data-cancel-download>Cerrar</button>
+        <button type="button" class="btn" data-confirm-download>Descargar</button>
+      </div>
+      <div data-guest-subscription hidden>
+        <hr style="margin: 16px 0; border: 0; border-top: 1px solid #e8d8cc;" />
+        <p><strong>Sigueme en Instagram para mas!</strong> <a href="https://www.instagram.com/constantdesigns/" target="_blank" rel="noopener">@constantdesigns</a></p>
+        <p style="margin-top: 12px;">Quieres recibir notificaciones? Escribe tu correo para recibir las noticias de los nuevos productos.</p>
+        <div class="auth-form" style="gap: 8px;">
+          <input type="email" placeholder="tu@email.com" data-newsletter-email />
+          <button type="button" class="btn" data-newsletter-save>Guardar correo</button>
+        </div>
+        <p class="auth-message" data-newsletter-status style="margin-top: 8px;"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="global-loading-modal" data-global-loading hidden>
+    <div class="global-loading-modal__backdrop"></div>
+    <div class="global-loading-modal__panel">
+      <span class="loading-spinner" aria-hidden="true"></span>
+      <p>Procesando...</p>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  const titleNode = document.querySelector('[data-cat-title]')
+  const descriptionNode = document.querySelector('[data-cat-description]')
+  const productsGrid = document.querySelector('[data-cat-products]')
+  const emptyNode = document.querySelector('[data-cat-empty]')
+  const wrappers = () => document.querySelectorAll('[data-admin-product]')
+  const modal = document.querySelector('[data-download-modal]')
+  const closeButtons = document.querySelectorAll('[data-close-modal], [data-cancel-download]')
+  const confirmButton = document.querySelector('[data-confirm-download]')
+  const message = document.querySelector('[data-modal-message]')
+  const newsletterInput = document.querySelector('[data-newsletter-email]')
+  const newsletterSave = document.querySelector('[data-newsletter-save]')
+  const newsletterStatus = document.querySelector('[data-newsletter-status]')
+  const guestSubscription = document.querySelector('[data-guest-subscription]')
+  const globalLoading = document.querySelector('[data-global-loading]')
+
+  const backendOrigin = window.location.origin
+  const backendUrl = (path) => `${backendOrigin}${path}`
+  let isGuestUser = true
+
+  let selectedUrl = ''
+  let selectedName = ''
+
+  const openLoadingModal = (text = 'Procesando...') => {
+    if (!globalLoading) return
+    const p = globalLoading.querySelector('p')
+    if (p) p.textContent = text
+    globalLoading.removeAttribute('hidden')
+  }
+
+  const closeLoadingModal = () => globalLoading?.setAttribute('hidden', '')
+
+  const closeModal = () => {
+    if (!modal) return
+    modal.setAttribute('hidden', '')
+    selectedUrl = ''
+    guestSubscription?.setAttribute('hidden', '')
+    if (newsletterStatus) newsletterStatus.textContent = ''
+    if (newsletterInput) newsletterInput.value = ''
+  }
+
+  closeButtons.forEach((button) => button.addEventListener('click', closeModal))
+
+  confirmButton?.addEventListener('click', async () => {
+    if (!selectedUrl) {
+      closeModal()
+      return
+    }
+
+    const link = document.createElement('a')
+    link.href = selectedUrl
+    link.rel = 'noopener'
+    link.target = '_blank'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+
+    if (message) {
+      message.textContent = 'Producto descargado exitosamente.'
+    }
+
+    if (isGuestUser) {
+      guestSubscription?.removeAttribute('hidden')
+    }
+
+  })
+
+  const wireDownloadCards = () => {
+    if (!productsGrid) return
+    productsGrid.querySelectorAll('.free-product-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        selectedUrl = card.getAttribute('data-file-url') || ''
+        selectedName = card.getAttribute('data-product-name') || 'este archivo'
+        if (!message || !modal) return
+        message.textContent = `Quieres descargar "${selectedName}"?`
+        modal.removeAttribute('hidden')
+      })
+    })
+  }
+
+  newsletterSave?.addEventListener('click', async () => {
+    const email = String(newsletterInput?.value || '').trim()
+    if (!email) {
+      if (newsletterStatus) {
+        newsletterStatus.textContent = 'Ingresa un correo valido.'
+        newsletterStatus.classList.add('error')
+      }
+      return
+    }
+
+    const payload = new URLSearchParams()
+    payload.append('email', email)
+
+    await fetch(backendUrl('/api/newsletter/suscribir/'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: payload,
+    })
+
+    if (newsletterStatus) {
+      newsletterStatus.textContent = 'Correo guardado. Gracias por suscribirte!'
+      newsletterStatus.classList.remove('error')
+    }
+  })
+
+  const ensureAdminUi = async () => {
+    const response = await fetch(backendUrl('/api/auth/session/'), { credentials: 'include' })
+    if (!response.ok) return false
+    const data = await response.json()
+    return Boolean(data.authenticated && (data.user?.rol === 'admin' || data.user?.is_staff || data.user?.is_superuser))
+  }
+
+  const createEditModal = async (product) => {
+    const [catRes, colRes] = await Promise.all([
+      fetch(backendUrl('/api/catalog/categorias/'), { credentials: 'include' }),
+      fetch(backendUrl('/api/catalog/colecciones/'), { credentials: 'include' }),
+    ])
+    const catData = await catRes.json()
+    const colData = await colRes.json()
+    const categorias = (catData.results || []).filter((c) => c.es_gratuita)
+    const colecciones = colData.results || []
+
+    const modalEdit = document.createElement('div')
+    modalEdit.className = 'edit-modal'
+    modalEdit.innerHTML = `
+      <div class="edit-modal__backdrop" data-close-edit></div>
+      <div class="edit-modal__panel" role="dialog" aria-modal="true">
+        <h3>Editar producto</h3>
+        <form class="auth-form" data-edit-form>
+          <label>Nombre</label><input name="nombre" type="text" value="${product.nombre || ''}" required />
+          <label>Descripcion</label><textarea name="descripcion" rows="3">${product.descripcion || ''}</textarea>
+          <label>Imagen preview (opcional)</label><input name="imagen" type="file" accept="image/*" />
+          <label>Es gratuito?</label>
+          <select name="es_gratuito" data-edit-gratis>
+            <option value="true" ${product.es_gratuito ? 'selected' : ''}>Si</option>
+            <option value="false" ${!product.es_gratuito ? 'selected' : ''}>No</option>
+          </select>
+          <div data-edit-categoria-wrap ${product.es_gratuito ? '' : 'hidden'}>
+            <label>Categoria</label>
+            <select name="categoria_id">
+              <option value="">Sin categoria</option>
+              ${categorias.map((c) => `<option value="${c.id}" ${product.categoria_id === c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+            </select>
+          </div>
+          <div data-edit-coleccion-wrap ${product.es_gratuito ? 'hidden' : ''}>
+            <label>Coleccion</label>
+            <select name="coleccion_id">
+              <option value="">Sin coleccion</option>
+              ${colecciones.map((c) => `<option value="${c.id}" ${product.coleccion_id === c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+            </select>
+          </div>
+          <label>Paginas</label><input name="paginas" type="number" min="1" step="1" value="${product.paginas || ''}" />
+          <div data-edit-precio-wrap ${product.es_gratuito ? 'hidden' : ''}>
+            <label>Precio</label><input name="precio" type="number" min="0" step="0.01" value="${product.precio || ''}" />
+          </div>
+          <label>Activo?</label>
+          <select name="activo"><option value="true" ${product.activo ? 'selected' : ''}>Si</option><option value="false" ${!product.activo ? 'selected' : ''}>No</option></select>
+          <div class="published-actions">
+            <button class="btn" type="submit">Guardar</button>
+            <button class="btn btn-secondary" type="button" data-close-edit>Cancelar</button>
+          </div>
+        </form>
+      </div>
+    `
+    document.body.appendChild(modalEdit)
+    modalEdit.querySelectorAll('[data-close-edit]').forEach((el) => el.addEventListener('click', () => modalEdit.remove()))
+
+    const gratisSelect = modalEdit.querySelector('[data-edit-gratis]')
+    const categoriaWrap = modalEdit.querySelector('[data-edit-categoria-wrap]')
+    const coleccionWrap = modalEdit.querySelector('[data-edit-coleccion-wrap]')
+    const precioWrap = modalEdit.querySelector('[data-edit-precio-wrap]')
+    const categoriaField = modalEdit.querySelector('select[name="categoria_id"]')
+    const coleccionField = modalEdit.querySelector('select[name="coleccion_id"]')
+    const precioField = modalEdit.querySelector('input[name="precio"]')
+
+    const applyEditRules = () => {
+      const isFree = gratisSelect?.value === 'true'
+      if (categoriaWrap) categoriaWrap.hidden = !isFree
+      if (coleccionWrap) coleccionWrap.hidden = isFree
+      if (precioWrap) precioWrap.hidden = isFree
+      if (categoriaField) categoriaField.disabled = !isFree
+      if (coleccionField) coleccionField.disabled = isFree
+      if (precioField) precioField.disabled = isFree
+      if (isFree) {
+        if (coleccionField) coleccionField.value = ''
+        if (precioField) precioField.value = ''
+      } else if (categoriaField) {
+        categoriaField.value = ''
+      }
+    }
+    gratisSelect?.addEventListener('change', applyEditRules)
+    applyEditRules()
+
+    const form = modalEdit.querySelector('[data-edit-form]')
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault()
+      const ok = await (window.showStyledConfirm
+        ? window.showStyledConfirm(`Confirmas guardar cambios en ${product.nombre}?`)
+        : Promise.resolve(confirm(`Confirmas guardar cambios en ${product.nombre}?`)))
+      if (!ok) return
+
+      const formData = new FormData(form)
+      openLoadingModal('Guardando cambios...')
+      const response = await fetch(backendUrl(`/api/admin/productos/${product.id}/editar/`), {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      })
+      closeLoadingModal()
+      if (!response.ok) return
+      window.location.reload()
+    })
+  }
+
+  ensureAdminUi().then((isAdmin) => {
+    if (!isAdmin) {
+      document.querySelectorAll('[data-admin-actions]').forEach((actions) => actions.setAttribute('hidden', ''))
+      return
+    }
+
+    document.querySelectorAll('[data-admin-actions]').forEach((actions) => actions.removeAttribute('hidden'))
+
+    wrappers().forEach((wrapper) => {
+      const product = JSON.parse(wrapper.getAttribute('data-product-json') || '{}')
+
+      wrapper.querySelector('[data-delete-product]')?.addEventListener('click', async () => {
+        const ok = await (window.showStyledConfirm
+          ? window.showStyledConfirm(`Confirmas eliminar ${product.nombre}?`)
+          : Promise.resolve(confirm(`Confirmas eliminar ${product.nombre}?`)))
+        if (!ok) return
+
+        openLoadingModal('Eliminando producto...')
+        const response = await fetch(backendUrl(`/api/admin/productos/${product.id}/eliminar/`), {
+          method: 'POST',
+          credentials: 'include',
+        })
+        closeLoadingModal()
+        if (!response.ok) return
+        window.location.reload()
+      })
+
+      wrapper.querySelector('[data-edit-product]')?.addEventListener('click', () => createEditModal(product))
+    })
+  })
+
+  fetch(backendUrl('/api/auth/session/'), { credentials: 'include' }).then(async (response) => {
+    if (!response.ok) return
+    const data = await response.json()
+    isGuestUser = !data.authenticated
+  })
+
+  const renderProducts = (products) => {
+    if (!productsGrid) return
+    if (!products.length) {
+      emptyNode?.removeAttribute('hidden')
+      productsGrid.setAttribute('hidden', '')
+      return
+    }
+
+    productsGrid.innerHTML = products
+      .map(
+        (producto) => `
+          <article class="free-product-wrap" data-admin-product data-product-id="${producto.id}" data-product-json='${JSON.stringify(producto).replace(/'/g, '&apos;')}'>
+            <button type="button" class="free-product-card" data-file-url="${producto.archivo || ''}" data-product-name="${producto.nombre}" title="${producto.descripcion || producto.nombre}">
+              ${
+                producto.imagen
+                  ? `<img src="${producto.imagen}" alt="${producto.descripcion || producto.nombre}" title="${producto.descripcion || producto.nombre}" />`
+                  : `<img src="/static/web/assets/g345.png" alt="${producto.descripcion || producto.nombre}" />`
+              }
+              <span class="product-name" title="${producto.descripcion || producto.nombre}">${producto.nombre}</span>
+            </button>
+            <div class="published-actions" data-admin-actions hidden>
+              <button class="btn" type="button" data-edit-product>Editar</button>
+              <button class="btn btn-secondary" type="button" data-delete-product>Eliminar</button>
+            </div>
+          </article>
+        `
+      )
+      .join('')
+
+    productsGrid.removeAttribute('hidden')
+    wireDownloadCards()
+    ensureAdminUi().then((isAdmin) => {
+      if (!isAdmin) return
+      document.querySelectorAll('[data-admin-actions]').forEach((actions) => actions.removeAttribute('hidden'))
+    })
+  }
+
+  const initCategory = async () => {
+    const pathParts = window.location.pathname.split('/').filter(Boolean)
+    const slug = pathParts.length ? pathParts[pathParts.length - 1] : ''
+    if (!slug) {
+      emptyNode?.removeAttribute('hidden')
+      return
+    }
+
+    const response = await fetch(backendUrl(`/api/categorias/${slug}/productos/`), { credentials: 'include' })
+    if (!response.ok) {
+      emptyNode?.removeAttribute('hidden')
+      return
+    }
+
+    const data = await response.json()
+    const categoria = data.categoria || {}
+    if (titleNode) titleNode.textContent = categoria.nombre || 'Categoria'
+    if (categoria.descripcion && descriptionNode) {
+      descriptionNode.textContent = categoria.descripcion
+      descriptionNode.removeAttribute('hidden')
+    }
+
+    renderProducts(data.results || [])
+  }
+
+  initCategory()
+</script>
+
+<style is:global>
+  .free-product-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: center;
+  }
+
+  .free-product-card {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 4px;
+    color: inherit;
+    text-align: center;
+  }
+
+  .free-product-card img {
+    width: 220px;
+    height: auto;
+    object-fit: contain;
+    border-radius: 6px;
+    box-shadow: none;
+    background: #fff;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .free-product-card:hover img {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+  }
+
+  .free-product-card:focus-visible img,
+  .free-product-card:active img {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+  }
+
+  .product-name {
+    font-family: 'PT Serif', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    line-height: 1.2;
+    margin-top: 6px;
+    text-decoration: none;
+  }
+
+  .free-product-wrap .published-actions {
+    margin-top: 8px;
+  }
+
+  .download-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: grid;
+    place-items: center;
+  }
+
+  .download-modal[hidden] {
+    display: none;
+  }
+
+  .download-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 21, 19, 0.38);
+    backdrop-filter: blur(2px);
+  }
+
+  .download-modal__panel {
+    position: relative;
+    width: min(520px, calc(100vw - 32px));
+    background: #fefaf7;
+    border: 1px solid #e8d8cc;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: none;
+  }
+
+  .download-modal__panel h3 {
+    margin: 0 0 10px;
+    font-size: 1.6rem;
+  }
+
+  .download-modal__panel p {
+    margin: 0;
+    font-size: 1.08rem;
+  }
+
+  .download-modal__actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  .download-modal .auth-message.error {
+    color: #b12626;
+  }
+
+  .btn-secondary {
+    background: #dce6e0;
+    color: #243233;
+  }
+
+  @media (max-width: 700px) {
+    .products-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      padding: 0 8px;
+    }
+
+    .free-product-card {
+      padding: 4px;
+      gap: 8px;
+    }
+
+    .free-product-card img {
+      width: 180px;
+    }
+
+    .product-name {
+      font-size: 1.1rem;
+    }
+  }
+</style>
