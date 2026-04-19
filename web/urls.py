@@ -13,7 +13,6 @@ urlpatterns = [
     path('contacto/', views.contacto, name='contacto'),
     path('api/', views.api_root, name='api-root'),
     path('api/health/', views.api_health, name='api-health'),
-    path('api/build/status/', views.api_build_status, name='api-build-status'),
     path('api/productos/', views.api_products, name='api-products'),
     path('api/categorias/', views.api_categorias, name='api-categorias'),
     path('api/catalog/categorias/', views.api_catalog_categorias, name='api-catalog-categorias'),

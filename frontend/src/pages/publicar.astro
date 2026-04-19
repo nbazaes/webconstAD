@@ -10,10 +10,6 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     </section>
 
     <section class="products-hero text-block account-page-card" data-publicar-section>
-      <div class="published-actions" style="justify-content: flex-start; margin-bottom: 12px;" data-open-create-row hidden>
-        <button class="btn" type="button" data-open-create-catalogo>Crear categoria o coleccion</button>
-      </div>
-
       <p data-publicar-loading>Cargando formulario...</p>
 
       <form class="auth-form" data-publicar-form hidden>
@@ -74,42 +70,6 @@ import BaseLayout from '../layouts/BaseLayout.astro'
       <p class="auth-message" data-publicar-message aria-live="polite"></p>
     </section>
 
-    <div class="catalog-modal" data-catalogo-modal hidden>
-      <div class="catalog-modal__backdrop" data-close-catalogo></div>
-      <div class="catalog-modal__panel" role="dialog" aria-modal="true">
-        <h3>Crear categoria o coleccion</h3>
-        <form class="auth-form" data-catalogo-form>
-          <label for="cat-tipo">Tipo</label>
-          <select id="cat-tipo" name="tipo" required>
-            <option value="categoria">Categoria</option>
-            <option value="coleccion">Coleccion</option>
-          </select>
-
-          <label for="cat-nombre">Nombre</label>
-          <input id="cat-nombre" name="nombre" type="text" required />
-
-          <label for="cat-descripcion">Descripcion</label>
-          <textarea id="cat-descripcion" name="descripcion" rows="3"></textarea>
-
-          <div data-cat-gratuita-wrap>
-            <label for="cat-es-gratuita">Es gratuita?</label>
-            <select id="cat-es-gratuita" name="es_gratuita">
-              <option value="true" selected>Si</option>
-              <option value="false">No</option>
-            </select>
-          </div>
-
-          <label for="cat-imagen">Imagen (opcional)</label>
-          <input id="cat-imagen" name="imagen" type="file" accept="image/*" />
-
-          <div class="published-actions">
-            <button class="btn" type="submit">Crear</button>
-            <button class="btn btn-secondary" type="button" data-close-catalogo>Cancelar</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
     <div class="global-loading-modal" data-global-loading hidden>
       <div class="global-loading-modal__backdrop"></div>
       <div class="global-loading-modal__panel">
@@ -134,13 +94,6 @@ import BaseLayout from '../layouts/BaseLayout.astro'
   const slugInput = document.querySelector('#pub-slug')
   const publicarList = document.querySelector('[data-publicar-list]')
   const publicarItems = document.querySelector('[data-publicar-items]')
-  const openCreateRow = document.querySelector('[data-open-create-row]')
-  const openCreateCatalogoButton = document.querySelector('[data-open-create-catalogo]')
-  const catalogoModal = document.querySelector('[data-catalogo-modal]')
-  const closeCatalogoButtons = document.querySelectorAll('[data-close-catalogo]')
-  const catalogoForm = document.querySelector('[data-catalogo-form]')
-  const catalogoTipoSelect = document.querySelector('#cat-tipo')
-  const catalogoGratisWrap = document.querySelector('[data-cat-gratuita-wrap]')
   const globalLoading = document.querySelector('[data-global-loading]')
 
   let allCategorias = []
@@ -166,29 +119,6 @@ import BaseLayout from '../layouts/BaseLayout.astro'
   const closeLoadingModal = () => {
     globalLoading?.setAttribute('hidden', '')
   }
-
-  const waitForBuildReady = async () => {
-    let attempts = 0
-    while (attempts < 120) {
-      attempts += 1
-      const response = await fetch(backendUrl('/api/build/status/'), { credentials: 'include' })
-      if (response.ok) {
-        const data = await response.json()
-        const status = data?.build?.status
-        if (status === 'ready') {
-          return { ok: true }
-        }
-        if (status === 'error') {
-          return { ok: false, message: data?.build?.last_error || 'Build failed' }
-        }
-      }
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-    }
-    return { ok: false, message: 'Build timeout' }
-  }
-
-  const openCatalogoModal = () => catalogoModal?.removeAttribute('hidden')
-  const closeCatalogoModal = () => catalogoModal?.setAttribute('hidden', '')
 
   const ensureAdmin = async () => {
     const response = await fetch(backendUrl('/api/auth/session/'), { credentials: 'include' })
@@ -482,62 +412,6 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     await loadPublishedProducts()
   })
 
-  const applyCatalogoTypeRules = () => {
-    if (!catalogoTipoSelect || !catalogoGratisWrap) return
-    catalogoGratisWrap.hidden = catalogoTipoSelect.value !== 'categoria'
-  }
-
-  openCreateCatalogoButton?.addEventListener('click', openCatalogoModal)
-  closeCatalogoButtons.forEach((button) => button.addEventListener('click', closeCatalogoModal))
-  catalogoTipoSelect?.addEventListener('change', applyCatalogoTypeRules)
-
-  catalogoForm?.addEventListener('submit', async (event) => {
-    event.preventDefault()
-    const formData = new FormData(catalogoForm)
-    const tipo = String(formData.get('tipo') || '')
-    const nombre = String(formData.get('nombre') || '').trim()
-
-    if (!nombre) {
-      setMessage('Nombre es obligatorio para crear catalogo.', true)
-      return
-    }
-
-    const ok = await (window.showStyledConfirm
-      ? window.showStyledConfirm(`Confirmas crear ${tipo}: ${nombre}?`)
-      : Promise.resolve(confirm(`Confirmas crear ${tipo}: ${nombre}?`)))
-    if (!ok) return
-
-    openLoadingModal('Creando categoria...')
-    const response = await fetch(backendUrl('/api/admin/catalogo/crear/'), {
-      method: 'POST',
-      credentials: 'include',
-      body: formData,
-    })
-    const data = await response.json()
-
-    if (!response.ok || !data.ok) {
-      closeLoadingModal()
-      setMessage(data.message || 'No se pudo crear el catalogo.', true)
-      return
-    }
-
-    openLoadingModal('Creando categoria...')
-    const buildResult = await waitForBuildReady()
-    closeLoadingModal()
-    if (!buildResult.ok) {
-      setMessage(`Categoria/Coleccion creada, pero el build fallo: ${buildResult.message}`, true)
-      return
-    }
-
-    catalogoForm.reset()
-    applyCatalogoTypeRules()
-    closeCatalogoModal()
-    setMessage(`${data.tipo} creada: ${data.nombre}`)
-
-    await loadCatalogs()
-    applyPricingRules()
-  })
-
   publicarItems?.addEventListener('click', async (event) => {
     const card = event.target.closest('[data-published-item]')
     if (!card) return
@@ -582,10 +456,8 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     const isAdmin = await ensureAdmin()
     if (!isAdmin) return
 
-    if (openCreateRow) openCreateRow.hidden = false
     await loadCatalogs()
     applyPricingRules()
-    applyCatalogoTypeRules()
     await loadPublishedProducts()
 
     publicarLoading?.setAttribute('hidden', '')

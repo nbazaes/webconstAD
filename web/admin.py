@@ -1,7 +1,6 @@
 from django.contrib import admin
 from .models import (
 	Categoria,
-	BuildState,
 	Coleccion,
 	Descarga,
 	Orden,
@@ -71,10 +70,3 @@ class DescargaAdmin(admin.ModelAdmin):
 class SuscriptorAnonimoAdmin(admin.ModelAdmin):
 	list_display = ("id", "email", "created_at")
 	search_fields = ("email",)
-
-
-@admin.register(BuildState)
-class BuildStateAdmin(admin.ModelAdmin):
-	list_display = ("id", "name", "status", "updated_at")
-	search_fields = ("name",)
-	readonly_fields = ("updated_at",)

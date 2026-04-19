@@ -10,7 +10,6 @@ from django.utils.text import slugify
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods
 
-from .build_status import get_build_state
 from .models import Categoria, Coleccion, Producto, SuscriptorAnonimo
 
 
@@ -45,7 +44,7 @@ def gratis(request):
 
 
 def gratis_categoria(request, slug):
-    return _serve_frontend_page('gratis-categoria')
+    return _serve_frontend_page(f'gratis/{slug}')
 
 
 def contacto(request):
@@ -142,7 +141,6 @@ def api_root(request):
                 'health': '/api/health/',
                 'products': '/api/productos/',
                 'categorias': '/api/categorias/',
-                'build_status': '/api/build/status/',
                 'auth_register': '/api/auth/register/',
                 'auth_login': '/api/auth/login/',
                 'auth_logout': '/api/auth/logout/',
@@ -157,12 +155,6 @@ def api_root(request):
 @require_GET
 def api_health(request):
     return JsonResponse({'status': 'ok', 'message': 'Django API operativa'})
-
-
-@require_GET
-def api_build_status(request):
-    state = get_build_state()
-    return JsonResponse({'ok': True, 'build': state})
 
 
 @require_GET

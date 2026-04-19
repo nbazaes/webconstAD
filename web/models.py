@@ -179,26 +179,3 @@ class SuscriptorAnonimo(models.Model):
 
 	def __str__(self):
 		return self.email
-
-
-class BuildState(models.Model):
-	STATUS_READY = 'ready'
-	STATUS_PROCESSING = 'processing'
-	STATUS_ERROR = 'error'
-	STATUS_CHOICES = (
-		(STATUS_READY, 'Ready'),
-		(STATUS_PROCESSING, 'Processing'),
-		(STATUS_ERROR, 'Error'),
-	)
-
-	name = models.CharField(max_length=50, unique=True, default='frontend')
-	status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_READY)
-	last_error = models.TextField(blank=True)
-	updated_at = models.DateTimeField(auto_now=True)
-
-	class Meta:
-		verbose_name = 'Build state'
-		verbose_name_plural = 'Build states'
-
-	def __str__(self):
-		return f'{self.name}: {self.status}'

@@ -23,7 +23,7 @@ for _ in range(60):
 raise SystemExit("Gunicorn did not become ready in time")
 PY
 
-BUILD_API_ORIGIN="http://127.0.0.1:8000" npm --prefix /app/frontend run build
+npm --prefix /app/frontend run build
 python manage.py collectstatic --noinput
 
 exec nginx -g "daemon off;"
