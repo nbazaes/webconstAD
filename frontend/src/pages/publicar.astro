@@ -18,38 +18,38 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 
         <input id="pub-slug" name="slug" type="text" hidden />
 
-        <label for="pub-descripcion">Descripcion</label>
+        <label for="pub-descripcion">Descripción</label>
         <textarea id="pub-descripcion" name="descripcion" rows="4"></textarea>
 
-        <label for="pub-es-gratuito">Es gratuito?</label>
+        <label for="pub-es-gratuito">¿Es gratuito?</label>
         <select id="pub-es-gratuito" name="es_gratuito" required>
           <option value="false" selected>No (de pago)</option>
-          <option value="true">Si (gratis)</option>
+          <option value="true">Sí (gratis)</option>
         </select>
 
         <label for="pub-precio" data-price-label>Precio</label>
         <input id="pub-precio" name="precio" type="number" min="0" step="0.01" placeholder="10000" />
 
-        <label for="pub-paginas">Paginas (opcional)</label>
+        <label for="pub-paginas">Páginas (opcional)</label>
         <input id="pub-paginas" name="paginas" type="number" min="1" step="1" />
 
-        <label for="pub-activo">Activo?</label>
+        <label for="pub-activo">¿Activo?</label>
         <select id="pub-activo" name="activo" required>
-          <option value="true" selected>Si</option>
+          <option value="true" selected>Sí</option>
           <option value="false">No</option>
         </select>
 
         <div data-categoria-block>
-          <label for="pub-categoria">Categoria (para gratis)</label>
+          <label for="pub-categoria">Categoría (para gratis)</label>
           <select id="pub-categoria" name="categoria_id">
-            <option value="">Sin categoria</option>
+            <option value="">Sin categoría</option>
           </select>
         </div>
 
         <div data-coleccion-block>
-          <label for="pub-coleccion">Coleccion (para pago)</label>
+          <label for="pub-coleccion">Colección (para pago)</label>
           <select id="pub-coleccion" name="coleccion_id">
-            <option value="">Sin coleccion</option>
+            <option value="">Sin colección</option>
           </select>
         </div>
 
@@ -159,8 +159,8 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     allCategorias = categoriasData.results || []
     allColecciones = coleccionesData.results || []
 
-    if (categoriaSelect) categoriaSelect.innerHTML = '<option value="">Sin categoria</option>'
-    if (coleccionSelect) coleccionSelect.innerHTML = '<option value="">Sin coleccion</option>'
+    if (categoriaSelect) categoriaSelect.innerHTML = '<option value="">Sin categoría</option>'
+    if (coleccionSelect) coleccionSelect.innerHTML = '<option value="">Sin colección</option>'
     fillSelect(categoriaSelect, allCategorias.filter((item) => item.es_gratuita))
     fillSelect(coleccionSelect, allColecciones)
   }

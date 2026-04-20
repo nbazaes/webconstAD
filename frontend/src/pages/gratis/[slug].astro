@@ -23,7 +23,7 @@ export async function getStaticPaths() {
 
     <section class="products-grid" data-cat-products hidden></section>
     <section class="products-hero text-block" data-cat-empty hidden>
-      <p>No hay productos en esta categoria todavia.</p>
+      <p>No hay productos en esta categoría todavía.</p>
     </section>
   </main>
 
@@ -38,8 +38,8 @@ export async function getStaticPaths() {
       </div>
       <div data-guest-subscription hidden>
         <hr style="margin: 16px 0; border: 0; border-top: 1px solid #e8d8cc;" />
-        <p><strong>Sigueme en Instagram para mas!</strong> <a href="https://www.instagram.com/constantdesigns/" target="_blank" rel="noopener">@constantdesigns</a></p>
-        <p style="margin-top: 12px;">Quieres recibir notificaciones? Escribe tu correo para recibir las noticias de los nuevos productos.</p>
+        <p><strong>¡Sígueme en Instagram para más!</strong> <a href="https://www.instagram.com/constantdesigns/" target="_blank" rel="noopener">@constantdesigns</a></p>
+        <p style="margin-top: 12px;">¿Quieres recibir notificaciones? Escribe tu correo para recibir las noticias de los nuevos productos.</p>
         <div class="auth-form" style="gap: 8px;">
           <input type="email" placeholder="tu@email.com" data-newsletter-email />
           <button type="button" class="btn" data-newsletter-save>Guardar correo</button>
@@ -258,8 +258,8 @@ export async function getStaticPaths() {
     form?.addEventListener('submit', async (event) => {
       event.preventDefault()
       const ok = await (window.showStyledConfirm
-        ? window.showStyledConfirm(`Confirmas guardar cambios en ${product.nombre}?`)
-        : Promise.resolve(confirm(`Confirmas guardar cambios en ${product.nombre}?`)))
+        ? window.showStyledConfirm(`¿Confirmas guardar cambios en ${product.nombre}?`)
+        : Promise.resolve(confirm(`¿Confirmas guardar cambios en ${product.nombre}?`)))
       if (!ok) return
 
       const formData = new FormData(form)
@@ -288,8 +288,8 @@ export async function getStaticPaths() {
 
       wrapper.querySelector('[data-delete-product]')?.addEventListener('click', async () => {
         const ok = await (window.showStyledConfirm
-          ? window.showStyledConfirm(`Confirmas eliminar ${product.nombre}?`)
-          : Promise.resolve(confirm(`Confirmas eliminar ${product.nombre}?`)))
+          ? window.showStyledConfirm(`¿Confirmas eliminar ${product.nombre}?`)
+          : Promise.resolve(confirm(`¿Confirmas eliminar ${product.nombre}?`)))
         if (!ok) return
 
         openLoadingModal('Eliminando producto...')

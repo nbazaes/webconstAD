@@ -32,7 +32,7 @@ const products = data.results || []
       </section>
     ) : (
       <section class="products-hero text-block">
-        <p>Aun no hay productos de pago publicados.</p>
+        <p>Aún no hay productos de pago publicados.</p>
       </section>
     )}
 
@@ -88,11 +88,11 @@ const products = data.results || []
         <h3>Editar producto</h3>
         <form class="auth-form" data-edit-form>
           <label>Nombre</label><input name="nombre" type="text" value="${product.nombre || ''}" required />
-          <label>Descripcion</label><textarea name="descripcion" rows="3">${product.descripcion || ''}</textarea>
+          <label>Descripción</label><textarea name="descripcion" rows="3">${product.descripcion || ''}</textarea>
           <label>Imagen preview (opcional)</label><input name="imagen" type="file" accept="image/*" />
-          <label>Es gratuito?</label>
+          <label>¿Es gratuito?</label>
           <select name="es_gratuito" data-edit-gratis>
-            <option value="true" ${product.es_gratuito ? 'selected' : ''}>Si</option>
+            <option value="true" ${product.es_gratuito ? 'selected' : ''}>Sí</option>
             <option value="false" ${!product.es_gratuito ? 'selected' : ''}>No</option>
           </select>
           <div data-edit-categoria-wrap ${product.es_gratuito ? '' : 'hidden'}>
@@ -175,8 +175,7 @@ const products = data.results || []
   }
 
   ensureAdminUi().then((isAdmin) => {
-    if (!isAdmin) {
-      document.querySelectorAll('[data-admin-actions]').forEach((actions) => actions.setAttribute('hidden', ''))
+    if (!isAdmin) { document.querySelectorAll('[data-admin-actions]').forEach((actions) => actions.setAttribute('hidden', ''))
       return
     }
 

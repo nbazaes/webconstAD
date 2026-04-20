@@ -4,11 +4,11 @@ const E=window.location.origin,n=e=>`${E}${e}`,k=document.querySelectorAll("[dat
         <h3>Editar producto</h3>
         <form class="auth-form" data-edit-form>
           <label>Nombre</label><input name="nombre" type="text" value="${e.nombre||""}" required />
-          <label>Descripcion</label><textarea name="descripcion" rows="3">${e.descripcion||""}</textarea>
+          <label>Descripción</label><textarea name="descripcion" rows="3">${e.descripcion||""}</textarea>
           <label>Imagen preview (opcional)</label><input name="imagen" type="file" accept="image/*" />
-          <label>Es gratuito?</label>
+          <label>¿Es gratuito?</label>
           <select name="es_gratuito" data-edit-gratis>
-            <option value="true" ${e.es_gratuito?"selected":""}>Si</option>
+            <option value="true" ${e.es_gratuito?"selected":""}>Sí</option>
             <option value="false" ${e.es_gratuito?"":"selected"}>No</option>
           </select>
           <div data-edit-categoria-wrap ${e.es_gratuito?"":"hidden"}>

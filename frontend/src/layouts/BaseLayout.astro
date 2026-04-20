@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css'
+import { Icon } from 'astro-icon/components' 
 
 const { title = 'Constant Archivos Digitales', page = 'inicio' } = Astro.props
 const navItems = [
@@ -17,10 +18,16 @@ const asset = (path) => `/${path}`
 
 <!doctype html>
 <html lang="es">
+ 
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{title}</title>
+    <link rel="icon" type="image/svg+xml" href="/static/web/assets/favicon.svg?v=3" />
+    <link rel="icon" type="image/x-icon" href="/static/web/assets/favicon.ico?v=3" sizes="any" />
+    <link rel="shortcut icon" href="/static/web/assets/favicon.svg?v=3" />
+    <link rel="apple-touch-icon" href="/static/web/assets/favicon.svg?v=3" />
+    <meta name="msapplication-TileColor" content="#ffffff" />
+    <meta name="theme-color" content="#ffffff" />
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Great+Vibes&family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap"
@@ -92,17 +99,17 @@ const asset = (path) => `/${path}`
         <button class="auth-modal__close" type="button" aria-label="Cerrar" data-auth-close>×</button>
 
         <section data-auth-view="login">
-          <h3 id="auth-modal-title">Iniciar sesion</h3>
+          <h3 id="auth-modal-title">Iniciar sesión</h3>
           <form class="auth-form" data-login-form>
             <label for="login-identifier">Usuario o email</label>
             <input id="login-identifier" name="identifier" type="text" required />
 
-            <label for="login-password">Password</label>
+            <label for="login-password">Contraseña</label>
             <input id="login-password" name="password" type="password" required />
 
-            <button class="btn" type="submit">Iniciar sesion</button>
+            <button class="btn" type="submit">Iniciar sesión</button>
             <button class="auth-link" type="button" data-open-register>
-              No tienes cuenta de usuario? Registrate aqui
+              ¿No tienes cuenta de usuario? Regístrate aquí
             </button>
           </form>
         </section>
@@ -110,7 +117,7 @@ const asset = (path) => `/${path}`
         <section data-auth-view="register" hidden>
           <h3 id="auth-modal-title">Registrarse</h3>
           <form class="auth-form" data-register-form>
-            <label for="register-username">Username</label>
+            <label for="register-username">Nombre de usuario</label>
             <input id="register-username" name="username" type="text" required minlength="3" />
 
             <label for="register-email">Email</label>
@@ -122,18 +129,18 @@ const asset = (path) => `/${path}`
             <label for="register-apellido">Apellido</label>
             <input id="register-apellido" name="apellido" type="text" required />
 
-            <label for="register-pais">Pais</label>
+            <label for="register-pais">País</label>
             <input id="register-pais" name="pais" type="text" required />
 
-            <label for="register-password">Password</label>
+            <label for="register-password">Contraseña</label>
             <input id="register-password" name="password" type="password" required minlength="8" />
 
-            <label for="register-password-confirm">Confirmar password</label>
+            <label for="register-password-confirm">Confirmar contraseña</label>
             <input id="register-password-confirm" name="password_confirm" type="password" required minlength="8" />
 
             <button class="btn" type="submit">Crear cuenta</button>
             <button class="auth-link" type="button" data-open-login>
-              Ya tienes cuenta? Inicia sesion aqui
+              ¿Ya tienes cuenta? Inicia sesión aquí
             </button>
           </form>
         </section>
@@ -145,7 +152,7 @@ const asset = (path) => `/${path}`
     <div class="confirm-modal" data-confirm-modal hidden>
       <div class="confirm-modal__backdrop" data-confirm-cancel></div>
       <div class="confirm-modal__panel" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
-        <h3 id="confirm-modal-title">Confirmacion</h3>
+        <h3 id="confirm-modal-title">Confirmación</h3>
         <p data-confirm-message></p>
         <div class="confirm-modal__actions">
           <button class="btn btn-secondary" type="button" data-confirm-cancel>Cancelar</button>
@@ -158,7 +165,7 @@ const asset = (path) => `/${path}`
       <img src={asset('static/web/assets/g40.svg')} alt="" class="decor decor-bottom-left" aria-hidden="true" />
       <p>Constant Archivos Digitales © 2026</p>
       <p class="footer-credit">
-        Web construida por <a href="https://github.com/nbazaes">nbazaes</a>
+        Web construida por <Icon name=lucide:github class='w-6 h-6 hover:text-pink-600'/> <a href="https://github.com/nbazaes">nbazaes</a>
       </p>
     </footer>
 
@@ -237,7 +244,7 @@ const asset = (path) => `/${path}`
           return Promise.resolve(window.confirm(message))
         }
 
-        if (confirmTitle) confirmTitle.textContent = 'Confirmacion'
+        if (confirmTitle) confirmTitle.textContent = 'Confirmación'
         if (confirmCancelButton) confirmCancelButton.hidden = false
         if (confirmAcceptButton) confirmAcceptButton.textContent = 'Aceptar'
         confirmMessage.textContent = message
@@ -282,7 +289,7 @@ const asset = (path) => `/${path}`
 
       const renderAuthTabs = () => {
         const accountLabel = authState.authenticated ? 'Cuenta' : 'Registrarse'
-        const authLabel = authState.authenticated ? 'Cerrar sesion' : 'Iniciar sesion'
+        const authLabel = authState.authenticated ? 'Cerrar sesión' : 'Iniciar sesión'
         navAccountLinks.forEach((tab) => {
           tab.textContent = accountLabel
           tab.setAttribute('href', authState.authenticated ? '/cuenta/' : '#')
@@ -329,7 +336,7 @@ const asset = (path) => `/${path}`
             return
           }
 
-          const shouldLogout = await showStyledConfirm('Quieres cerrar sesion?')
+          const shouldLogout = await showStyledConfirm('¿Quieres cerrar sesión?')
           if (!shouldLogout) {
             return
           }
@@ -396,7 +403,7 @@ const asset = (path) => `/${path}`
           return
         }
         if (!response.ok || !data.ok) {
-          setAuthMessage(data.message || 'No se pudo iniciar sesion.', true)
+          setAuthMessage(data.message || 'No se pudo iniciar sesión.', true)
           return
         }
 
@@ -422,12 +429,12 @@ const asset = (path) => `/${path}`
         }
 
         if (password !== passwordConfirm) {
-          setAuthMessage('Las contrasenas no coinciden.', true)
+          setAuthMessage('Las contraseñas no coinciden.', true)
           return
         }
 
         const wantsRegister = await showStyledConfirm(
-          `Confirmas los datos?\n\nUsername: ${username}\nEmail: ${email}\nNombre: ${nombre}\nApellido: ${apellido}\nPais: ${pais}`
+          `¿Confirmas los datos?\n\nUsername: ${username}\nEmail: ${email}\nNombre: ${nombre}\nApellido: ${apellido}\nPaís: ${pais}`
         )
 
         if (!wantsRegister) {

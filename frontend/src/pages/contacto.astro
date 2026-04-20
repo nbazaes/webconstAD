@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
+import { Icon } from 'astro-icon/components'
 ---
 
 <BaseLayout title="Contacto - Constant Archivos Digitales" page="contacto">
@@ -8,11 +9,12 @@ import BaseLayout from '../layouts/BaseLayout.astro'
       <h2>CONTACTO</h2>
       <div class="contact-grid">
         <article class="contact-card text-block">
-          <p class="lead">Escribenos o siguenos en redes</p>
+          <p class="lead">Escríbenos o síguenos en redes</p>
           <p>
             <strong>Instagram:</strong>
-            <a href="https://www.instagram.com/constantdesigns/" target="_blank" rel="noopener">
-              @constantdesigns
+            <a href="https://instagram.com/tu_usuario" class="social-link">
+              <Icon name="lucide:instagram" class="w-6 h-6 hover:text-pink-500" />
+              <span>Sígueme en Instagram</span>
             </a>
           </p>
           <p>
@@ -20,7 +22,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
             <a href="mailto:contacto@constantdigitales.com">contacto@constantdigitales.com</a>
           </p>
           <p><strong>Horario de respuesta:</strong> Respondemos en un plazo de 48 horas laborables.</p>
-          <p><strong>Privacidad:</strong> Tus datos se usan unicamente para responder a tu consulta.</p>
+          <p><strong>Privacidad:</strong> Tus datos se usan únicamente para responder a tu consulta.</p>
         </article>
 
         <article class="contact-card">
@@ -28,7 +30,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
             <label for="name">Nombre</label>
             <input type="text" id="name" name="name" required />
 
-            <label for="email">Correo electronico</label>
+            <label for="email">Correo electrónico</label>
             <input type="email" id="email" name="email" required />
 
             <label for="message">Mensaje</label>
