@@ -9,12 +9,16 @@ export async function getStaticPaths() {
 
   return categorias.map((categoria) => ({
     params: { slug: categoria.slug },
+    props: { categoriaNombre: categoria.nombre },
   }))
 }
 
+const { categoriaNombre = 'Categoria' } = Astro.props
+const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
+
 ---
 
-<BaseLayout title="Categoria Gratis - Constant Archivos Digitales" page="gratis">
+<BaseLayout title={pageTitle} page="gratis">
   <main class="content">
     <section class="products-hero text-block">
       <h2 data-cat-title>Categoria</h2>
