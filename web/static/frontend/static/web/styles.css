@@ -55,7 +55,7 @@ body {
 .page-wrap {
   flex: 1 0 auto;
   position: relative;
-  padding-right: 220px;
+  padding-right: 0;
   overflow: hidden;
   background: #fff;
   animation: fadeIn .6s ease-out both;
@@ -138,9 +138,24 @@ body {
 
 .side-nav {
   position: fixed;
-  right: 0px;
+  right: -22px;
   top: 150px;
-  width: 160px
+  width: 190px;
+  z-index: 1400;
+  isolation: isolate
+}
+
+.side-nav::before {
+  content: "";
+  position: absolute;
+  top: -22px;
+  right: -10px;
+  bottom: -22px;
+  left: -86px;
+  pointer-events: none;
+  z-index: -1;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.56) 35%, rgba(255, 255, 255, 0.84) 70%, rgba(255, 255, 255, 0.96) 100%);
+  backdrop-filter: blur(2px)
 }
 
 .side-nav ul {
@@ -157,14 +172,17 @@ body {
   align-items: center;
   justify-content: center;
   height: 48px;
+  width: 100%;
   padding: 0 12px;
   color: #243233;
   text-decoration: none;
   font-weight: 700;
+  white-space: nowrap;
   background-image: url("assets/ribbon-unsel.svg");
   background-repeat: no-repeat;
   background-size: 100% 100%;
   border-radius: 6px;
+  overflow: visible;
 }
 
 .side-nav li a.active,
@@ -174,6 +192,24 @@ body {
 
 .side-nav li a:hover {
   transform: translateY(-2px)
+}
+
+.side-nav li a[data-auth-tab] {
+  font-size: 0.9rem;
+  letter-spacing: 0;
+}
+
+.ribbon-arc {
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  line-height: 1;
+}
+
+.ribbon-arc span {
+  display: inline-block;
+  transform: translateY(calc(var(--arc-lift, 0) * -1px)) rotate(calc(var(--arc-tilt, 0) * 1deg));
+  transform-origin: center 70%;
 }
 
 .hero {
@@ -321,6 +357,12 @@ body {
   transform: translateY(0)
 }
 
+body.nav-open {
+  overflow: hidden;
+  height: 100vh;
+  touch-action: none
+}
+
 .mobile-nav ul {
   list-style: none;
   padding: 0;
@@ -350,7 +392,7 @@ body {
 /* Responsive */
 @media (max-width:1000px) {
   .page-wrap {
-    padding-right: 20px
+    padding-right: 0
   }
 
   .side-nav {
@@ -394,6 +436,7 @@ body {
   .subtitle {
     font-size: 26px
   }
+
 
   .card img {
     height: 260px

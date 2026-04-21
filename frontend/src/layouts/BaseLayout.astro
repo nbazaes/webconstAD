@@ -65,7 +65,7 @@ const asset = (path) => `/${path}`
             </li>
           ))}
           <li>
-            <a href="#" data-auth-tab>Iniciar sesion</a>
+            <a href="#" data-auth-tab>Iniciar sesión</a>
           </li>
           <li data-publish-nav hidden>
             <a href="/publicar/" data-publish-tab class={page === 'publicar' ? 'active' : ''} aria-current={page === 'publicar' ? 'page' : undefined}>Publicar</a>
@@ -83,7 +83,7 @@ const asset = (path) => `/${path}`
             </li>
           ))}
           <li>
-            <a href="#" data-auth-tab>Iniciar sesion</a>
+            <a href="#" data-auth-tab>Iniciar sesión</a>
           </li>
           <li data-publish-nav hidden>
             <a href="/publicar/" data-publish-tab class={page === 'publicar' ? 'active' : ''} aria-current={page === 'publicar' ? 'page' : undefined}>Publicar</a>
@@ -171,6 +171,49 @@ const asset = (path) => `/${path}`
     </footer>
 
     <script>
+      const buildRibbonArc = (labelText) => {
+        const chars = Array.from(labelText)
+        const visibleCount = chars.reduce((count, ch) => (ch === ' ' ? count : count + 1), 0)
+        const midpoint = (visibleCount - 1) / 2
+        const maxLift = 3.4
+
+        const wrapper = document.createElement('span')
+        wrapper.className = 'ribbon-arc'
+
+        let visibleIndex = 0
+        chars.forEach((ch) => {
+          const chunk = document.createElement('span')
+          chunk.textContent = ch
+          if (ch !== ' ') {
+            const distance = Math.abs(visibleIndex - midpoint)
+            const normalized = midpoint === 0 ? 1 : distance / midpoint
+            const lift = maxLift * (1 - normalized ** 1.4)
+            const direction = midpoint === 0 ? 0 : (visibleIndex - midpoint) / midpoint
+            const tilt = 10 * direction
+            chunk.style.setProperty('--arc-lift', lift.toFixed(2))
+            chunk.style.setProperty('--arc-tilt', tilt.toFixed(2))
+            visibleIndex += 1
+          } else {
+            chunk.style.setProperty('--arc-lift', '0')
+            chunk.style.setProperty('--arc-tilt', '0')
+            chunk.style.width = '0.2em'
+          }
+          wrapper.append(chunk)
+        })
+
+        return wrapper
+      }
+
+      const refreshRibbonLabels = () => {
+        const sideNavLinks = document.querySelectorAll('.side-nav li a')
+        sideNavLinks.forEach((link) => {
+          const rawLabel = (link.dataset.ribbonLabel || link.textContent || '').replace(/\s+/g, ' ').trim()
+          if (!rawLabel) return
+          link.dataset.ribbonLabel = rawLabel
+          link.replaceChildren(buildRibbonArc(rawLabel))
+        })
+      }
+
       const toggle = document.querySelector('[data-menu-toggle]')
       const mobileNav = document.querySelector('[data-mobile-nav]')
 
@@ -307,6 +350,8 @@ const asset = (path) => `/${path}`
         publishNavItems.forEach((item) => {
           item.hidden = !isAdmin
         })
+
+        refreshRibbonLabels()
       }
 
       const refreshSession = async () => {
@@ -324,9 +369,19 @@ const asset = (path) => `/${path}`
         toggle.addEventListener('click', () => {
           const isOpen = toggle.classList.toggle('open')
           mobileNav.classList.toggle('open', isOpen)
+          document.body.classList.toggle('nav-open', isOpen)
           toggle.setAttribute('aria-expanded', String(isOpen))
         })
       }
+
+      mobileNav?.querySelectorAll('a').forEach((link) => {
+        link.addEventListener('click', () => {
+          toggle?.classList.remove('open')
+          mobileNav.classList.remove('open')
+          document.body.classList.remove('nav-open')
+          toggle?.setAttribute('aria-expanded', 'false')
+        })
+      })
 
       authTabs.forEach((tab) => {
         tab.addEventListener('click', async (event) => {
@@ -471,6 +526,7 @@ const asset = (path) => `/${path}`
         closeAuthModal()
       })
 
+      refreshRibbonLabels()
       refreshSession()
     </script>
   </body>
