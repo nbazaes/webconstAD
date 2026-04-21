@@ -41,7 +41,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     accountContainer.innerHTML = `
       <h3>Datos de cuenta</h3>
       <form class="auth-form" data-page-account-form>
-        <label for="page-account-username>Nombre de usuario</label>
+        <label for="page-account-username">Nombre de usuario</label>
         <input id="page-account-username" type="text" value="${user.username || ''}" disabled />
 
         <label for="page-account-email">Email</label>
@@ -92,7 +92,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
       }
 
       const wantsSave = await (window.showStyledConfirm
-        ? window.showStyledConfirm(`¿Confirmas actualizar tu cuenta?\n\nNombre: ${nombre}\nApellido: ${apellido}\nPaís: ${pais}${password ? '\nConstraseña: (se actualizará)' : ''}`)
+        ? window.showStyledConfirm(`¿Confirmas actualizar tu cuenta?\n\nNombre: ${nombre}\nApellido: ${apellido}\nPaís: ${pais}${password ? '\nContraseña: (se actualizará)' : ''}`)
         : Promise.resolve(confirm(`¿Confirmas actualizar tu cuenta?\n\nNombre: ${nombre}\nApellido: ${apellido}\nPaís: ${pais}${password ? '\nContraseña: (se actualizará)' : ''}`)))
 
       if (!wantsSave) {

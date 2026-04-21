@@ -11,6 +11,7 @@ urlpatterns = [
     path('cuenta/', views.cuenta, name='cuenta'),
     path('publicar/', views.publicar, name='publicar'),
     path('contacto/', views.contacto, name='contacto'),
+    path('politica-privacidad/', views.politica_privacidad, name='politica-privacidad'),
     path('api/', views.api_root, name='api-root'),
     path('api/health/', views.api_health, name='api-health'),
     path('api/productos/', views.api_products, name='api-products'),

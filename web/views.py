@@ -51,6 +51,10 @@ def contacto(request):
     return _serve_frontend_page('contacto')
 
 
+def politica_privacidad(request):
+    return _serve_frontend_page('politica-privacidad')
+
+
 def cuenta(request):
     return _serve_frontend_page('cuenta')
 

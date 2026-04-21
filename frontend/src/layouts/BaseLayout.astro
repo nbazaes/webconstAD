@@ -168,6 +168,7 @@ const asset = (path) => `/${path}`
     <footer class="site-footer">
       <img src={asset('static/web/assets/g40.svg')} alt="" class="decor decor-bottom-left" aria-hidden="true" />
       <p>Constant Archivos Digitales © {currentYear} · {appVersion}</p>
+      <p><a href="/politica-privacidad/">Politica de privacidad</a></p>
       <p class="footer-credit">
         Web construida por <Icon name=lucide:github class='w-6 h-6 hover:text-pink-600'/> <a href="https://github.com/nbazaes">nbazaes</a>
       </p>
@@ -210,7 +211,7 @@ const asset = (path) => `/${path}`
       const refreshRibbonLabels = () => {
         const sideNavLinks = document.querySelectorAll('.side-nav li a')
         sideNavLinks.forEach((link) => {
-          const rawLabel = (link.dataset.ribbonLabel || link.textContent || '').replace(/\s+/g, ' ').trim()
+          const rawLabel = (link.textContent || '').replace(/\s+/g, ' ').trim()
           if (!rawLabel) return
           link.dataset.ribbonLabel = rawLabel
           link.replaceChildren(buildRibbonArc(rawLabel))
