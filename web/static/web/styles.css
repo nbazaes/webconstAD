@@ -58,7 +58,7 @@ body{display:flex;flex-direction:column;min-height:100vh;animation:bgReveal 0s .
 .logo{width:110px;height:110px;object-fit:cover;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.08)}
 .site-title h1{margin:0;font-size:28px;line-height:1;font-weight:400;letter-spacing:1px}
 
-.side-nav{position:fixed;right:0px;top:150px;width:160px}
+.side-nav{position:fixed;right:0px;top:150px;width:160px;z-index:1200}
 .side-nav ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:18px}
 .side-nav li a{
   display:flex;

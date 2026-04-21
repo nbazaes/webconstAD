@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    networks:
+      - local_safe_net
     container_name: webconstad_web
     env_file:
       - .env
@@ -17,6 +19,8 @@ services:
 
   db:
     image: postgres:16
+    networks:
+      - local_safe_net
     container_name: webconstad_db
     environment:
       POSTGRES_DB: ${DB_NAME}
@@ -34,3 +38,10 @@ services:
 volumes:
   webconstad_db_data:
   webconstad_media:
+
+networks:
+  local_safe_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.200.0/24
