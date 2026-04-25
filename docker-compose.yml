@@ -14,7 +14,6 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - .:/app
       - /app/frontend/node_modules
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - webconstad_media:/app/media
@@ -63,11 +62,10 @@ deploy:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /home/nicolas/webConstAD  
+            cd /home/nicolas/webconstAD  
             
             git config --global --add safe.directory $(pwd)
             
-            git pull webconstAD main
+            git pull origin main
             
             export APP_VERSION=${{ github.ref_name }}
-            docker-compose up -d --build
