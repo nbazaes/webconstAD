@@ -19,8 +19,8 @@ jobs:
             cd /home/nicolas/webconstAD
 
             git config --global --add safe.directory $(pwd)
-            git fetch --tags origin
-            git reset --hard ${{ github.ref_name }}
+            git fetch --all --tags
+            git reset --hard origin/main
 
             export APP_VERSION=${{ github.ref_name }}
             docker compose up -d --build --force-recreate
