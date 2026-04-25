@@ -1,0 +1,10 @@
+services:
+  web:
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docker/nginx.dev.conf:/etc/nginx/conf.d/default.conf
+      - /app/frontend/node_modules
+      - webconstad_media:/app/media
+    environment:
+      - DEBUG=True
