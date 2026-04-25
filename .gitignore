@@ -32,3 +32,7 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+#local_settings
+docker-compose.override.yml
+docker/nginx.dev.conf
