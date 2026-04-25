@@ -41,4 +41,4 @@ jobs:
               
               # Exportamos la versión e INMEDIATAMENTE levantamos el servicio
               export APP_VERSION=${{ github.ref_name }}
-              docker-compose up -d --build --force-recreate
+              docker compose up -d --build --force-recreate
