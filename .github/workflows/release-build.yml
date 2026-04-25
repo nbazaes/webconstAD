@@ -32,9 +32,13 @@ jobs:
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             script: |
               cd /home/nicolas/webconstAD  
-            
+              
               git config --global --add safe.directory $(pwd)
-            
-              git pull origin main
-             
+              
+              # Limpiamos para evitar el error de los archivos modificados que vimos antes
+              git fetch origin
+              git reset --hard origin/main
+              
+              # Exportamos la versión e INMEDIATAMENTE levantamos el servicio
               export APP_VERSION=${{ github.ref_name }}
+              docker-compose up -d --build --force-recreate
