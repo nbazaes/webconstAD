@@ -41,6 +41,15 @@ body:has(.confirm-modal:not([hidden])) .site-footer {
   transition: filter 0.2s ease;
 }
 
+a {
+  text-decoration: none;
+  color: var(--text);
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
 .page-wrap {
   flex: 1 0 auto;
   position: relative;
