@@ -51,3 +51,23 @@ networks:
     ipam:
       config:
         - subnet: 192.168.200.0/24
+
+deploy:
+    needs: docker-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Desplegar en el servidor vía SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /ruta/a/tu/proyecto/webConstAD  
+            
+            git config --global --add safe.directory $(pwd)
+            
+            git pull webconstAD main
+            
+            export APP_VERSION=${{ github.ref_name }}
+            docker-compose up -d --build
