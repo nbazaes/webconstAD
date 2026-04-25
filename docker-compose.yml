@@ -63,7 +63,7 @@ deploy:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /ruta/a/tu/proyecto/webConstAD  
+            cd /home/nicolas/webConstAD  
             
             git config --global --add safe.directory $(pwd)
             
