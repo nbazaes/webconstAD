@@ -2,16 +2,6 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('', views.home, name='home'),
-    path('productos/', views.productos, name='productos'),
-    path('uso/', views.uso, name='uso'),
-    # path('canva/', views.canva, name='canva'),
-    path('gratis/', views.gratis, name='gratis'),
-    path('gratis/<slug:slug>/', views.gratis_categoria, name='gratis-categoria'),
-    path('cuenta/', views.cuenta, name='cuenta'),
-    path('publicar/', views.publicar, name='publicar'),
-    path('contacto/', views.contacto, name='contacto'),
-    path('politica-privacidad/', views.politica_privacidad, name='politica-privacidad'),
     path('api/', views.api_root, name='api-root'),
     path('api/health/', views.api_health, name='api-health'),
     path('api/productos/', views.api_products, name='api-products'),

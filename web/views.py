@@ -23,46 +23,6 @@ def _serve_frontend_page(page: str = '') -> HttpResponse:
     return HttpResponse(target.read_text(encoding='utf-8'))
 
 
-def home(request):
-    return _serve_frontend_page()
-
-
-def productos(request):
-    return _serve_frontend_page('productos')
-
-
-def uso(request):
-    return _serve_frontend_page('uso')
-
-
-def canva(request):
-    return _serve_frontend_page('canva')
-
-
-def gratis(request):
-    return _serve_frontend_page('gratis')
-
-
-def gratis_categoria(request, slug):
-    return _serve_frontend_page(f'gratis/{slug}')
-
-
-def contacto(request):
-    return _serve_frontend_page('contacto')
-
-
-def politica_privacidad(request):
-    return _serve_frontend_page('politica-privacidad')
-
-
-def cuenta(request):
-    return _serve_frontend_page('cuenta')
-
-
-def publicar(request):
-    return _serve_frontend_page('publicar')
-
-
 def _bad_request(message, status=400):
     return JsonResponse({'ok': False, 'message': message}, status=status)
 

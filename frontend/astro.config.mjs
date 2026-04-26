@@ -5,7 +5,7 @@ import icon from 'astro-icon';
 export default defineConfig({
   base: '/',
   output: 'static',
-  outDir: '../web/static/frontend',
+  outDir: '../staticfiles/frontend',
 
   build: {
     format: 'directory',
