@@ -37,3 +37,4 @@ Thumbs.db
 docker-compose.override.yml
 docker/nginx.dev.conf
 frontend/node_modules/
+frontend/.astro/
