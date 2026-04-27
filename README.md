@@ -1,63 +1,30 @@
 # webConstAD
 
-webConstAD is a web platform for digital illustration resources. It combines:
+Web platform built for **[Constant Archivos Digitales](https://wca.nbazaes.app)**, a digital illustration shop by designer Jenny Constant. The site lets customers browse, purchase, and download print-ready and digital drawing files.
 
-- a Django backend (API and auth)
-- an Astro frontend (static pages)
-- PostgreSQL for persistence
-- Nginx + Gunicorn in Docker for serving the app
+![Constant Archivos Digitales](docs/preview.png)
 
-The site includes public pages (home, products, usage guide, free resources, contact), account access, and admin publishing flows.
+## Stack
 
-## Build and run with Docker
+- **Backend:** Django (REST API, authentication, admin publishing flow)
+- **Frontend:** Astro (static pages, SSG)
+- **Database:** PostgreSQL
 
-### 1) Requirements
+## Infrastructure
 
-- Docker
-- Docker Compose plugin
+The app is fully containerized and production-ready out of the box:
 
-### 2) Configure environment
+- **Docker + Docker Compose** for orchestration
+- **Nginx + Gunicorn** for serving the application
+- **SSL certificate** support included
+- Environment configuration via `.env`
 
-Create or update `.env` in the project root (`webConstAD/webConstAD`) with your values.
+## CI/CD
 
-Minimum variables used by this stack:
-
-```env
-DEBUG=False
-SECRET_KEY=change-me
-ALLOWED_HOSTS=localhost,127.0.0.1
-
-DB_NAME=webconstad
-DB_USER=webconstad_user
-DB_PASSWORD=change-me
-DB_HOST=db
-DB_PORT=5432
-```
-
-### 3) Build and start
-
-From `webConstAD/webConstAD`:
-
-```bash
-docker compose up -d --build
-```
-
-### 4) Open the site
-
-The app is exposed on:
-
-- `http://localhost`
-
-### 5) Useful commands
-
-```bash
-docker compose logs -f web
-docker compose logs -f db
-docker compose restart web
-docker compose down
-```
+Includes a GitHub Actions workflow for automated deployment on push.
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0.
-See `LICENSE` for full details.
+The source code of this project is licensed under the [GNU General Public License v3.0](LICENSE).
+
+All multimedia assets (images, logos, illustrations, and downloadable files) contained within this repository are the exclusive intellectual property of Jenny Constant and are **not** covered by the GPL-3.0 license. All rights reserved. See [NOTICE](NOTICE) for details.

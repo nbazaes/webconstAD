@@ -1,63 +1,30 @@
 # webConstAD
 
-webConstAD es una plataforma web de recursos de ilustracion digital. Combina:
+Plataforma web construida para **[Constant Archivos Digitales](https://wca.nbazaes.app)**, una tienda de ilustración digital de la diseñadora Jenny Constant. El sitio permite a los clientes explorar, comprar y descargar archivos listos para imprimir o dibujar digitalmente.
 
-- un backend en Django (API y autenticacion)
-- un frontend en Astro (paginas estaticas)
-- PostgreSQL para persistencia
-- Nginx + Gunicorn en Docker para servir la aplicacion
+![Constant Archivos Digitales](docs/preview.png)
 
-El sitio incluye paginas publicas (inicio, productos, guia de uso, recursos gratuitos y contacto), acceso a cuenta y flujos de publicacion para administradores.
+## Stack
 
-## Construccion y ejecucion con Docker
+- **Backend:** Django (API REST, autenticación, flujo de publicación para administradores)
+- **Frontend:** Astro (páginas estáticas, SSG)
+- **Base de datos:** PostgreSQL
 
-### 1) Requisitos
+## Infraestructura
 
-- Docker
-- Plugin de Docker Compose
+La aplicación está completamente contenedorizada y lista para producción:
 
-### 2) Configurar entorno
+- **Docker + Docker Compose** para orquestación
+- **Nginx + Gunicorn** para servir la aplicación
+- Soporte para **certificado SSL**
+- Configuración de entorno mediante `.env`
 
-Crea o actualiza el archivo `.env` en la raiz del proyecto (`webConstAD/webConstAD`) con tus valores.
+## CI/CD
 
-Variables minimas usadas por este stack:
-
-```env
-DEBUG=False
-SECRET_KEY=change-me
-ALLOWED_HOSTS=localhost,127.0.0.1
-
-DB_NAME=webconstad
-DB_USER=webconstad_user
-DB_PASSWORD=change-me
-DB_HOST=db
-DB_PORT=5432
-```
-
-### 3) Construir e iniciar
-
-Desde `webConstAD/webConstAD`:
-
-```bash
-docker compose up -d --build
-```
-
-### 4) Abrir el sitio
-
-La aplicacion queda disponible en:
-
-- `http://localhost`
-
-### 5) Comandos utiles
-
-```bash
-docker compose logs -f web
-docker compose logs -f db
-docker compose restart web
-docker compose down
-```
+Incluye un workflow de GitHub Actions para despliegue automático en cada push.
 
 ## Licencia
 
-Este proyecto esta licenciado bajo la GNU General Public License v3.0.
-Consulta `LICENSE` para ver el texto completo.
+El código fuente de este proyecto está licenciado bajo la [GNU General Public License v3.0](LICENSE).
+
+Todos los archivos multimedia (imágenes, logos, ilustraciones y archivos descargables) contenidos en este repositorio son propiedad intelectual exclusiva de Jenny Constant y **no** están cubiertos por la licencia GPL-3.0. Todos los derechos reservados. Ver [NOTICE](NOTICE) para más detalles.
