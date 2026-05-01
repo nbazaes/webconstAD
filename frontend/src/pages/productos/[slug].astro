@@ -3,6 +3,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
 
 const apiOrigin = import.meta.env.API_ORIGIN || import.meta.env.BUILD_API_ORIGIN || 'http://127.0.0.1:8000'
 const { slug } = Astro.params
+const paymentDetailsResponse = await fetch(`${apiOrigin}/api/pagos/detalle/`)
+const paymentDetails = paymentDetailsResponse.ok ? await paymentDetailsResponse.json() : null
+const bankAccount = paymentDetails?.bank_account || '<bank_account>'
+const bankAccountDetails = paymentDetails?.details || {}
 const response = await fetch(`${apiOrigin}/api/productos/${slug}/`)
 const producto = response.ok ? await response.json() : null
 
@@ -188,6 +192,49 @@ const formattedPrice = producto?.precio != null
     margin: 0 0 10px;
   }
 
+  .buy-modal__details {
+    text-align: left;
+  }
+
+  .buy-modal__lead {
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+
+  .buy-modal__list {
+    margin: 0;
+    display: grid;
+    gap: 10px;
+  }
+
+  .buy-modal__list div {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 10px 12px;
+    border: 1px solid #eee2d8;
+    border-radius: 10px;
+    background: #fffdfb;
+  }
+
+  .buy-modal__list dt {
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6a5f55;
+  }
+
+  .buy-modal__list dd {
+    margin: 0;
+    font-size: 1rem;
+    color: #2d2622;
+    word-break: break-word;
+  }
+
+  .buy-modal__note {
+    margin: 14px 0 0;
+  }
+
   .buy-modal__actions {
     margin-top: 16px;
     display: flex;
@@ -223,7 +270,36 @@ const formattedPrice = producto?.precio != null
   <div class="buy-modal__backdrop" data-buy-close></div>
   <div class="buy-modal__panel" role="dialog" aria-modal="true" aria-labelledby="buy-modal-title">
     <h3 id="buy-modal-title">Comprar</h3>
-    <p>Pronto podrás comprar este producto aquí.</p>
+    <div class="buy-modal__details">
+      <p class="buy-modal__lead">Transfiere a:</p>
+      <dl class="buy-modal__list">
+        <div>
+          <dt>Nombre completo</dt>
+          <dd>{bankAccountDetails.nombre_completo || '—'}</dd>
+        </div>
+        <div>
+          <dt>RUT</dt>
+          <dd>{bankAccountDetails.rut || '—'}</dd>
+        </div>
+        <div>
+          <dt>Email</dt>
+          <dd>{bankAccountDetails.email || '—'}</dd>
+        </div>
+        <div>
+          <dt>Tipo de cuenta</dt>
+          <dd>{bankAccountDetails.tipo_cuenta || '—'}</dd>
+        </div>
+        <div>
+          <dt>Banco</dt>
+          <dd>{bankAccountDetails.banco || '—'}</dd>
+        </div>
+        <div>
+          <dt>Num. de cuenta</dt>
+          <dd>{bankAccountDetails.numero_cuenta || '—'}</dd>
+        </div>
+      </dl>
+      <p class="buy-modal__note">Envía el comprobante por Instagram a <a href="https://www.instagram.com/constantdesigns" target="_blank" rel="noreferrer">@constantdesigns</a>.</p>
+    </div>
     <div class="buy-modal__actions">
       <button class="btn" type="button" data-buy-close>Entendido</button>
     </div>

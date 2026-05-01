@@ -133,6 +133,13 @@ def api_health(request):
 
 
 @require_GET
+def api_payment_details(request):
+    details = getattr(settings, 'BANK_ACCOUNT_DETAILS', None) or {}
+    bank_account = getattr(settings, 'BANK_ACCOUNT', '') or ''
+    return JsonResponse({'bank_account': bank_account, 'details': details})
+
+
+@require_GET
 def api_products(request):
     productos = (
         Producto.objects

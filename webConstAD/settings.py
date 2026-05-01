@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+import json
 
 load_dotenv()
 
@@ -30,6 +31,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
+BANK_ACCOUNT = os.getenv('BANK_ACCOUNT', '')
+BANK_ACCOUNT_JSON = os.getenv('BANK_ACCOUNT_JSON', '')
+
+def _parse_json_env(raw_value: str):
+    if not raw_value:
+        return {}
+    try:
+        return json.loads(raw_value)
+    except json.JSONDecodeError:
+        return {}
+
+BANK_ACCOUNT_DETAILS = _parse_json_env(BANK_ACCOUNT_JSON)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
