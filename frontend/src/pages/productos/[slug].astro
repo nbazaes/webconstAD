@@ -1,0 +1,244 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'
+
+const apiOrigin = import.meta.env.API_ORIGIN || import.meta.env.BUILD_API_ORIGIN || 'http://127.0.0.1:8000'
+const { slug } = Astro.params
+const response = await fetch(`${apiOrigin}/api/productos/${slug}/`)
+const producto = response.ok ? await response.json() : null
+
+const pageTitle = `${producto?.nombre || 'Producto'} | Productos | Constant Archivos Digitales`
+const formattedPrice = producto?.precio != null
+  ? String(producto.precio).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+  : null
+---
+
+<BaseLayout title={pageTitle} page="productos">
+  <main class="content">
+    {producto ? (
+      <>
+        <section class="products-hero text-block">
+          <div class="product-hero">
+            <div class="product-hero__image">
+              {producto.imagen ? (
+                <img src={producto.imagen} alt={producto.descripcion || producto.nombre} />
+              ) : (
+                <img src="/static/web/assets/hero1.svg" alt={producto.nombre} />
+              )}
+            </div>
+            <div class="product-hero__content">
+              {producto.coleccion_descripcion ? (
+                <div class="lead">
+                  <img src={producto.coleccion_descripcion} alt={producto.coleccion || 'Coleccion'} />
+                </div>
+              ) : null}
+            </div>
+            {producto.preview_imagen ? (
+              <div class="product-hero__preview">
+                <img src={producto.preview_imagen} alt={producto.nombre || 'Preview'} />
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        <section class="product-title-block">
+          <h2><span>{producto.coleccion || 'Coleccion'}</span> <span>{producto.nombre}</span></h2>
+        </section>
+        <section class="product-detail">
+          <ul class="product-meta-list">
+            {producto.descripcion ? <li>{producto.descripcion}</li> : null}
+            {producto.paginas ? <li>{producto.paginas} pág.</li> : null}
+            {formattedPrice ? <li class="product-price">${formattedPrice}</li> : null}
+          </ul>
+          <button class="btn btn-buy" type="button" data-buy-button>Comprar</button>
+        </section>
+      </>
+    ) : (
+      <section class="products-hero text-block">
+        <p>No se encontró este producto.</p>
+      </section>
+    )}
+  </main>
+</BaseLayout>
+
+<style>
+  .product-title-block {
+    max-width: 900px;
+    margin: 10px auto 20px;
+    padding: 0 20px;
+    font-family: 'PT Serif', serif;
+  }
+
+  .product-title-block h2 {
+    margin: 0;
+    font-size: 1.8rem;
+  }
+
+  .product-title-block h2 span:first-child {
+    font-weight: 700;
+  }
+
+  .product-title-block h2 span:last-child {
+    font-weight: 400;
+  }
+
+  .products-hero.text-block {
+    max-width: 1320px;
+  }
+
+  .product-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 400px) minmax(0, 1.2fr) minmax(0, 380px);
+    column-gap: 0;
+    row-gap: 24px;
+    align-items: center;
+  }
+
+  .product-hero__image,
+  .product-hero__preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .product-hero__image {
+    margin-right: 24px;
+  }
+
+  .product-hero__image img {
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    object-fit: contain;
+  }
+
+  .product-hero__preview img {
+    width: 100%;
+    max-width: 380px;
+    height: auto;
+    object-fit: contain;
+  }
+
+  .product-hero__content .lead img {
+    display: block;
+    max-width: 400px;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+  }
+
+  .product-detail {
+    max-width: 900px;
+    margin: 0 auto 40px;
+    padding: 0 20px;
+    font-family: 'PT Serif', serif;
+  }
+
+  .product-meta-list {
+    margin: 0;
+    padding-left: 18px;
+  }
+
+  .product-meta-list li {
+    font-size: 1.4rem;
+    line-height: 1.5;
+  }
+
+  .product-meta-list .product-price {
+    font-size: 1.68rem;
+    font-weight: 700;
+  }
+
+  .btn-buy {
+    margin-top: 18px;
+    font-size: 1.05rem;
+    letter-spacing: 0.02em;
+  }
+
+  .buy-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2600;
+    display: grid;
+    place-items: center;
+  }
+
+  .buy-modal[hidden] {
+    display: none;
+  }
+
+  .buy-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(9, 10, 10, 0.28);
+    backdrop-filter: blur(4px);
+  }
+
+  .buy-modal__panel {
+    position: relative;
+    width: min(420px, calc(100vw - 32px));
+    background: #fffaf5;
+    border: 1px solid #e8dfd7;
+    border-radius: 14px;
+    padding: 20px;
+    text-align: center;
+    z-index: 1;
+  }
+
+  .buy-modal__panel h3 {
+    margin: 0 0 10px;
+  }
+
+  .buy-modal__actions {
+    margin-top: 16px;
+    display: flex;
+    justify-content: center;
+  }
+
+  @media (max-width: 700px) {
+    .product-title-block h2 {
+      font-size: 1.4rem;
+      text-align: center;
+    }
+
+    .product-hero {
+      grid-template-columns: 1fr;
+      text-align: center;
+    }
+
+    .product-hero__image img {
+      max-width: 260px;
+    }
+
+    .product-hero__preview img {
+      max-width: 260px;
+    }
+
+    .product-hero__content .lead img {
+      max-width: 320px;
+    }
+  }
+</style>
+
+<div class="buy-modal" data-buy-modal hidden>
+  <div class="buy-modal__backdrop" data-buy-close></div>
+  <div class="buy-modal__panel" role="dialog" aria-modal="true" aria-labelledby="buy-modal-title">
+    <h3 id="buy-modal-title">Comprar</h3>
+    <p>Pronto podrás comprar este producto aquí.</p>
+    <div class="buy-modal__actions">
+      <button class="btn" type="button" data-buy-close>Entendido</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const buyButton = document.querySelector('[data-buy-button]')
+  const buyModal = document.querySelector('[data-buy-modal]')
+  const buyClosers = document.querySelectorAll('[data-buy-close]')
+
+  const closeBuyModal = () => {
+    buyModal?.setAttribute('hidden', '')
+  }
+
+  buyButton?.addEventListener('click', () => buyModal?.removeAttribute('hidden'))
+  buyClosers.forEach((button) => button.addEventListener('click', closeBuyModal))
+</script>

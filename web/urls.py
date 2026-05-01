@@ -5,6 +5,7 @@ urlpatterns = [
     path('api/', views.api_root, name='api-root'),
     path('api/health/', views.api_health, name='api-health'),
     path('api/productos/', views.api_products, name='api-products'),
+    path('api/productos/<slug:slug>/', views.api_producto_detalle, name='api-producto-detalle'),
     path('api/categorias/', views.api_categorias, name='api-categorias'),
     path('api/catalog/categorias/', views.api_catalog_categorias, name='api-catalog-categorias'),
     path('api/catalog/colecciones/', views.api_catalog_colecciones, name='api-catalog-colecciones'),

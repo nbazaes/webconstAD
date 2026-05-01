@@ -70,7 +70,7 @@ class Categoria(models.Model):
 
 class Coleccion(models.Model):
 	nombre = models.CharField(max_length=140)
-	descripcion = models.TextField(blank=True)
+	descripcion = models.ImageField(upload_to='colecciones/descripciones/', storage=r2_storage, blank=True, null=True)
 	slug = models.SlugField(max_length=180, unique=True)
 	imagen = models.ImageField(upload_to='colecciones/', storage=r2_storage, blank=True, null=True)
 
@@ -85,10 +85,11 @@ class Coleccion(models.Model):
 class Producto(models.Model):
 	nombre = models.CharField(max_length=180)
 	descripcion = models.TextField(blank=True)
-	precio = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+	precio = models.PositiveIntegerField(null=True, blank=True)
 	es_gratuito = models.BooleanField(default=False)
 	archivo = models.FileField(upload_to='productos/', storage=r2_storage, blank=True, null=True)
 	imagen = models.ImageField(upload_to='productos/', storage=r2_storage, blank=True, null=True)
+	preview_imagen = models.ImageField(upload_to='productos/previews/', storage=r2_storage, blank=True, null=True)
 	slug = models.SlugField(max_length=200, unique=True)
 	paginas = models.PositiveIntegerField(null=True, blank=True)
 	activo = models.BooleanField(default=True)

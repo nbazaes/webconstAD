@@ -20,9 +20,16 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
 
 <BaseLayout title={pageTitle} page="gratis">
   <main class="content">
-    <section class="products-hero text-block">
-      <h2 data-cat-title>Categoria</h2>
-      <p class="lead" data-cat-description hidden></p>
+    <section class="products-hero text-block" data-cat-header hidden>
+      <div class="category-hero">
+        <div class="category-hero__image">
+          <img data-cat-image alt="" hidden />
+        </div>
+        <div class="category-hero__content">
+          <h2 data-cat-title>Categoria</h2>
+          <p class="lead" data-cat-description hidden></p>
+        </div>
+      </div>
     </section>
 
     <section class="products-grid" data-cat-products hidden></section>
@@ -64,7 +71,9 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
 
 <script>
   const titleNode = document.querySelector('[data-cat-title]')
+  const headerNode = document.querySelector('[data-cat-header]')
   const descriptionNode = document.querySelector('[data-cat-description]')
+  const categoryImage = document.querySelector('[data-cat-image]')
   const productsGrid = document.querySelector('[data-cat-products]')
   const emptyNode = document.querySelector('[data-cat-empty]')
   const wrappers = () => document.querySelectorAll('[data-admin-product]')
@@ -335,6 +344,8 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
                   : `<img src="/static/web/assets/g345.png" alt="${producto.descripcion || producto.nombre}" />`
               }
               <span class="product-name" title="${producto.descripcion || producto.nombre}">${producto.nombre}</span>
+              ${producto.descripcion ? `<span class="product-meta">${producto.descripcion}</span>` : ''}
+              ${producto.paginas ? `<span class="product-meta">${producto.paginas} pág.</span>` : ''}
             </button>
             <div class="published-actions" data-admin-actions hidden>
               <button class="btn" type="button" data-edit-product>Editar</button>
@@ -374,6 +385,12 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
       descriptionNode.textContent = categoria.descripcion
       descriptionNode.removeAttribute('hidden')
     }
+    if (categoria.imagen && categoryImage) {
+      categoryImage.src = categoria.imagen
+      categoryImage.alt = categoria.descripcion || categoria.nombre || 'Categoria'
+      categoryImage.removeAttribute('hidden')
+    }
+    headerNode?.removeAttribute('hidden')
 
     renderProducts(data.results || [])
   }
@@ -388,6 +405,26 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     align-items: center;
     justify-content: flex-start;
     text-align: center;
+  }
+
+  .category-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+    gap: 28px;
+    align-items: center;
+  }
+
+  .category-hero__image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .category-hero__image img {
+    width: 100%;
+    max-width: 320px;
+    height: auto;
+    object-fit: contain;
   }
 
   .free-product-card {
@@ -432,6 +469,11 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     line-height: 1.2;
     margin-top: 6px;
     text-decoration: none;
+  }
+
+  .product-meta {
+    font-size: 0.95rem;
+    color: #333;
   }
 
   .free-product-wrap .published-actions {
@@ -494,6 +536,14 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
   }
 
   @media (max-width: 700px) {
+    .category-hero {
+      grid-template-columns: 1fr;
+      text-align: center;
+    }
+
+    .category-hero__image img {
+      max-width: 220px;
+    }
     .products-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 14px;

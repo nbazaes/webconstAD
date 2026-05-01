@@ -56,6 +56,11 @@ import BaseLayout from '../layouts/BaseLayout.astro'
         <label for="pub-imagen">Imagen (preview)</label>
         <input id="pub-imagen" name="imagen" type="file" accept="image/*" />
 
+        <div data-preview-block>
+          <label for="pub-preview">Preview de paginas</label>
+          <input id="pub-preview" name="preview_imagen" type="file" accept="image/*" />
+        </div>
+
         <label for="pub-archivo">Archivo (producto)</label>
         <input id="pub-archivo" name="archivo" type="file" />
 
@@ -90,6 +95,8 @@ import BaseLayout from '../layouts/BaseLayout.astro'
   const coleccionBlock = document.querySelector('[data-coleccion-block]')
   const gratuitoSelect = document.querySelector('#pub-es-gratuito')
   const precioInput = document.querySelector('#pub-precio')
+  const previewBlock = document.querySelector('[data-preview-block]')
+  const previewInput = document.querySelector('#pub-preview')
   const nombreInput = document.querySelector('#pub-nombre')
   const slugInput = document.querySelector('#pub-slug')
   const publicarList = document.querySelector('[data-publicar-list]')
@@ -174,9 +181,14 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 
     if (categoriaBlock) categoriaBlock.hidden = !isFree
     if (coleccionBlock) coleccionBlock.hidden = isFree
+    if (previewBlock) previewBlock.hidden = isFree
 
     if (categoriaSelect) categoriaSelect.disabled = !isFree
     if (coleccionSelect) coleccionSelect.disabled = isFree
+    if (previewInput) {
+      previewInput.disabled = isFree
+      if (isFree) previewInput.value = ''
+    }
     if (isFree) {
       if (coleccionSelect) coleccionSelect.value = ''
     } else {
@@ -232,6 +244,9 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 
           <label>Imagen preview (opcional)</label>
           <input name="imagen" type="file" accept="image/*" />
+
+          <label>Preview de paginas (opcional)</label>
+          <input name="preview_imagen" type="file" accept="image/*" />
 
           <label>Es gratuito?</label>
           <select name="es_gratuito" data-edit-gratis>

@@ -1,5 +1,5 @@
 from pathlib import Path
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model, login, logout
@@ -136,11 +136,12 @@ def api_products(request):
             'nombre': p.nombre,
             'slug': p.slug,
             'descripcion': p.descripcion,
-            'precio': str(p.precio) if p.precio is not None else None,
+            'precio': p.precio if p.precio is not None else None,
             'es_gratuito': p.es_gratuito,
             'paginas': p.paginas,
             'activo': p.activo,
             'imagen': p.imagen.url if p.imagen else None,
+            'preview_imagen': p.preview_imagen.url if p.preview_imagen else None,
             'archivo': p.archivo.url if p.archivo else None,
             'categoria_id': p.categoria_id,
             'coleccion': p.coleccion.nombre if p.coleccion else None,
@@ -150,6 +151,38 @@ def api_products(request):
     ]
 
     return JsonResponse({'count': len(data), 'results': data})
+
+
+@require_GET
+def api_producto_detalle(request, slug):
+    producto = get_object_or_404(
+        Producto,
+        slug=slug,
+        activo=True,
+        es_gratuito=False,
+        coleccion__isnull=False,
+        precio__isnull=False,
+    )
+
+    return JsonResponse(
+        {
+            'id': producto.id,
+            'nombre': producto.nombre,
+            'slug': producto.slug,
+            'descripcion': producto.descripcion,
+            'precio': producto.precio if producto.precio is not None else None,
+            'es_gratuito': producto.es_gratuito,
+            'paginas': producto.paginas,
+            'activo': producto.activo,
+            'imagen': producto.imagen.url if producto.imagen else None,
+            'preview_imagen': producto.preview_imagen.url if producto.preview_imagen else None,
+            'archivo': producto.archivo.url if producto.archivo else None,
+            'categoria_id': producto.categoria_id,
+            'coleccion': producto.coleccion.nombre if producto.coleccion else None,
+            'coleccion_id': producto.coleccion_id,
+            'coleccion_descripcion': producto.coleccion.descripcion.url if producto.coleccion and producto.coleccion.descripcion else None,
+        }
+    )
 
 
 @require_GET
@@ -191,6 +224,7 @@ def api_catalog_colecciones(request):
             'id': c.id,
             'nombre': c.nombre,
             'slug': c.slug,
+            'descripcion': c.descripcion.url if c.descripcion else None,
         }
         for c in colecciones
     ]
@@ -220,11 +254,12 @@ def api_categoria_productos(request, slug):
                 'nombre': p.nombre,
                 'slug': p.slug,
                 'descripcion': p.descripcion,
-                'precio': str(p.precio) if p.precio is not None else None,
+                'precio': p.precio if p.precio is not None else None,
                 'es_gratuito': p.es_gratuito,
                 'paginas': p.paginas,
                 'activo': p.activo,
                 'imagen': p.imagen.url if p.imagen else None,
+                'preview_imagen': p.preview_imagen.url if p.preview_imagen else None,
                 'archivo': p.archivo.url if p.archivo else None,
                 'categoria_id': p.categoria_id,
                 'coleccion_id': p.coleccion_id,
@@ -398,11 +433,12 @@ def api_admin_productos(request):
             'nombre': p.nombre,
             'slug': p.slug,
             'descripcion': p.descripcion,
-            'precio': str(p.precio) if p.precio is not None else '',
+            'precio': p.precio if p.precio is not None else '',
             'es_gratuito': p.es_gratuito,
             'paginas': p.paginas,
             'activo': p.activo,
             'imagen': p.imagen.url if p.imagen else None,
+            'preview_imagen': p.preview_imagen.url if p.preview_imagen else None,
             'archivo': p.archivo.url if p.archivo else None,
             'categoria_id': p.categoria_id,
             'categoria_nombre': p.categoria.nombre if p.categoria else None,
@@ -441,8 +477,8 @@ def api_admin_producto_editar(request, producto_id):
         if not precio_raw:
             return _bad_request('precio es obligatorio para productos de pago')
         try:
-            precio = Decimal(precio_raw)
-        except (InvalidOperation, ValueError):
+            precio = int(precio_raw)
+        except (TypeError, ValueError):
             return _bad_request('precio invalido')
 
     paginas = None
@@ -473,6 +509,8 @@ def api_admin_producto_editar(request, producto_id):
 
     if 'imagen' in request.FILES:
         producto.imagen = request.FILES['imagen']
+    if 'preview_imagen' in request.FILES:
+        producto.preview_imagen = request.FILES['preview_imagen']
     if 'archivo' in request.FILES:
         producto.archivo = request.FILES['archivo']
 
@@ -524,10 +562,11 @@ def api_admin_catalogo_crear(request):
     item = Coleccion(
         nombre=nombre,
         slug=_build_unique_simple_slug(Coleccion, nombre, explicit_slug=slug_raw),
-        descripcion=descripcion,
     )
     if 'imagen' in request.FILES:
         item.imagen = request.FILES['imagen']
+    if 'descripcion' in request.FILES:
+        item.descripcion = request.FILES['descripcion']
     item.save()
     return JsonResponse({'ok': True, 'tipo': 'coleccion', 'id': item.id, 'nombre': item.nombre})
 
@@ -559,10 +598,11 @@ def api_admin_catalogo_editar(request, tipo, item_id):
     if tipo == 'coleccion':
         item = get_object_or_404(Coleccion, id=item_id)
         item.nombre = nombre
-        item.descripcion = descripcion
         item.slug = _build_unique_simple_slug(Coleccion, nombre, explicit_slug=request.POST.get('slug') or item.slug)
         if 'imagen' in request.FILES:
             item.imagen = request.FILES['imagen']
+        if 'descripcion' in request.FILES:
+            item.descripcion = request.FILES['descripcion']
         item.save()
         return JsonResponse({'ok': True})
 
@@ -616,8 +656,8 @@ def api_publicar_producto(request):
     precio = None
     if precio_raw:
         try:
-            precio = Decimal(precio_raw)
-        except (InvalidOperation, ValueError):
+            precio = int(precio_raw)
+        except (TypeError, ValueError):
             return _bad_request('precio invalido')
 
     categoria = None
@@ -642,6 +682,8 @@ def api_publicar_producto(request):
 
     if 'imagen' in request.FILES:
         producto.imagen = request.FILES['imagen']
+    if 'preview_imagen' in request.FILES:
+        producto.preview_imagen = request.FILES['preview_imagen']
     if 'archivo' in request.FILES:
         producto.archivo = request.FILES['archivo']
 
@@ -655,7 +697,7 @@ def api_publicar_producto(request):
                 'nombre': producto.nombre,
                 'slug': producto.slug,
                 'es_gratuito': producto.es_gratuito,
-                'precio': str(producto.precio) if producto.precio is not None else None,
+            'precio': producto.precio if producto.precio is not None else None,
                 'imagen': producto.imagen.url if producto.imagen else None,
                 'archivo': producto.archivo.url if producto.archivo else None,
             },

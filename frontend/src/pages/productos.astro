@@ -1,10 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
 
-const buildApiOrigin = import.meta.env.BUILD_API_ORIGIN || 'http://127.0.0.1:8000'
-const response = await fetch(`${buildApiOrigin}/api/productos/`)
-const data = await response.json()
-const products = data.results || []
+const products = []
 ---
 
 <BaseLayout title="Productos | Constant Archivos Digitales" page="productos">
@@ -14,27 +11,14 @@ const products = data.results || []
       <p class="lead">Archivos para <em>imprimir</em> o trabajar <em>digitalmente</em></p>
     </section>
 
-    {products.length > 0 ? (
-      <section class="products-grid">
-        {products.map((product) => (
-          <article class="product" data-admin-product data-product-id={product.id} data-product-json={JSON.stringify(product)}>
-            <img src={product.imagen || '/static/web/assets/hero1.svg'} alt={product.descripcion || product.nombre} />
-            <a href="#" class="caption" title={product.descripcion || product.nombre}>
-              {product.nombre}
-              <span>{product.coleccion || 'Coleccion'} · ${product.precio || '-'}</span>
-            </a>
-            <div class="published-actions" data-admin-actions hidden>
-              <button class="btn" type="button" data-edit-product>Editar</button>
-              <button class="btn btn-secondary" type="button" data-delete-product>Eliminar</button>
-            </div>
-          </article>
-        ))}
-      </section>
-    ) : (
-      <section class="products-hero text-block">
-        <p>Aún no hay productos de pago publicados.</p>
-      </section>
-    )}
+    <section class="products-grid" data-products-grid hidden></section>
+    <section class="products-hero text-block" data-products-empty hidden>
+      <p>Aún no hay productos de pago publicados.</p>
+    </section>
+    <section class="products-hero text-block" data-products-loading>
+      <p>Cargando productos...</p>
+    </section>
+
 
     <div class="global-loading-modal" data-global-loading hidden>
       <div class="global-loading-modal__backdrop"></div>
@@ -46,10 +30,48 @@ const products = data.results || []
   </main>
 </BaseLayout>
 
+<style>
+  .product-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .product-collection {
+    font-family: 'PT Serif', serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-top: 10px;
+  }
+
+  .product-title {
+    font-family: 'PT Serif', serif;
+    font-weight: 400;
+    font-size: 1.1rem;
+  }
+
+
+  @media (max-width: 700px) {
+    .product-collection {
+      font-size: 1.05rem;
+    }
+
+    .product-title {
+      font-size: 1rem;
+    }
+
+  }
+</style>
+
 <script>
   const backendOrigin = window.location.origin
   const backendUrl = (path) => `${backendOrigin}${path}`
-  const cards = document.querySelectorAll('[data-admin-product]')
+  const productsGrid = document.querySelector('[data-products-grid]')
+  const emptyState = document.querySelector('[data-products-empty]')
+  const loadingState = document.querySelector('[data-products-loading]')
   const globalLoading = document.querySelector('[data-global-loading]')
 
   const openLoadingModal = (text = 'Procesando...') => {
@@ -90,6 +112,7 @@ const products = data.results || []
           <label>Nombre</label><input name="nombre" type="text" value="${product.nombre || ''}" required />
           <label>Descripción</label><textarea name="descripcion" rows="3">${product.descripcion || ''}</textarea>
           <label>Imagen preview (opcional)</label><input name="imagen" type="file" accept="image/*" />
+          <label>Preview de paginas (opcional)</label><input name="preview_imagen" type="file" accept="image/*" />
           <label>¿Es gratuito?</label>
           <select name="es_gratuito" data-edit-gratis>
             <option value="true" ${product.es_gratuito ? 'selected' : ''}>Sí</option>
@@ -174,13 +197,15 @@ const products = data.results || []
     })
   }
 
-  ensureAdminUi().then((isAdmin) => {
-    if (!isAdmin) { document.querySelectorAll('[data-admin-actions]').forEach((actions) => actions.setAttribute('hidden', ''))
+  const wireAdminActions = async () => {
+    const isAdmin = await ensureAdminUi()
+    if (!isAdmin) {
+      document.querySelectorAll('[data-admin-actions]').forEach((actions) => actions.setAttribute('hidden', ''))
       return
     }
 
     document.querySelectorAll('[data-admin-actions]').forEach((actions) => actions.removeAttribute('hidden'))
-    cards.forEach((card) => {
+    document.querySelectorAll('[data-admin-product]').forEach((card) => {
       const product = JSON.parse(card.getAttribute('data-product-json') || '{}')
 
       card.querySelector('[data-delete-product]')?.addEventListener('click', async () => {
@@ -201,5 +226,57 @@ const products = data.results || []
 
       card.querySelector('[data-edit-product]')?.addEventListener('click', () => createEditModal(product))
     })
-  })
+  }
+
+  const renderProducts = (products) => {
+    if (!productsGrid) return
+    if (!products.length) {
+      emptyState?.removeAttribute('hidden')
+      productsGrid.setAttribute('hidden', '')
+      return
+    }
+
+    productsGrid.innerHTML = products
+      .map(
+        (product) => `
+          <article class="product" data-admin-product data-product-id="${product.id}" data-product-json='${JSON.stringify(product).replace(/'/g, '&apos;')}'>
+            <a href="/productos/${product.slug}/" class="product-card" title="${product.descripcion || product.nombre}">
+              <img src="${product.imagen || '/static/web/assets/hero1.svg'}" alt="${product.descripcion || product.nombre}" />
+              <br />
+              <span class="product-collection"><em>${product.coleccion || 'Coleccion'}</em></span>
+              <br />
+              <span class="product-title">${product.nombre}</span>
+            </a>
+            <div class="published-actions" data-admin-actions hidden>
+              <button class="btn" type="button" data-edit-product>Editar</button>
+              <button class="btn btn-secondary" type="button" data-delete-product>Eliminar</button>
+            </div>
+          </article>
+        `
+      )
+      .join('')
+
+    productsGrid.removeAttribute('hidden')
+    wireAdminActions()
+  }
+
+  const loadProducts = async () => {
+    if (!productsGrid) return
+    loadingState?.removeAttribute('hidden')
+    emptyState?.setAttribute('hidden', '')
+    productsGrid.setAttribute('hidden', '')
+    try {
+      const response = await fetch(backendUrl('/api/productos/'))
+      if (!response.ok) throw new Error('no se pudo cargar')
+      const data = await response.json()
+      const items = (data.results || []).filter((item) => !item.es_gratuito && item.coleccion)
+      renderProducts(items)
+    } catch {
+      emptyState?.removeAttribute('hidden')
+    } finally {
+      loadingState?.setAttribute('hidden', '')
+    }
+  }
+
+  loadProducts()
 </script>
