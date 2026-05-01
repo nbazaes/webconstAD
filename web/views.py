@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model, login, logout
+from django.contrib.auth.models import Group
 from django.http import Http404, HttpResponse, JsonResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
@@ -35,12 +36,22 @@ def _parse_bool(value, default=False):
     return str(value).strip().lower() in {'1', 'true', 'yes', 'on', 'si'}
 
 
+def _user_has_group(user, group_name: str) -> bool:
+    if not user or not getattr(user, 'is_authenticated', False):
+        return False
+    return user.groups.filter(name__iexact=group_name).exists()
+
+
 def _user_role(user):
     if getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False):
         return 'admin'
 
-    perfil = getattr(user, 'perfil_cliente', None)
-    return perfil.rol if perfil else 'cliente'
+    if _user_has_group(user, 'Artista'):
+        return 'artista'
+    if _user_has_group(user, 'Cliente'):
+        return 'cliente'
+
+    return 'cliente'
 
 
 def _serialize_user(user):
@@ -61,8 +72,8 @@ def _serialize_user(user):
 def _ensure_admin(request):
     if not request.user.is_authenticated:
         return _bad_request('autenticacion requerida', status=401)
-    if _user_role(request.user) != 'admin':
-        return _bad_request('solo admin puede realizar esta accion', status=403)
+    if _user_role(request.user) not in {'admin', 'artista'}:
+        return _bad_request('solo admin o artista puede realizar esta accion', status=403)
     return None
 
 
@@ -304,6 +315,10 @@ def api_auth_register(request):
         first_name=first_name,
         last_name=last_name,
     )
+
+    cliente_group = Group.objects.filter(name__iexact='Cliente').first()
+    if cliente_group:
+        user.groups.add(cliente_group)
 
     perfil = user.perfil_cliente
     perfil.nombre = first_name
@@ -547,6 +562,7 @@ def api_admin_catalogo_crear(request):
     if not nombre:
         return _bad_request('nombre es obligatorio')
 
+
     if tipo == 'categoria':
         item = Categoria(
             nombre=nombre,
@@ -584,6 +600,7 @@ def api_admin_catalogo_editar(request, tipo, item_id):
     if not nombre:
         return _bad_request('nombre es obligatorio')
 
+
     if tipo == 'categoria':
         item = get_object_or_404(Categoria, id=item_id)
         item.nombre = nombre
@@ -617,6 +634,7 @@ def api_admin_catalogo_eliminar(request, tipo, item_id):
         return admin_error
 
     tipo = (tipo or '').strip().lower()
+
     if tipo == 'categoria':
         item = get_object_or_404(Categoria, id=item_id)
         item.delete()

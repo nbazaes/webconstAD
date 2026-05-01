@@ -30,13 +30,13 @@ const categoriasRender = categoriasGratis.map((item) => {
     </section>
 
     {categoriasRender.length > 0 ? (
-      <section class="products-grid">
+      <section class="products-grid" data-free-categories>
         {categoriasRender.map((cat) => (
           <div class="product">
             <a href={`/gratis/${cat.slug}/`} class="product-link" title={cat.descripcion || ''}>
               {cat.imagen ? (
-                <img 
-                  src={cat.imagen} 
+                <img
+                  src={cat.imagen}
                   alt={cat.descripcion || cat.nombre}
                 />
               ) : (
@@ -52,7 +52,7 @@ const categoriasRender = categoriasGratis.map((item) => {
         ))}
       </section>
     ) : (
-      <section class="products-hero text-block">
+      <section class="products-hero text-block" data-free-empty>
         <p>Próximamente recursos gratuitos.</p>
         <ul>
           <li>Plantillas de práctica</li>
@@ -105,6 +105,40 @@ const categoriasRender = categoriasGratis.map((item) => {
     font-size: 1rem;
   }
 
+  .catalog-cta {
+    border: 1px dashed #d9cfc6;
+    border-radius: 12px;
+    background: #fffaf5;
+    padding: 18px;
+    display: grid;
+    gap: 12px;
+    text-align: center;
+    align-content: center;
+    min-height: 210px;
+  }
+
+  .catalog-cta h3 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+
+  .catalog-cta p {
+    margin: 0;
+    color: #5b4f46;
+  }
+
+  .catalog-cta__actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .catalog-cta__helper {
+    font-size: 0.95rem;
+    color: #6d6158;
+  }
+
   @media (max-width: 700px) {
     .products-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -123,3 +157,129 @@ const categoriasRender = categoriasGratis.map((item) => {
     }
   }
 </style>
+
+<script>
+  const backendOrigin = window.location.origin
+  const backendUrl = (path) => `${backendOrigin}${path}`
+  const grid = document.querySelector('[data-free-categories]')
+  const emptyBlock = document.querySelector('[data-free-empty]')
+
+  const canManageCatalog = (data) =>
+    Boolean(
+      data?.authenticated &&
+        (data.user?.rol === 'admin' || data.user?.rol === 'artista' || data.user?.is_staff || data.user?.is_superuser)
+    )
+
+  const insertAddCard = () => {
+    if (!grid || grid.querySelector('[data-add-categoria]')) return
+    const wrapper = document.createElement('article')
+    wrapper.className = 'product'
+    wrapper.setAttribute('data-add-categoria', '')
+    wrapper.innerHTML = `
+      <div class="catalog-cta">
+        <h3>Agregar categoría</h3>
+        <p>Crea una nueva categoría gratuita desde aquí.</p>
+        <div class="catalog-cta__actions">
+          <button class="btn" type="button" data-open-add-categoria>Crear categoría</button>
+          <a class="btn btn-secondary" href="/publicar/">Ir a publicar</a>
+        </div>
+        <div class="catalog-cta__helper">Disponible para admins y artistas.</div>
+      </div>
+    `
+    grid.prepend(wrapper)
+  }
+
+  const openCatalogModal = async () => {
+    const modal = document.createElement('div')
+    modal.className = 'catalog-modal'
+    modal.innerHTML = `
+      <div class="catalog-modal__backdrop" data-close-catalog></div>
+      <div class="catalog-modal__panel" role="dialog" aria-modal="true">
+        <h3>Nueva categoría gratis</h3>
+        <form class="auth-form" data-catalog-form>
+          <input type="hidden" name="tipo" value="categoria" />
+          <label>Nombre</label><input name="nombre" type="text" required />
+          <label>Descripción</label><textarea name="descripcion" rows="3"></textarea>
+          <label>Imagen (opcional)</label><input name="imagen" type="file" accept="image/*" />
+          <input type="hidden" name="es_gratuita" value="true" />
+          <div class="published-actions">
+            <button class="btn" type="submit">Crear</button>
+            <button class="btn btn-secondary" type="button" data-close-catalog>Cancelar</button>
+          </div>
+        </form>
+        <p class="auth-message" data-catalog-message></p>
+      </div>
+    `
+
+    document.body.appendChild(modal)
+    const close = () => modal.remove()
+    modal.querySelectorAll('[data-close-catalog]').forEach((el) => el.addEventListener('click', close))
+
+    const form = modal.querySelector('[data-catalog-form]')
+    const message = modal.querySelector('[data-catalog-message]')
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault()
+      if (message) message.textContent = ''
+
+      const formData = new FormData(form)
+      formData.set('es_gratuita', 'true')
+      const nombre = String(formData.get('nombre') || '').trim()
+      if (!nombre) {
+        if (message) message.textContent = 'Nombre es obligatorio.'
+        return
+      }
+
+      const ok = await (window.showStyledConfirm
+        ? window.showStyledConfirm(`¿Crear la categoría "${nombre}"?`)
+        : Promise.resolve(confirm(`¿Crear la categoría "${nombre}"?`)))
+      if (!ok) return
+
+      const response = await fetch(backendUrl('/api/admin/catalogo/crear/'), {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok || !data.ok) {
+        if (message) message.textContent = data.message || 'No se pudo crear la categoría.'
+        return
+      }
+
+      close()
+      window.location.reload()
+    })
+  }
+
+  const initAddCategoria = async () => {
+    const response = await fetch(backendUrl('/api/auth/session/'), { credentials: 'include' })
+    if (!response.ok) return
+    const data = await response.json()
+    if (!canManageCatalog(data)) return
+
+    if (grid) {
+      insertAddCard()
+      grid.querySelector('[data-open-add-categoria]')?.addEventListener('click', openCatalogModal)
+      return
+    }
+
+    if (!emptyBlock || emptyBlock.querySelector('[data-add-categoria]')) return
+    const emptyWrapper = document.createElement('div')
+    emptyWrapper.setAttribute('data-add-categoria', '')
+    emptyWrapper.innerHTML = `
+      <div class="catalog-cta" style="margin-top: 16px;">
+        <h3>Agregar categoría</h3>
+        <p>Crea una nueva categoría gratuita desde aquí.</p>
+        <div class="catalog-cta__actions">
+          <button class="btn" type="button" data-open-add-categoria>Crear categoría</button>
+          <a class="btn btn-secondary" href="/publicar/">Ir a publicar</a>
+        </div>
+        <div class="catalog-cta__helper">Disponible para admins y artistas.</div>
+      </div>
+    `
+    emptyBlock.appendChild(emptyWrapper)
+    emptyBlock.querySelector('[data-open-add-categoria]')?.addEventListener('click', openCatalogModal)
+  }
+
+  window.initAddCategoria = initAddCategoria
+  initAddCategoria()
+</script>

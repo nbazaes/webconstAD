@@ -67,8 +67,8 @@ const products = []
 </style>
 
 <script>
-  const backendOrigin = window.location.origin
-  const backendUrl = (path) => `${backendOrigin}${path}`
+  const catalogBackendOrigin = window.location.origin
+  const catalogBackendUrl = (path) => `${catalogBackendOrigin}${path}`
   const productsGrid = document.querySelector('[data-products-grid]')
   const emptyState = document.querySelector('[data-products-empty]')
   const loadingState = document.querySelector('[data-products-loading]')
@@ -86,7 +86,7 @@ const products = []
   }
 
   const ensureAdminUi = async () => {
-    const response = await fetch(backendUrl('/api/auth/session/'), { credentials: 'include' })
+    const response = await fetch(catalogBackendUrl('/api/auth/session/'), { credentials: 'include' })
     if (!response.ok) return false
     const data = await response.json()
     return Boolean(data.authenticated && (data.user?.rol === 'admin' || data.user?.is_staff || data.user?.is_superuser))
@@ -94,8 +94,8 @@ const products = []
 
   const createEditModal = async (product) => {
     const [catRes, colRes] = await Promise.all([
-      fetch(backendUrl('/api/catalog/categorias/'), { credentials: 'include' }),
-      fetch(backendUrl('/api/catalog/colecciones/'), { credentials: 'include' }),
+      fetch(catalogBackendUrl('/api/catalog/categorias/'), { credentials: 'include' }),
+      fetch(catalogBackendUrl('/api/catalog/colecciones/'), { credentials: 'include' }),
     ])
     const catData = await catRes.json()
     const colData = await colRes.json()
@@ -186,7 +186,7 @@ const products = []
 
       const formData = new FormData(form)
       openLoadingModal('Guardando cambios...')
-      const response = await fetch(backendUrl(`/api/admin/productos/${product.id}/editar/`), {
+      const response = await fetch(catalogBackendUrl(`/api/admin/productos/${product.id}/editar/`), {
         method: 'POST',
         credentials: 'include',
         body: formData,
@@ -215,7 +215,7 @@ const products = []
         if (!ok) return
 
         openLoadingModal('Eliminando producto...')
-        const response = await fetch(backendUrl(`/api/admin/productos/${product.id}/eliminar/`), {
+        const response = await fetch(catalogBackendUrl(`/api/admin/productos/${product.id}/eliminar/`), {
           method: 'POST',
           credentials: 'include',
         })
@@ -233,6 +233,7 @@ const products = []
     if (!products.length) {
       emptyState?.removeAttribute('hidden')
       productsGrid.setAttribute('hidden', '')
+      window.initColeccionCta?.()
       return
     }
 
@@ -258,6 +259,7 @@ const products = []
 
     productsGrid.removeAttribute('hidden')
     wireAdminActions()
+    window.initColeccionCta?.()
   }
 
   const loadProducts = async () => {
@@ -266,7 +268,7 @@ const products = []
     emptyState?.setAttribute('hidden', '')
     productsGrid.setAttribute('hidden', '')
     try {
-      const response = await fetch(backendUrl('/api/productos/'))
+      const response = await fetch(catalogBackendUrl('/api/productos/'))
       if (!response.ok) throw new Error('no se pudo cargar')
       const data = await response.json()
       const items = (data.results || []).filter((item) => !item.es_gratuito && item.coleccion)
@@ -280,3 +282,151 @@ const products = []
 
   loadProducts()
 </script>
+
+<script>
+  const catalogBackendOrigin = window.location.origin
+  const catalogBackendUrl = (path) => `${catalogBackendOrigin}${path}`
+  const productsGridEl = document.querySelector('[data-products-grid]')
+  const productsEmptyEl = document.querySelector('[data-products-empty]')
+
+  const canManageCatalog = (data) =>
+    Boolean(
+      data?.authenticated &&
+        (data.user?.rol === 'admin' || data.user?.rol === 'artista' || data.user?.is_staff || data.user?.is_superuser)
+    )
+
+  const openColeccionModal = async () => {
+    const modal = document.createElement('div')
+    modal.className = 'catalog-modal'
+    modal.innerHTML = `
+      <div class="catalog-modal__backdrop" data-close-catalog></div>
+      <div class="catalog-modal__panel" role="dialog" aria-modal="true">
+        <h3>Nueva colección</h3>
+        <form class="auth-form" data-catalog-form>
+          <input type="hidden" name="tipo" value="coleccion" />
+          <label>Nombre</label><input name="nombre" type="text" required />
+          <label>Imagen (opcional)</label><input name="imagen" type="file" accept="image/*" />
+          <label>Descripción (imagen opcional)</label><input name="descripcion" type="file" accept="image/*" />
+          <div class="published-actions">
+            <button class="btn" type="submit">Crear</button>
+            <button class="btn btn-secondary" type="button" data-close-catalog>Cancelar</button>
+          </div>
+        </form>
+        <p class="auth-message" data-catalog-message></p>
+      </div>
+    `
+
+    document.body.appendChild(modal)
+    const close = () => modal.remove()
+    modal.querySelectorAll('[data-close-catalog]').forEach((el) => el.addEventListener('click', close))
+
+    const form = modal.querySelector('[data-catalog-form]')
+    const message = modal.querySelector('[data-catalog-message]')
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault()
+      if (message) message.textContent = ''
+
+      const formData = new FormData(form)
+      const nombre = String(formData.get('nombre') || '').trim()
+      if (!nombre) {
+        if (message) message.textContent = 'Nombre es obligatorio.'
+        return
+      }
+
+      const ok = await (window.showStyledConfirm
+        ? window.showStyledConfirm(`¿Crear la colección "${nombre}"?`)
+        : Promise.resolve(confirm(`¿Crear la colección "${nombre}"?`)))
+      if (!ok) return
+
+      const response = await fetch(catalogBackendUrl('/api/admin/catalogo/crear/'), {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok || !data.ok) {
+        if (message) message.textContent = data.message || 'No se pudo crear la colección.'
+        return
+      }
+
+      close()
+      window.location.reload()
+    })
+  }
+
+  const insertColeccionCard = (target) => {
+    if (!target || target.querySelector('[data-add-coleccion]')) return
+    const wrapper = document.createElement('article')
+    wrapper.className = 'product'
+    wrapper.setAttribute('data-add-coleccion', '')
+    wrapper.innerHTML = `
+      <div class="catalog-cta" ${target === productsEmptyEl ? 'style="margin-top: 16px;"' : ''}>
+        <h3>Agregar colección</h3>
+        <p>Publica una nueva colección para tus productos de pago.</p>
+        <div class="catalog-cta__actions">
+          <button class="btn" type="button" data-open-add-coleccion>Crear colección</button>
+          <a class="btn btn-secondary" href="/publicar/">Ir a publicar</a>
+        </div>
+        <div class="catalog-cta__helper">Disponible para admins y artistas.</div>
+      </div>
+    `
+    target.prepend(wrapper)
+    wrapper.querySelector('[data-open-add-coleccion]')?.addEventListener('click', openColeccionModal)
+  }
+
+  const initColeccionCta = async () => {
+    if (!productsGridEl && !productsEmptyEl) return
+    const response = await fetch(catalogBackendUrl('/api/auth/session/'), { credentials: 'include' })
+    if (!response.ok) return
+    const data = await response.json()
+    if (!canManageCatalog(data)) return
+    if (productsGridEl && !productsGridEl.hasAttribute('hidden')) {
+      insertColeccionCard(productsGridEl)
+      return
+    }
+    if (productsEmptyEl && !productsEmptyEl.hasAttribute('hidden')) {
+      insertColeccionCard(productsEmptyEl)
+      return
+    }
+    insertColeccionCard(productsGridEl || productsEmptyEl)
+  }
+
+  window.initColeccionCta = initColeccionCta
+  initColeccionCta()
+</script>
+
+<style>
+  .catalog-cta {
+    border: 1px dashed #d9cfc6;
+    border-radius: 12px;
+    background: #fffaf5;
+    padding: 18px;
+    display: grid;
+    gap: 12px;
+    text-align: center;
+    align-content: center;
+    min-height: 210px;
+  }
+
+  .catalog-cta h3 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+
+  .catalog-cta p {
+    margin: 0;
+    color: #5b4f46;
+  }
+
+  .catalog-cta__actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .catalog-cta__helper {
+    font-size: 0.95rem;
+    color: #6d6158;
+  }
+</style>
