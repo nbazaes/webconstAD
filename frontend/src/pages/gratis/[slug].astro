@@ -22,7 +22,7 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
   <main class="content">
     <section class="products-hero text-block" data-cat-header hidden>
       <div class="category-hero">
-        <div class="category-hero__image">
+        <div class="category-hero__image" hidden>
           <img data-cat-image alt="" hidden />
         </div>
         <div class="category-hero__content">
@@ -344,7 +344,6 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
                   : `<img src="/static/web/assets/g345.png" alt="${producto.descripcion || producto.nombre}" />`
               }
               <span class="product-name" title="${producto.descripcion || producto.nombre}">${producto.nombre}</span>
-              ${producto.descripcion ? `<span class="product-meta">${producto.descripcion}</span>` : ''}
               ${producto.paginas ? `<span class="product-meta">${producto.paginas} pág.</span>` : ''}
             </button>
             <div class="published-actions" data-admin-actions hidden>
@@ -388,7 +387,7 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     if (categoria.imagen && categoryImage) {
       categoryImage.src = categoria.imagen
       categoryImage.alt = categoria.descripcion || categoria.nombre || 'Categoria'
-      categoryImage.removeAttribute('hidden')
+      categoryImage.setAttribute('hidden', '')
     }
     headerNode?.removeAttribute('hidden')
 
