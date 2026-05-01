@@ -362,12 +362,12 @@ const products = []
     wrapper.innerHTML = `
       <div class="catalog-cta" ${target === productsEmptyEl ? 'style="margin-top: 16px;"' : ''}>
         <h3>Agregar colección</h3>
-        <p>Publica una nueva colección para tus productos de pago.</p>
+        <!--<p>Publica una nueva colección para tus productos de pago.</p>-->
         <div class="catalog-cta__actions">
           <button class="btn" type="button" data-open-add-coleccion>Crear colección</button>
           <a class="btn btn-secondary" href="/publicar/">Ir a publicar</a>
         </div>
-        <div class="catalog-cta__helper">Disponible para admins y artistas.</div>
+        <!--<div class="catalog-cta__helper">Disponible para admins y artistas.</div>-->
       </div>
     `
     target.prepend(wrapper)
