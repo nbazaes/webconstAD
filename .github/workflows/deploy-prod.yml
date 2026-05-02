@@ -19,7 +19,7 @@ jobs:
           command_timeout: 30m
           script: |
             set -e
-            cd /home/nicolas/webconstAD
+            cd /home/github-deploy/webconstAD
 
             git config --global --add safe.directory $(pwd)
             git fetch --all --tags
