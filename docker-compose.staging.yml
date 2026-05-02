@@ -6,16 +6,16 @@ services:
       args:
         APP_VERSION: ${APP_VERSION:-dev}
     networks:
-      - local_safe_net
-    container_name: webconstad_web
+      - staging_net
+    container_name: webconstad_web_staging
     env_file:
-      - .env
+      - .env.staging
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt:ro
-      - webconstad_media:/app/media
+      - webconstad_media_staging:/app/media
     depends_on:
       db:
         condition: service_healthy
@@ -24,14 +24,12 @@ services:
   db:
     image: postgres:16
     networks:
-      - local_safe_net
-    container_name: webconstad_db
-    environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      - staging_net
+    container_name: webconstad_db_staging
+    env_file:
+      - .env.staging
     volumes:
-      - webconstad_db_data:/var/lib/postgresql/data
+      - webconstad_db_data_staging:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
@@ -40,11 +38,11 @@ services:
     restart: unless-stopped
 
 volumes:
-  webconstad_db_data:
-  webconstad_media:
+  webconstad_db_data_staging:
+  webconstad_media_staging:
 
 networks:
-  local_safe_net:
+  staging_net:
     driver: bridge
     ipam:
       config:
