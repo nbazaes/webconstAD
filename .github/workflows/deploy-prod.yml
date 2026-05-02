@@ -1,20 +1,21 @@
-name: Release Build
+name: Deploy Production
 
 on:
   push:
     tags:
-      - 'v*'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
     steps:
-      - name: Desplegar en el servidor vía SSH
+      - name: Desplegar en el producción vía SSH
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
           command_timeout: 30m
           script: |
             set -e
@@ -25,5 +26,5 @@ jobs:
             git reset --hard origin/main
 
             export APP_VERSION=${{ github.ref_name }}
-            docker compose build --no-cache
-            docker compose up -d --force-recreate
+            docker compose -f docker-compos-prod.yml build --no-cache
+            docker compose -f docker-compos-prod.yml up -d --force-recreate
