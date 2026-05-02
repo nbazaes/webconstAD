@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
       args:
         APP_VERSION: ${APP_VERSION:-dev}
+        NGINX_CONF: nginx.prod.conf
     networks:
       - prod_net
     container_name: webconstad_web_prod

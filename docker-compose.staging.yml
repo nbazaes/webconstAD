@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
       args:
         APP_VERSION: ${APP_VERSION:-dev}
+        NGINX_CONF: nginx.staging.conf
     networks:
       - staging_net
     container_name: webconstad_web_staging
