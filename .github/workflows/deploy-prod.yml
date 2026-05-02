@@ -26,5 +26,5 @@ jobs:
             git reset --hard origin/main
 
             export APP_VERSION=${{ github.ref_name }}
-            docker compose -f docker-compos-prod.yml build --no-cache
-            docker compose -f docker-compos-prod.yml up -d --force-recreate
+            docker compose -f docker-compose-prod.yml build --no-cache
+            docker compose -f docker-compose-prod.yml up -d --force-recreate
