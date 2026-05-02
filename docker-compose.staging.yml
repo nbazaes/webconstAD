@@ -28,10 +28,6 @@ services:
     container_name: webconstad_db_staging
     env_file:
       - .env.staging
-    environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - webconstad_db_data_staging:/var/lib/postgresql/data
     healthcheck:
