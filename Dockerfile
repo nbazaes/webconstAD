@@ -27,7 +27,7 @@ RUN npm --prefix /app/frontend ci
 
 COPY . /app
 
-RUN rm -rf /etc/nginx/conf.d/default
+RUN rm -rf /etc/nginx/conf.d/
 COPY docker/${NGINX_CONF} /etc/nginx/conf.d/default.conf
 COPY docker/entrypoint.sh /entrypoint.sh
 
