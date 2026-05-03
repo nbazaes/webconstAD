@@ -77,6 +77,16 @@ server {
 
     client_max_body_size 50M;
 
+    location /static/ {
+        alias /app/staticfiles/;
+        expires 30d;
+    }
+
+    location /media/ {
+        alias /app/media/;
+        expires 7d;
+    }
+
     # Redirect /el-admin → /el-admin/ para Django
     location = /${ADMIN_URL} {
         return 301 /${ADMIN_URL}/;
