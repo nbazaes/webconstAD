@@ -24,7 +24,7 @@ server {
 
 # BLOQUE 2: Servidor principal HTTPS
 server {
-    listen 443 ssl;
+    listen 443 ssl default_server;
     server_name constantdigitales.com www.constantdigitales.com;
     ssl_certificate /etc/letsencrypt/live/constantdigitales.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/constantdigitales.com/privkey.pem;
@@ -65,11 +65,32 @@ server {
     }
 }
 
-# BLOQUE 3: Admin exclusivo via Tailscale (solo IP privada)
+# BLOQUE 3: Admin exclusivo via Tailscale
 server {
-    listen ${TAILSCALE_IP}:80;
+    listen 443 ssl;
     server_name ${MAGIC_DNS_NAME};
+
+    ssl_certificate /etc/nginx/ssl/${MAGIC_DNS_NAME}.crt;
+    ssl_certificate_key /etc/nginx/ssl/${MAGIC_DNS_NAME}.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
     client_max_body_size 50M;
+
+    location /static/ {
+        alias /app/staticfiles/;
+        expires 30d;
+    }
+
+    location /media/ {
+        alias /app/media/;
+        expires 7d;
+    }
+
+    # Redirect /el-admin → /el-admin/ para Django
+    location = /${ADMIN_URL} {
+        return 301 /${ADMIN_URL}/;
+    }
 
     location /${ADMIN_URL}/ {
         proxy_pass http://127.0.0.1:8000;

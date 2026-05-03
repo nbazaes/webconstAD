@@ -10,11 +10,12 @@ services:
       - prod_net
     container_name: webconstad_web_prod
     env_file:
-      - .env.prod  # Must include TAILSCALE_IP, MAGIC_DNS_NAME, ADMIN_URL
+      - .env.prod  # Must include MAGIC_DNS_NAME, ADMIN_URL
     ports:
       - "80:80"
       - "443:443"
     volumes:
+      - ./docker/certs:/etc/nginx/ssl:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - webconstad_media_prod:/app/media
     depends_on:

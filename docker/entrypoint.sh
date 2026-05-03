@@ -32,12 +32,12 @@ python manage.py collectstatic --noinput
 export ADMIN_URL="${ADMIN_URL:-admin}"
 
 VARS='${ADMIN_URL}'
-if grep -qF '${TAILSCALE_IP}' /etc/nginx/conf.d/default.conf.template; then
-    if [ -z "$TAILSCALE_IP" ] || [ -z "$MAGIC_DNS_NAME" ]; then
-        echo "ERROR: TAILSCALE_IP and MAGIC_DNS_NAME must be set for this config" >&2
+if grep -qF '${MAGIC_DNS_NAME}' /etc/nginx/conf.d/default.conf.template; then
+    if [ -z "$MAGIC_DNS_NAME" ]; then
+        echo "ERROR: MAGIC_DNS_NAME must be set for this config" >&2
         exit 1
     fi
-    VARS='${ADMIN_URL} ${TAILSCALE_IP} ${MAGIC_DNS_NAME}'
+    VARS='${ADMIN_URL} ${MAGIC_DNS_NAME}'
 fi
 
 envsubst "$VARS" < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
