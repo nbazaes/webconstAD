@@ -17,4 +17,7 @@ frontend/.astro
 .vscode
 .idea
 *.log
+docker/certs/
 .env
+.env.*
+!.env.example
