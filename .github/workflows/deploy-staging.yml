@@ -61,3 +61,12 @@ jobs:
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u nbazaes --password-stdin
             docker compose -f docker-compose.staging.yml pull
             docker compose -f docker-compose.staging.yml up -d --force-recreate
+
+            # Prune dangling images and keep only the 3 most recent versioned tags
+            docker image prune -f
+            docker images ghcr.io/nbazaes/webconstad \
+              --format "{{.Repository}}:{{.Tag}}" \
+              --sort=-created \
+              | grep -Ev ':(staging|prod)$' \
+              | tail -n +4 \
+              | xargs -r docker rmi || true
