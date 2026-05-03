@@ -24,7 +24,7 @@ server {
 
 # BLOQUE 2: Servidor principal HTTPS
 server {
-    listen 443 ssl;
+    listen 443 ssl default_server;
     server_name constantdigitales.com www.constantdigitales.com;
     ssl_certificate /etc/letsencrypt/live/constantdigitales.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/constantdigitales.com/privkey.pem;
@@ -65,10 +65,9 @@ server {
     }
 }
 
-# BLOQUE 3: Admin exclusivo via Tailscale (solo IP privada)
+# BLOQUE 3: Admin exclusivo via Tailscale
 server {
-    listen ${TAILSCALE_IP}:80 default_server;
-    listen ${TAILSCALE_IP}:443 ssl default_server;
+    listen 443 ssl;
     server_name ${MAGIC_DNS_NAME};
 
     ssl_certificate /etc/nginx/ssl/${MAGIC_DNS_NAME}.crt;

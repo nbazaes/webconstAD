@@ -10,7 +10,7 @@ services:
       - staging_net
     container_name: webconstad_web_staging
     env_file:
-      - .env.staging  # Must include TAILSCALE_IP, MAGIC_DNS_NAME, ADMIN_URL
+      - .env.staging  # Must include MAGIC_DNS_NAME, ADMIN_URL
     ports:
       - "80:80"
       - "443:443"
