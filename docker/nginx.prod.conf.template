@@ -1,7 +1,7 @@
 # BLOQUE 1: Redirección de HTTP a HTTPS
 server {
     listen 80 default_server;
-    server_name wca.nbazaes.app;
+    server_name constantdigitales.com www.constantdigitales.com;
     client_max_body_size 50M;
 
     location /static/ {
@@ -25,9 +25,9 @@ server {
 # BLOQUE 2: Servidor principal HTTPS
 server {
     listen 443 ssl;
-    server_name wca.nbazaes.app;
-    ssl_certificate /etc/letsencrypt/live/wca.nbazaes.app/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/wca.nbazaes.app/privkey.pem;
+    server_name constantdigitales.com www.constantdigitales.com;
+    ssl_certificate /etc/letsencrypt/live/constantdigitales.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/constantdigitales.com/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
     client_max_body_size 50M;
@@ -54,8 +54,8 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout 300;
     }
-    location /admin/ {
-        proxy_pass http://127.0.0.1:8000;
+    location / {
+        proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -63,8 +63,16 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout 300;
     }
-    location / {
-        proxy_pass http://127.0.0.1:3000;
+}
+
+# BLOQUE 3: Admin exclusivo via Tailscale (solo IP privada)
+server {
+    listen ${TAILSCALE_IP}:80;
+    server_name ${MAGIC_DNS_NAME};
+    client_max_body_size 50M;
+
+    location /${ADMIN_URL}/ {
+        proxy_pass http://127.0.0.1:8000;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
