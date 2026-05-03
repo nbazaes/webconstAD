@@ -24,21 +24,21 @@ const formattedPrice = producto?.precio != null
           <div class="product-hero">
             <div class="product-hero__image">
               {producto.imagen ? (
-                <img src={producto.imagen} alt={producto.descripcion || producto.nombre} />
+                <img src={producto.imagen} alt={producto.descripcion || producto.nombre} width="400" height="263" />
               ) : (
-                <img src="/static/web/assets/hero1.svg" alt={producto.nombre} />
+                <img src="/static/web/assets/hero1.webp" alt={producto.nombre} width="400" height="263" />
               )}
             </div>
             <div class="product-hero__content">
               {producto.coleccion_descripcion ? (
                 <div class="lead">
-                  <img src={producto.coleccion_descripcion} alt={producto.coleccion || 'Coleccion'} />
+                  <img src={producto.coleccion_descripcion} alt={producto.coleccion || 'Coleccion'} width="400" height="263" loading="lazy" />
                 </div>
               ) : null}
             </div>
             {producto.preview_imagen ? (
               <div class="product-hero__preview">
-                <img src={producto.preview_imagen} alt={producto.nombre || 'Preview'} />
+                <img src={producto.preview_imagen} alt={producto.nombre || 'Preview'} width="380" height="250" loading="lazy" />
               </div>
             ) : null}
           </div>

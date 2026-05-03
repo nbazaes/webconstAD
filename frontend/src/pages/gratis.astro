@@ -38,10 +38,13 @@ const categoriasRender = categoriasGratis.map((item) => {
                 <img
                   src={cat.imagen}
                   alt={cat.descripcion || cat.nombre}
+                  width="286"
+                  height="372"
+                  loading="lazy"
                 />
               ) : (
                 <div class="card">
-                  <img src="/static/web/assets/g345.png" alt="Sin imagen" />
+                  <img src="/static/web/assets/g345.webp" alt="Sin imagen" width="190" height="89" />
                 </div>
               )}
             </a>

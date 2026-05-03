@@ -242,7 +242,7 @@ const products = []
         (product) => `
           <article class="product" data-admin-product data-product-id="${product.id}" data-product-json='${JSON.stringify(product).replace(/'/g, '&apos;')}'>
             <a href="/productos/${product.slug}/" class="product-card" title="${product.descripcion || product.nombre}">
-              <img src="${product.imagen || '/static/web/assets/hero1.svg'}" alt="${product.descripcion || product.nombre}" />
+              <img src="${product.imagen || '/static/web/assets/hero1.webp'}" alt="${product.descripcion || product.nombre}" width="286" height="286" loading="lazy" />
               <br />
               <span class="product-collection"><em>${product.coleccion || 'Coleccion'}</em></span>
               <br />
