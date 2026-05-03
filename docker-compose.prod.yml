@@ -1,11 +1,6 @@
 services:
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        APP_VERSION: ${APP_VERSION:-dev}
-        NGINX_CONF: nginx.prod.conf
+    image: ghcr.io/nbazaes/webconstAD:prod
     networks:
       - prod_net
     container_name: webconstad_web_prod

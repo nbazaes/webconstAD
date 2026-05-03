@@ -23,8 +23,6 @@ for _ in range(60):
 raise SystemExit("Gunicorn did not become ready in time")
 PY
 
-npm --prefix /app/frontend run build
-
 HOST=0.0.0.0 PORT=3000 node /app/frontend/dist/server/entry.mjs &
 
 python manage.py collectstatic --noinput

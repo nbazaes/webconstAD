@@ -28,6 +28,8 @@ RUN npm --prefix /app/frontend ci
 
 COPY . /app
 
+RUN npm --prefix /app/frontend run build
+
 RUN rm -rf /etc/nginx/conf.d/
 COPY docker/${NGINX_CONF}.template /etc/nginx/conf.d/default.conf.template
 COPY docker/entrypoint.sh /entrypoint.sh

@@ -44,3 +44,4 @@ docker/certs/
 .agents/
 AGENTS.md
 skills-lock.json
+docs/ghcr-setup.md

@@ -1,11 +1,6 @@
 services:
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        APP_VERSION: ${APP_VERSION:-dev}
-        NGINX_CONF: nginx.staging.conf
+    image: ghcr.io/nbazaes/webconstAD:staging
     networks:
       - staging_net
     container_name: webconstad_web_staging
