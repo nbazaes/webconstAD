@@ -67,9 +67,21 @@ server {
 
 # BLOQUE 3: Admin exclusivo via Tailscale (solo IP privada)
 server {
-    listen ${TAILSCALE_IP}:80;
+    listen ${TAILSCALE_IP}:80 default_server;
+    listen ${TAILSCALE_IP}:443 ssl default_server;
     server_name ${MAGIC_DNS_NAME};
+
+    ssl_certificate /etc/nginx/ssl/${MAGIC_DNS_NAME}.crt;
+    ssl_certificate_key /etc/nginx/ssl/${MAGIC_DNS_NAME}.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
     client_max_body_size 50M;
+
+    # Redirect /el-admin → /el-admin/ para Django
+    location = /${ADMIN_URL} {
+        return 301 /${ADMIN_URL}/;
+    }
 
     location /${ADMIN_URL}/ {
         proxy_pass http://127.0.0.1:8000;
