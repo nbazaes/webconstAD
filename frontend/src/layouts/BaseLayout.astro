@@ -2,10 +2,12 @@
 import '../styles/global.css'
 import { Icon } from 'astro-icon/components' 
 
-const { title = 'Constant Archivos Digitales', page = 'inicio' } = Astro.props
+const { title = 'Constant Archivos Digitales', description = 'Archivos digitales para imprimir o dibujar — cuadernas, libretas, novelas gráficas y más.', page = 'inicio', image = '/static/web/assets/logo.webp' } = Astro.props
 const currentYear = new Date().getFullYear()
 const rawVersion = (import.meta.env.PUBLIC_APP_VERSION || '').trim()
 const appVersion = rawVersion ? (rawVersion.startsWith('v') ? rawVersion : `v${rawVersion}`) : 'dev'
+const siteUrl = import.meta.env.PUBLIC_SITE_URL || 'https://constantdigitales.com'
+const canonical = new URL(Astro.url.pathname, siteUrl).href
 const navItems = [
   { id: 'inicio', label: 'Inicio', href: '/' },
   { id: 'productos', label: 'Productos', href: '/productos/' },
@@ -37,19 +39,44 @@ const asset = (path) => `/${path}`
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-    <!-- Non-blocking font load: applies only after fonts are ready, avoids render-blocking -->
+    <!-- Google Fonts with font-display:swap -->
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Great+Vibes&family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap"
-      media="print"
-      onload="this.media='all'"
     />
-    <noscript>
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Great+Vibes&family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap"
-      />
-    </noscript>
+
+    <!-- SEO -->
+    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href={canonical} />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={new URL(image, siteUrl).href} />
+    <meta property="og:locale" content="es_CL" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Constant Archivos Digitales",
+      "url": siteUrl,
+      "logo": new URL('/static/web/assets/logo.webp', siteUrl).href,
+      "description": description,
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer service",
+        "url": `${siteUrl}/contacto/`
+      }
+    })} />
   </head>
   <body
     style={`--ribbon-unsel: url('${asset('static/web/assets/ribbon-unsel.svg')}'); --ribbon-sel: url('${asset('static/web/assets/ribbon-sel.svg')}')`}

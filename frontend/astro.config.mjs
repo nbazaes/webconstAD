@@ -1,9 +1,11 @@
 import { defineConfig } from 'astro/config'
 import node from '@astrojs/node'
 import icon from 'astro-icon'
+import sitemap from '@astrojs/sitemap'
 
 export default defineConfig({
   base: '/',
+  site: process.env.PUBLIC_SITE_URL || 'https://constantdigitales.com',
   output: 'server',
   adapter: node({ mode: 'standalone' }),
 
@@ -15,5 +17,10 @@ export default defineConfig({
     host: true,
   },
 
-  integrations: [icon()],
+  integrations: [
+    icon(),
+    sitemap({
+      filter: (page) => !page.includes('/cuenta/') && !page.includes('/publicar/'),
+    }),
+  ],
 })
