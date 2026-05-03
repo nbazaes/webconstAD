@@ -39,11 +39,19 @@ const asset = (path) => `/${path}`
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-    <!-- Google Fonts with font-display:swap -->
+    <!-- Non-blocking Google Fonts: deferred via media="print" to avoid render blocking -->
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Great+Vibes&family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Great+Vibes&family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+      />
+    </noscript>
 
     <!-- SEO -->
     <meta name="description" content={description} />
@@ -90,7 +98,7 @@ const asset = (path) => `/${path}`
           <div class="brand">
             <img src={asset('static/web/assets/logo.webp')} alt="Logo" class="logo" width="110" height="110" fetchpriority="high" />
             <div class="site-title">
-              <img src={asset('static/web/assets/g345.webp')} alt="Constant Archivos Digitales" width="190" height="89" />
+              <img src={asset('static/web/assets/g345.svg')} alt="Constant Archivos Digitales" width="190" height="89" />
             </div>
           </div>
         </a>
@@ -215,6 +223,6 @@ const asset = (path) => `/${path}`
       </p>
     </footer>
 
-    <script defer src="/auth.js"></script>
+    <script defer src={"/auth.js?v=" + appVersion}></script>
   </body>
 </html>

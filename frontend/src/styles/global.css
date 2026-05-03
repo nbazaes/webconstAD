@@ -109,6 +109,7 @@ a:hover {
   bottom: -20px;
   left: -20px;
   width: min(380px, 35vw);
+  height: auto;
   z-index: 2;
 }
 
