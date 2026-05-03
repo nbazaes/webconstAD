@@ -14,7 +14,8 @@ class AdminTailscaleMiddleware:
 
         admin_url = getattr(settings, 'ADMIN_URL', 'admin')
         if request.path_info.startswith('/' + admin_url):
-            client_ip = request.META.get('REMOTE_ADDR', '')
+            client_ip = (request.META.get('HTTP_X_REAL_IP', '')
+                         or request.META.get('REMOTE_ADDR', ''))
             try:
                 ip = ipaddress.ip_address(client_ip)
                 if ip not in self.tailscale_net:
