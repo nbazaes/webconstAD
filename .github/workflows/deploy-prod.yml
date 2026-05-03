@@ -32,8 +32,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/nbazaes/webconstAD:prod
-            ghcr.io/nbazaes/webconstAD:prod-${{ github.ref_name }}
+            ghcr.io/nbazaes/webconstad:prod
+            ghcr.io/nbazaes/webconstad:prod-${{ github.ref_name }}
           build-args: |
             APP_VERSION=${{ github.ref_name }}
             NGINX_CONF=nginx.prod.conf

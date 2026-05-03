@@ -1,6 +1,6 @@
 services:
   web:
-    image: ghcr.io/nbazaes/webconstAD:staging
+    image: ghcr.io/nbazaes/webconstad:staging
     networks:
       - staging_net
     container_name: webconstad_web_staging
