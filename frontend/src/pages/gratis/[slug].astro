@@ -340,8 +340,8 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
             <button type="button" class="free-product-card" data-file-url="${producto.archivo || ''}" data-product-name="${producto.nombre}" title="${producto.descripcion || producto.nombre}">
               ${
                 producto.imagen
-                  ? `<img src="${producto.imagen}" alt="${producto.descripcion || producto.nombre}" title="${producto.descripcion || producto.nombre}" />`
-                  : `<img src="/static/web/assets/g345.png" alt="${producto.descripcion || producto.nombre}" />`
+                  ? `<img src="${producto.imagen}" alt="${producto.descripcion || producto.nombre}" title="${producto.descripcion || producto.nombre}" width="220" height="220" />`
+                  : `<img src="/static/web/assets/g345.webp" alt="${producto.descripcion || producto.nombre}" width="220" height="220" />`
               }
               <span class="product-name" title="${producto.descripcion || producto.nombre}">${producto.nombre}</span>
               ${producto.paginas ? `<span class="product-meta">${producto.paginas} pág.</span>` : ''}
@@ -387,6 +387,8 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     if (categoria.imagen && categoryImage) {
       categoryImage.src = categoria.imagen
       categoryImage.alt = categoria.descripcion || categoria.nombre || 'Categoria'
+      categoryImage.width = 320
+      categoryImage.height = 245
       categoryImage.setAttribute('hidden', '')
     }
     headerNode?.removeAttribute('hidden')
