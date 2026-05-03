@@ -29,4 +29,7 @@ HOST=0.0.0.0 PORT=3000 node /app/frontend/dist/server/entry.mjs &
 
 python manage.py collectstatic --noinput
 
+export ADMIN_URL="${ADMIN_URL:-admin}"
+envsubst '${ADMIN_URL}' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
+
 exec nginx -g "daemon off;"

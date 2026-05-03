@@ -49,6 +49,8 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = _env_list('ALLOWED_HOSTS', '127.0.0.1,localhost')
 
+ADMIN_URL = os.getenv('ADMIN_URL', 'admin').strip('/')
+
 
 # Application definition
 
@@ -74,6 +76,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'web.middleware.AdminTailscaleMiddleware',
 ]
 
 ROOT_URLCONF = 'webConstAD.urls'

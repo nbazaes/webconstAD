@@ -35,6 +35,8 @@ Thumbs.db
 
 #local_settings
 docker-compose.override.yml
-docker/nginx.dev.conf
+docker-compose.dev.yml
+.env.prod
+.env.staging
 frontend/node_modules/
 frontend/.astro/
