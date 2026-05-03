@@ -40,3 +40,6 @@ docker-compose.dev.yml
 .env.staging
 frontend/node_modules/
 frontend/.astro/
+.agents/
+AGENTS.md
+skills-lock.json
