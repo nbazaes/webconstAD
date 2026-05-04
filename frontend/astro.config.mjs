@@ -11,6 +11,7 @@ export default defineConfig({
 
   build: {
     format: 'directory',
+    assetsInlineLimit: 0,
   },
 
   server: {

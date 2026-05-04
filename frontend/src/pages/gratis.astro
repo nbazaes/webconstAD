@@ -3,12 +3,19 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 
 const buildApiOrigin = import.meta.env.BUILD_API_ORIGIN || 'http://127.0.0.1:8000'
 
-const respuesta = await fetch(`${buildApiOrigin}/api/categorias/`)
-const datos = await respuesta.json()
-const categorias = datos.results || []
+let categorias = []
+let allCategoriasData = { results: [] }
+try {
+  const respuesta = await fetch(`${buildApiOrigin}/api/categorias/`)
+  const datos = await respuesta.json()
+  categorias = datos.results || []
 
-const allCategoriasRes = await fetch(`${buildApiOrigin}/api/catalog/categorias/`)
-const allCategoriasData = await allCategoriasRes.json()
+  const allCategoriasRes = await fetch(`${buildApiOrigin}/api/catalog/categorias/`)
+  allCategoriasData = await allCategoriasRes.json()
+} catch (e) {
+  // API may not be available during build; use empty data
+}
+
 const categoriasGratis = (allCategoriasData.results || []).filter((c) => c.es_gratuita)
 
 const categoriasConImagen = new Map(categorias.map((item) => [item.slug, item]))
