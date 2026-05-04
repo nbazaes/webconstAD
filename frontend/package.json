@@ -9,12 +9,12 @@
     "preview": "astro preview"
   },
   "devDependencies": {
-    "astro": "^6.1.7"
+    "astro": "^6.2.1"
   },
   "dependencies": {
     "@astrojs/node": "^10.0.0",
     "@astrojs/sitemap": "^3.7.2",
-    "@iconify-json/lucide": "^1.2.102",
+    "@iconify-json/lucide": "^1.2.105",
     "astro-icon": "^1.1.5"
   }
 }

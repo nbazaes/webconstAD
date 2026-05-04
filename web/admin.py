@@ -1,5 +1,7 @@
 from django.contrib import admin
 from .models import (
+	Carrito,
+	CarritoItem,
 	Categoria,
 	Coleccion,
 	Descarga,
@@ -63,6 +65,12 @@ class OrdenItemAdmin(admin.ModelAdmin):
 class DescargaAdmin(admin.ModelAdmin):
 	list_display = ("id", "user", "producto", "token", "expira_en", "descargado_en")
 	search_fields = ("user__username", "producto__nombre", "token")
+
+
+@admin.register(Carrito)
+class CarritoAdmin(admin.ModelAdmin):
+	list_display = ("id", "usuario", "created_at", "updated_at")
+	search_fields = ("usuario__username", "usuario__email")
 
 
 @admin.register(SuscriptorAnonimo)

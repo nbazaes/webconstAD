@@ -47,13 +47,16 @@ const formattedPrice = producto?.precio != null
         <section class="product-title-block">
           <h2><span>{producto.coleccion || 'Coleccion'}</span> <span>{producto.nombre}</span></h2>
         </section>
-        <section class="product-detail">
+        <section class="product-detail" data-product-id={producto.id}>
           <ul class="product-meta-list">
             {producto.descripcion ? <li>{producto.descripcion}</li> : null}
             {producto.paginas ? <li>{producto.paginas} pág.</li> : null}
             {formattedPrice ? <li class="product-price">${formattedPrice}</li> : null}
           </ul>
-          <button class="btn btn-buy" type="button" data-buy-button>Comprar</button>
+          <div class="product-actions">
+            <button class="btn btn-buy" type="button" data-buy-button>Comprar</button>
+            <button class="btn btn-cart" type="button" data-add-to-cart>Añadir al carrito</button>
+          </div>
         </section>
       </>
     ) : (
@@ -152,10 +155,28 @@ const formattedPrice = producto?.precio != null
     font-weight: 700;
   }
 
-  .btn-buy {
+  .product-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
     margin-top: 18px;
+  }
+
+  .btn-buy {
     font-size: 1.05rem;
     letter-spacing: 0.02em;
+  }
+
+  .btn-cart {
+    background: #6a5f55;
+    font-size: 1.05rem;
+    letter-spacing: 0.02em;
+  }
+
+  .btn-cart:disabled {
+    opacity: 0.6;
+    pointer-events: none;
   }
 
   .buy-modal {
@@ -310,6 +331,12 @@ const formattedPrice = producto?.precio != null
   const buyButton = document.querySelector('[data-buy-button]')
   const buyModal = document.querySelector('[data-buy-modal]')
   const buyClosers = document.querySelectorAll('[data-buy-close]')
+  const addToCartBtn = document.querySelector('[data-add-to-cart]')
+  const productSection = document.querySelector('[data-product-id]')
+  const productId = productSection?.dataset.productId
+
+  const backendOrigin = window.location.origin
+  const backendUrl = (path) => `${backendOrigin}${path}`
 
   const closeBuyModal = () => {
     buyModal?.setAttribute('hidden', '')
@@ -317,4 +344,65 @@ const formattedPrice = producto?.precio != null
 
   buyButton?.addEventListener('click', () => buyModal?.removeAttribute('hidden'))
   buyClosers.forEach((button) => button.addEventListener('click', closeBuyModal))
+
+  addToCartBtn?.addEventListener('click', async () => {
+    if (!productId) return
+
+    const sessionRes = await fetch(backendUrl('/api/auth/session/'), { credentials: 'include' })
+    const session = await sessionRes.json()
+
+    if (!session.authenticated) {
+      if (window.openAuthModal) {
+        window.openAuthModal('login')
+      } else {
+        window.showStyledAlert?.('Debes iniciar sesión para agregar productos al carrito.')
+      }
+      return
+    }
+
+    addToCartBtn.disabled = true
+    addToCartBtn.textContent = 'Agregando…'
+
+    try {
+      const formData = new URLSearchParams()
+      formData.append('producto_id', productId)
+
+      const res = await fetch(backendUrl('/api/cart/add/'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData,
+      })
+
+      const data = await res.json()
+
+      if (data.ok) {
+        if (data.created) {
+          addToCartBtn.textContent = '✓ Agregado'
+          document.dispatchEvent(new CustomEvent('cart:updated'))
+          if (window.peekCart) window.peekCart()
+          setTimeout(() => {
+            addToCartBtn.textContent = 'Añadir al carrito'
+            addToCartBtn.disabled = false
+          }, 2000)
+        } else {
+          addToCartBtn.textContent = 'Añadir al carrito'
+          addToCartBtn.disabled = false
+          window.showStyledAlert?.('Este producto ya está en tu carrito.')
+        }
+      } else {
+        addToCartBtn.textContent = 'Error'
+        setTimeout(() => {
+          addToCartBtn.textContent = 'Añadir al carrito'
+          addToCartBtn.disabled = false
+        }, 2000)
+      }
+    } catch {
+      addToCartBtn.textContent = 'Error'
+      setTimeout(() => {
+        addToCartBtn.textContent = 'Añadir al carrito'
+        addToCartBtn.disabled = false
+      }, 2000)
+    }
+  })
 </script>

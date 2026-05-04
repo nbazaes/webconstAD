@@ -94,9 +94,18 @@ const asset = (path) => `/${path}`
             </div>
           </div>
         </a>
-        <button class="hamburger" aria-label="Abrir menu" aria-expanded="false" data-menu-toggle>
-          <span></span><span></span><span></span>
-        </button>
+        <div class="header-actions">
+          <button class="cart-toggle" type="button" aria-label="Abrir carrito" data-cart-toggle>
+            <svg class="cart-heart" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            <Icon name="lucide:shopping-cart" class="cart-icon" />
+            <span class="cart-badge" data-cart-badge hidden>0</span>
+          </button>
+          <button class="hamburger" aria-label="Abrir menu" aria-expanded="false" data-menu-toggle>
+            <span></span><span></span><span></span>
+          </button>
+        </div>
       </header>
 
       <nav class="mobile-nav" aria-label="Navegacion movil" data-mobile-nav>
@@ -206,6 +215,44 @@ const asset = (path) => `/${path}`
       </div>
     </div>
 
+    <div class="cart-overlay" data-cart-overlay hidden></div>
+    <aside class="cart-drawer" data-cart-drawer aria-label="Carrito de compras">
+      <div class="cart-drawer__header">
+        <h3 class="cart-drawer__title">Tu Carrito</h3>
+        <button class="cart-drawer__close" type="button" aria-label="Cerrar carrito" data-cart-close>&times;</button>
+      </div>
+      <div class="cart-drawer__body" data-cart-body>
+        <div class="cart-empty" data-cart-empty>
+          <Icon name="lucide:shopping-bag" class="cart-empty-icon" />
+          <p>Tu carrito está vacío</p>
+        </div>
+        <div class="cart-items" data-cart-items hidden></div>
+      </div>
+      <div class="cart-drawer__footer" data-cart-footer hidden>
+        <div class="cart-total">
+          <span>Total</span>
+          <span class="cart-total__amount" data-cart-total>$0</span>
+        </div>
+        <button class="btn btn-cart-checkout" type="button" data-cart-checkout>Finalizar compra</button>
+        <p class="cart-footer-note">Transferencia bancaria &mdash; te enviaremos los datos al finalizar</p>
+      </div>
+    </aside>
+
+    <div class="checkout-modal" data-checkout-modal hidden>
+      <div class="checkout-modal__backdrop" data-checkout-close></div>
+      <div class="checkout-modal__panel" role="dialog" aria-modal="true" aria-labelledby="checkout-modal-title">
+        <h3 id="checkout-modal-title">Finalizar compra</h3>
+        <div class="checkout-modal__details" data-checkout-details>
+          <p class="checkout-modal__lead">Transfiere a:</p>
+          <dl class="checkout-modal__list" data-checkout-list></dl>
+          <p class="checkout-modal__note">Envía el comprobante por Instagram a <a href="https://www.instagram.com/constantdesigns" target="_blank" rel="noreferrer">@constantdesigns</a>.</p>
+        </div>
+        <div class="checkout-modal__actions">
+          <button class="btn" type="button" data-checkout-close>Entendido</button>
+        </div>
+      </div>
+    </div>
+
     <footer class="site-footer">
       <img src={asset('static/web/assets/g40.svg')} alt="" class="decor decor-bottom-left" aria-hidden="true" width="380" height="299" loading="lazy" />
       <p>Constant Archivos Digitales © {currentYear} · {appVersion}</p>
@@ -216,5 +263,218 @@ const asset = (path) => `/${path}`
     </footer>
 
     <script defer src="/auth.js"></script>
+    <script>
+      (function() {
+        const cartToggle = document.querySelector('[data-cart-toggle]')
+        const cartDrawer = document.querySelector('[data-cart-drawer]')
+        const cartOverlay = document.querySelector('[data-cart-overlay]')
+        const cartClosers = document.querySelectorAll('[data-cart-close]')
+        const cartBadge = document.querySelector('[data-cart-badge]')
+        const cartItems = document.querySelector('[data-cart-items]')
+        const cartEmpty = document.querySelector('[data-cart-empty]')
+        const cartFooter = document.querySelector('[data-cart-footer]')
+        const cartTotal = document.querySelector('[data-cart-total]')
+        const checkoutBtn = document.querySelector('[data-cart-checkout]')
+
+        const checkoutModal = document.querySelector('[data-checkout-modal]')
+        const checkoutList = document.querySelector('[data-checkout-list]')
+        const checkoutClosers = document.querySelectorAll('[data-checkout-close]')
+
+        let peekTimeout = null
+
+        const backendOrigin = window.location.origin
+        const backendUrl = (path) => `${backendOrigin}${path}`
+
+        const formatPrice = (price) => {
+          if (price == null) return '$0'
+          return '$' + String(price).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+        }
+
+        const DRAWER_TRANSITION_MS = 350
+
+        const showDrawer = () => {
+          cartDrawer?.classList.add('open')
+          cartDrawer?.style.removeProperty('visibility')
+        }
+
+        const hideDrawer = () => {
+          cartDrawer?.classList.remove('open')
+          setTimeout(() => {
+            if (!cartDrawer?.classList.contains('open')) {
+              cartDrawer.style.visibility = 'hidden'
+            }
+          }, DRAWER_TRANSITION_MS)
+        }
+
+        const openCart = (withOverlay = true) => {
+          if (peekTimeout) {
+            clearTimeout(peekTimeout)
+            peekTimeout = null
+          }
+          showDrawer()
+          if (withOverlay) {
+            cartOverlay?.removeAttribute('hidden')
+            document.body.classList.add('cart-open')
+          }
+        }
+
+        const closeCart = () => {
+          hideDrawer()
+          cartOverlay?.setAttribute('hidden', '')
+          document.body.classList.remove('cart-open')
+        }
+
+        const updateBadge = (count) => {
+          if (!cartBadge) return
+          if (count > 0) {
+            cartBadge.textContent = count > 99 ? '99+' : String(count)
+            cartBadge.removeAttribute('hidden')
+          } else {
+            cartBadge.setAttribute('hidden', '')
+          }
+        }
+
+        window.peekCart = function() {
+          if (peekTimeout) clearTimeout(peekTimeout)
+          showDrawer()
+          peekTimeout = setTimeout(() => {
+            hideDrawer()
+            peekTimeout = null
+          }, 1500)
+        }
+
+        const renderCart = (data) => {
+          if (!cartItems || !cartEmpty || !cartFooter || !cartTotal) return
+
+          if (!data || !data.items || data.items.length === 0) {
+            cartItems.setAttribute('hidden', '')
+            cartEmpty.removeAttribute('hidden')
+            cartFooter.setAttribute('hidden', '')
+            updateBadge(0)
+            return
+          }
+
+          cartEmpty.setAttribute('hidden', '')
+          cartItems.removeAttribute('hidden')
+          cartFooter.removeAttribute('hidden')
+
+          cartItems.innerHTML = data.items.map((item) => {
+            const imgHtml = item.producto.imagen
+              ? `<img src="${item.producto.imagen}" alt="${item.producto.nombre}" width="60" height="60" loading="lazy" />`
+              : `<div class="cart-item__thumb-placeholder"></div>`
+            return `
+              <div class="cart-item" data-cart-item-id="${item.id}">
+                <div class="cart-item__thumb">${imgHtml}</div>
+                <div class="cart-item__info">
+                  <a href="/productos/${item.producto.slug}/" class="cart-item__name">${item.producto.nombre}</a>
+                  <span class="cart-item__price">${formatPrice(item.producto.precio)}</span>
+                </div>
+                <button class="cart-item__remove" type="button" data-remove-item="${item.id}" aria-label="Eliminar ${item.producto.nombre}">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                </button>
+              </div>
+            `
+          }).join('')
+
+          cartTotal.textContent = formatPrice(data.total)
+          updateBadge(data.count)
+
+          cartItems.querySelectorAll('[data-remove-item]').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+              const itemId = btn.dataset.removeItem
+              const confirmed = await window.showStyledConfirm?.('¿Eliminar este producto del carrito?')
+              if (!confirmed) return
+              try {
+                await fetch(backendUrl(`/api/cart/items/${itemId}/`), {
+                  method: 'DELETE',
+                  credentials: 'include',
+                })
+                document.dispatchEvent(new CustomEvent('cart:updated'))
+              } catch (e) {
+                console.error('Error removing item', e)
+              }
+            })
+          })
+        }
+
+        const fetchCart = async () => {
+          try {
+            const sessionRes = await fetch(backendUrl('/api/auth/session/'), { credentials: 'include' })
+            const session = await sessionRes.json()
+            if (!session.authenticated) {
+              renderCart({ items: [], count: 0, total: 0 })
+              return
+            }
+
+            const res = await fetch(backendUrl('/api/cart/'), { credentials: 'include' })
+            const data = await res.json()
+            renderCart(data)
+          } catch {
+            renderCart({ items: [], count: 0, total: 0 })
+          }
+        }
+
+        const showCheckoutModal = (details) => {
+          if (!checkoutList || !checkoutModal) return
+          const fields = [
+            { label: 'Nombre completo', key: 'nombre_completo' },
+            { label: 'RUT', key: 'rut' },
+            { label: 'Email', key: 'email' },
+            { label: 'Tipo de cuenta', key: 'tipo_cuenta' },
+            { label: 'Banco', key: 'banco' },
+            { label: 'Num. de cuenta', key: 'numero_cuenta' },
+          ]
+          checkoutList.innerHTML = fields
+            .filter((f) => details[f.key])
+            .map((f) => `<div><dt>${f.label}</dt><dd>${details[f.key]}</dd></div>`)
+            .join('') || '<p>Datos de pago no disponibles.</p>'
+          checkoutModal.removeAttribute('hidden')
+        }
+
+        const closeCheckoutModal = () => {
+          checkoutModal?.setAttribute('hidden', '')
+        }
+
+        checkoutClosers.forEach((btn) => btn.addEventListener('click', closeCheckoutModal))
+
+        cartToggle?.addEventListener('click', async () => {
+          await fetchCart()
+          openCart()
+        })
+
+        cartClosers.forEach((btn) => btn.addEventListener('click', closeCart))
+
+        cartOverlay?.addEventListener('click', closeCart)
+
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            if (checkoutModal && !checkoutModal.hasAttribute('hidden')) {
+              closeCheckoutModal()
+              return
+            }
+            if (cartDrawer?.classList.contains('open')) {
+              closeCart()
+            }
+          }
+        })
+
+        document.addEventListener('cart:updated', fetchCart)
+
+        checkoutBtn?.addEventListener('click', async () => {
+          try {
+            const res = await fetch(backendUrl('/api/cart/checkout/'), {
+              method: 'POST',
+              credentials: 'include',
+            })
+            const data = await res.json()
+            showCheckoutModal(data.details || {})
+          } catch {
+            window.showStyledAlert?.('Error al obtener datos de pago.', 'Error')
+          }
+        })
+
+        fetchCart()
+      })()
+    </script>
   </body>
 </html>

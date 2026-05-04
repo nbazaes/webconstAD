@@ -141,6 +141,7 @@ const showStyledAlert = (message, title = 'Aviso') => {
 
 window.showStyledConfirm = showStyledConfirm
 window.showStyledAlert = showStyledAlert
+window.openAuthModal = openAuthModal
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') closeAuthModal()

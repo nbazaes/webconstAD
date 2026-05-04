@@ -26,4 +26,8 @@ urlpatterns = [
     path('api/admin/catalogo/<str:tipo>/<int:item_id>/editar/', views.api_admin_catalogo_editar, name='api-admin-catalogo-editar'),
     path('api/admin/catalogo/<str:tipo>/<int:item_id>/eliminar/', views.api_admin_catalogo_eliminar, name='api-admin-catalogo-eliminar'),
     path('api/productos/<slug:slug>/download/', views.api_producto_download, name='api-producto-download'),
+    path('api/cart/', views.api_cart, name='api-cart'),
+    path('api/cart/add/', views.api_cart_add, name='api-cart-add'),
+    path('api/cart/items/<int:item_id>/', views.api_cart_item_delete, name='api-cart-item-delete'),
+    path('api/cart/checkout/', views.api_cart_checkout, name='api-cart-checkout'),
 ]
