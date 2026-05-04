@@ -63,6 +63,9 @@ const asset = (path) => `/${path}`
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
 
+    <!-- CSRF protection for API calls -->
+    <script defer src="/csrf.js"></script>
+
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json" set:html={JSON.stringify({
       "@context": "https://schema.org",

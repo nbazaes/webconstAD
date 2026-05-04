@@ -1,8 +1,35 @@
+import os
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+
+
+def validate_image_extension(value):
+    ext = os.path.splitext(value.name)[1].lower()
+    valid_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg']
+    if ext not in valid_extensions:
+        raise ValidationError(f'Formato de imagen no soportado: {ext}')
+
+
+def validate_file_extension(value):
+    ext = os.path.splitext(value.name)[1].lower()
+    valid_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.pdf', '.zip', '.rar', '.7z']
+    if ext not in valid_extensions:
+        raise ValidationError(f'Formato de archivo no soportado: {ext}')
+
+
+def validate_image_size(value):
+    if value.size > 10 * 1024 * 1024:
+        raise ValidationError('La imagen no puede superar los 10MB')
+
+
+def validate_file_size(value):
+    if value.size > 50 * 1024 * 1024:
+        raise ValidationError('El archivo no puede superar los 50MB')
 
 
 def get_r2_storage():
@@ -49,7 +76,7 @@ class Categoria(models.Model):
 	nombre = models.CharField(max_length=140)
 	slug = models.SlugField(max_length=180, unique=True)
 	descripcion = models.TextField(blank=True)
-	imagen = models.ImageField(upload_to='categorias/', storage=r2_storage, blank=True, null=True)
+	imagen = models.ImageField(upload_to='categorias/', storage=r2_storage, blank=True, null=True, validators=[validate_image_extension, validate_image_size])
 	es_gratuita = models.BooleanField(default=False)
 
 	class Meta:
@@ -62,9 +89,9 @@ class Categoria(models.Model):
 
 class Coleccion(models.Model):
 	nombre = models.CharField(max_length=140)
-	descripcion = models.ImageField(upload_to='colecciones/descripciones/', storage=r2_storage, blank=True, null=True)
+	descripcion = models.ImageField(upload_to='colecciones/descripciones/', storage=r2_storage, blank=True, null=True, validators=[validate_image_extension, validate_image_size])
 	slug = models.SlugField(max_length=180, unique=True)
-	imagen = models.ImageField(upload_to='colecciones/', storage=r2_storage, blank=True, null=True)
+	imagen = models.ImageField(upload_to='colecciones/', storage=r2_storage, blank=True, null=True, validators=[validate_image_extension, validate_image_size])
 
 	class Meta:
 		verbose_name = "Coleccion"
@@ -79,9 +106,9 @@ class Producto(models.Model):
 	descripcion = models.TextField(blank=True)
 	precio = models.PositiveIntegerField(null=True, blank=True)
 	es_gratuito = models.BooleanField(default=False)
-	archivo = models.FileField(upload_to='productos/', storage=r2_storage, blank=True, null=True)
-	imagen = models.ImageField(upload_to='productos/', storage=r2_storage, blank=True, null=True)
-	preview_imagen = models.ImageField(upload_to='productos/previews/', storage=r2_storage, blank=True, null=True)
+	archivo = models.FileField(upload_to='productos/', storage=r2_storage, blank=True, null=True, validators=[validate_file_extension, validate_file_size])
+	imagen = models.ImageField(upload_to='productos/', storage=r2_storage, blank=True, null=True, validators=[validate_image_extension, validate_image_size])
+	preview_imagen = models.ImageField(upload_to='productos/previews/', storage=r2_storage, blank=True, null=True, validators=[validate_image_extension, validate_image_size])
 	slug = models.SlugField(max_length=200, unique=True)
 	paginas = models.PositiveIntegerField(null=True, blank=True)
 	activo = models.BooleanField(default=True)
