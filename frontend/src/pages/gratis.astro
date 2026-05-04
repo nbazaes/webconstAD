@@ -326,6 +326,7 @@ const categoriasRender = categoriasGratis.map((item) => {
   }
 
   const wireCategoriaActions = () => {
+    document.querySelectorAll('[data-admin-actions]').forEach((actions) => actions.removeAttribute('hidden'))
     document.querySelectorAll('[data-edit-categoria]').forEach((btn) => {
       const id = btn.getAttribute('data-edit-categoria')
       const card = btn.closest('.product')

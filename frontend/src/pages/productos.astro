@@ -18,9 +18,7 @@ const products = []
     <section class="products-hero text-block" data-products-loading>
       <p>Cargando productos...</p>
     </section>
-    <section class="products-grid" data-colecciones-grid hidden>
-      <h3 class="colecciones-title">Colecciones</h3>
-    </section>
+
 
 
     <div class="global-loading-modal" data-global-loading hidden>
@@ -102,13 +100,6 @@ const products = []
     color: #6d6158;
   }
 
-  .colecciones-title {
-    width: 100%;
-    font-family: 'PT Serif', serif;
-    font-size: 1.4rem;
-    margin: 24px 0 12px;
-    grid-column: 1 / -1;
-  }
 </style>
 
 <script>
@@ -118,7 +109,6 @@ const products = []
   const emptyState = document.querySelector('[data-products-empty]')
   const loadingState = document.querySelector('[data-products-loading]')
   const globalLoading = document.querySelector('[data-global-loading]')
-  const coleccionesGrid = document.querySelector('[data-colecciones-grid]')
 
   const canManageCatalog = (data) =>
     Boolean(
@@ -222,121 +212,6 @@ const products = []
     insertColeccionCard(productsGrid || emptyState)
   }
 
-  const openEditColeccionModal = (id, nombre) => {
-    const modal = document.createElement('div')
-    modal.className = 'catalog-modal'
-    modal.innerHTML = `
-      <div class="catalog-modal__backdrop" data-close-catalog></div>
-      <div class="catalog-modal__panel" role="dialog" aria-modal="true">
-        <h3>Editar colección</h3>
-        <form class="auth-form" data-catalog-form>
-          <input type="hidden" name="tipo" value="coleccion" />
-          <label>Nombre</label><input name="nombre" type="text" value="${nombre}" required />
-          <label>Imagen (opcional)</label><input name="imagen" type="file" accept="image/*" />
-          <label>Descripción (imagen opcional)</label><input name="descripcion" type="file" accept="image/*" />
-          <div class="published-actions">
-            <button class="btn" type="submit">Guardar</button>
-            <button class="btn btn-secondary" type="button" data-close-catalog>Cancelar</button>
-          </div>
-        </form>
-        <p class="auth-message" data-catalog-message></p>
-      </div>
-    `
-
-    document.body.appendChild(modal)
-    const close = () => modal.remove()
-    modal.querySelectorAll('[data-close-catalog]').forEach((el) => el.addEventListener('click', close))
-
-    const form = modal.querySelector('[data-catalog-form]')
-    const message = modal.querySelector('[data-catalog-message]')
-    form?.addEventListener('submit', async (event) => {
-      event.preventDefault()
-      if (message) message.textContent = ''
-
-      const formData = new FormData(form)
-      const nombreVal = String(formData.get('nombre') || '').trim()
-      if (!nombreVal) {
-        if (message) message.textContent = 'Nombre es obligatorio.'
-        return
-      }
-
-      const ok = await (window.showStyledConfirm
-        ? window.showStyledConfirm(`¿Guardar cambios en "${nombreVal}"?`)
-        : Promise.resolve(confirm(`¿Guardar cambios en "${nombreVal}"?`)))
-      if (!ok) return
-
-      const response = await fetch(catalogBackendUrl(`/api/admin/catalogo/coleccion/${id}/editar/`), {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      })
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok || !data.ok) {
-        if (message) message.textContent = data.message || 'No se pudo editar la colección.'
-        return
-      }
-
-      close()
-      window.location.reload()
-    })
-  }
-
-  const loadColecciones = async () => {
-    if (!coleccionesGrid) return
-    try {
-      const response = await fetch(catalogBackendUrl('/api/catalog/colecciones/'))
-      if (!response.ok) throw new Error()
-      const data = await response.json()
-      const items = data.results || []
-      if (!items.length) return
-
-      const sessionRes = await fetch(catalogBackendUrl('/api/auth/session/'), { credentials: 'include' })
-      const sessionData = sessionRes.ok ? await sessionRes.json() : { authenticated: false }
-      const isAdmin = canManageCatalog(sessionData)
-
-      coleccionesGrid.innerHTML = '<h3 class="colecciones-title">Colecciones</h3>'
-      items.forEach((col) => {
-        const card = document.createElement('article')
-        card.className = 'product'
-        card.innerHTML = `
-          <div class="product-card">
-            ${col.imagen ? `<img src="${col.imagen}" alt="${col.nombre}" width="286" height="286" loading="lazy" />` : '<div class="card"><img src="/static/web/assets/g345.webp" alt="Sin imagen" width="190" height="89" /></div>'}
-            <br />
-            <span class="product-collection"><em>${col.nombre}</em></span>
-          </div>
-          ${isAdmin ? `
-          <div class="published-actions" data-admin-actions>
-            <button class="btn" type="button" data-edit-coleccion="${col.id}">Editar</button>
-            <button class="btn btn-secondary" type="button" data-delete-coleccion="${col.id}">Eliminar</button>
-          </div>` : ''}
-        `
-        coleccionesGrid.appendChild(card)
-        if (isAdmin) {
-          card.querySelector('[data-edit-coleccion]')?.addEventListener('click', () => openEditColeccionModal(col.id, col.nombre))
-          card.querySelector('[data-delete-coleccion]')?.addEventListener('click', async () => {
-            const ok = await (window.showStyledConfirm
-              ? window.showStyledConfirm(`¿Eliminar la colección "${col.nombre}"?`)
-              : Promise.resolve(confirm(`¿Eliminar la colección "${col.nombre}"?`)))
-            if (!ok) return
-            const delRes = await fetch(catalogBackendUrl(`/api/admin/catalogo/coleccion/${col.id}/eliminar/`), {
-              method: 'POST',
-              credentials: 'include',
-            })
-            const delData = await delRes.json().catch(() => ({}))
-            if (!delRes.ok || !delData.ok) {
-              alert(delData.message || 'No se pudo eliminar la colección.')
-              return
-            }
-            window.location.reload()
-          })
-        }
-      })
-      coleccionesGrid.removeAttribute('hidden')
-    } catch {
-      // colecciones grid stays hidden
-    }
-  }
-
   window.initColeccionCta = initColeccionCta
 
   const openLoadingModal = (text = 'Procesando...') => {
@@ -399,7 +274,7 @@ const products = []
           </div>
           <label>Paginas</label><input name="paginas" type="number" min="1" step="1" value="${product.paginas || ''}" />
           <div data-edit-precio-wrap ${product.es_gratuito ? 'hidden' : ''}>
-            <label>Precio</label><input name="precio" type="number" min="0" step="1" value="${product.precio || ''}" />
+            <label>Precio</label><input name="precio" type="number" min="0" step="1" value="${parseInt(product.precio) || ''}" />
           </div>
           <label>Activo?</label>
           <select name="activo"><option value="true" ${product.activo ? 'selected' : ''}>Si</option><option value="false" ${!product.activo ? 'selected' : ''}>No</option></select>
@@ -547,7 +422,6 @@ const products = []
 
   loadProducts()
   initColeccionCta()
-  loadColecciones()
 </script>
 
 

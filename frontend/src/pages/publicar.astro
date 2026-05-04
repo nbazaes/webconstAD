@@ -275,7 +275,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 
           <div data-edit-precio-wrap ${product.es_gratuito ? 'hidden' : ''}>
             <label>Precio</label>
-            <input name="precio" type="number" min="0" step="1" value="${product.precio || ''}" />
+            <input name="precio" type="number" min="0" step="1" value="${parseInt(product.precio) || ''}" />
           </div>
 
           <label>Activo?</label>
