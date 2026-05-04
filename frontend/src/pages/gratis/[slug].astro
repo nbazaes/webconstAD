@@ -227,7 +227,7 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
           </div>
           <label>Paginas</label><input name="paginas" type="number" min="1" step="1" value="${product.paginas || ''}" />
           <div data-edit-precio-wrap ${product.es_gratuito ? 'hidden' : ''}>
-            <label>Precio</label><input name="precio" type="number" min="0" step="0.01" value="${product.precio || ''}" />
+            <label>Precio</label><input name="precio" type="number" min="0" step="1" value="${product.precio || ''}" />
           </div>
           <label>Activo?</label>
           <select name="activo"><option value="true" ${product.activo ? 'selected' : ''}>Si</option><option value="false" ${!product.activo ? 'selected' : ''}>No</option></select>

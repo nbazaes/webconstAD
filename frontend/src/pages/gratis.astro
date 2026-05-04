@@ -58,6 +58,10 @@ const categoriasRender = categoriasGratis.map((item) => {
             <a href={`/gratis/${cat.slug}/`} class="product-title" title={cat.descripcion || ''}>
               {cat.nombre}
             </a>
+            <div class="published-actions" data-admin-actions hidden>
+              <button class="btn" type="button" data-edit-categoria={cat.id}>Editar</button>
+              <button class="btn btn-secondary" type="button" data-delete-categoria={cat.id}>Eliminar</button>
+            </div>
           </div>
         ))}
       </section>
@@ -260,11 +264,105 @@ const categoriasRender = categoriasGratis.map((item) => {
     })
   }
 
+  const openEditCategoriaModal = (id, nombre, descripcion) => {
+    const modal = document.createElement('div')
+    modal.className = 'catalog-modal'
+    modal.innerHTML = `
+      <div class="catalog-modal__backdrop" data-close-catalog></div>
+      <div class="catalog-modal__panel" role="dialog" aria-modal="true">
+        <h3>Editar categoría</h3>
+        <form class="auth-form" data-catalog-form>
+          <input type="hidden" name="tipo" value="categoria" />
+          <label>Nombre</label><input name="nombre" type="text" value="${nombre}" required />
+          <label>Descripción</label><textarea name="descripcion" rows="3">${descripcion}</textarea>
+          <label>Imagen (opcional)</label><input name="imagen" type="file" accept="image/*" />
+          <input type="hidden" name="es_gratuita" value="true" />
+          <div class="published-actions">
+            <button class="btn" type="submit">Guardar</button>
+            <button class="btn btn-secondary" type="button" data-close-catalog>Cancelar</button>
+          </div>
+        </form>
+        <p class="auth-message" data-catalog-message></p>
+      </div>
+    `
+
+    document.body.appendChild(modal)
+    const close = () => modal.remove()
+    modal.querySelectorAll('[data-close-catalog]').forEach((el) => el.addEventListener('click', close))
+
+    const form = modal.querySelector('[data-catalog-form]')
+    const message = modal.querySelector('[data-catalog-message]')
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault()
+      if (message) message.textContent = ''
+
+      const formData = new FormData(form)
+      formData.set('es_gratuita', 'true')
+      const nombreVal = String(formData.get('nombre') || '').trim()
+      if (!nombreVal) {
+        if (message) message.textContent = 'Nombre es obligatorio.'
+        return
+      }
+
+      const ok = await (window.showStyledConfirm
+        ? window.showStyledConfirm(`¿Guardar cambios en "${nombreVal}"?`)
+        : Promise.resolve(confirm(`¿Guardar cambios en "${nombreVal}"?`)))
+      if (!ok) return
+
+      const response = await fetch(backendUrl(`/api/admin/catalogo/categoria/${id}/editar/`), {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok || !data.ok) {
+        if (message) message.textContent = data.message || 'No se pudo editar la categoría.'
+        return
+      }
+
+      close()
+      window.location.reload()
+    })
+  }
+
+  const wireCategoriaActions = () => {
+    document.querySelectorAll('[data-edit-categoria]').forEach((btn) => {
+      const id = btn.getAttribute('data-edit-categoria')
+      const card = btn.closest('.product')
+      const nombre = card?.querySelector('.product-title')?.textContent?.trim() || ''
+      const descripcion = card?.querySelector('.product-link')?.getAttribute('title') || ''
+      btn.addEventListener('click', () => openEditCategoriaModal(id, nombre, descripcion))
+    })
+    document.querySelectorAll('[data-delete-categoria]').forEach((btn) => {
+      const id = btn.getAttribute('data-delete-categoria')
+      const card = btn.closest('.product')
+      const nombre = card?.querySelector('.product-title')?.textContent?.trim() || ''
+      btn.addEventListener('click', async () => {
+        const ok = await (window.showStyledConfirm
+          ? window.showStyledConfirm(`¿Eliminar la categoría "${nombre}"?`)
+          : Promise.resolve(confirm(`¿Eliminar la categoría "${nombre}"?`)))
+        if (!ok) return
+        const response = await fetch(backendUrl(`/api/admin/catalogo/categoria/${id}/eliminar/`), {
+          method: 'POST',
+          credentials: 'include',
+        })
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok || !data.ok) {
+          alert(data.message || 'No se pudo eliminar la categoría.')
+          return
+        }
+        window.location.reload()
+      })
+    })
+  }
+
   const initAddCategoria = async () => {
     const response = await fetch(backendUrl('/api/auth/session/'), { credentials: 'include' })
     if (!response.ok) return
     const data = await response.json()
     if (!canManageCatalog(data)) return
+
+    wireCategoriaActions()
 
     if (grid) {
       insertAddCard()

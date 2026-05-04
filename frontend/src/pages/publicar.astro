@@ -28,7 +28,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
         </select>
 
         <label for="pub-precio" data-price-label>Precio</label>
-        <input id="pub-precio" name="precio" type="number" min="0" step="0.01" placeholder="10000" />
+        <input id="pub-precio" name="precio" type="number" min="0" step="1" placeholder="10000" />
 
         <label for="pub-paginas">Páginas (opcional)</label>
         <input id="pub-paginas" name="paginas" type="number" min="1" step="1" />
@@ -275,7 +275,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 
           <div data-edit-precio-wrap ${product.es_gratuito ? 'hidden' : ''}>
             <label>Precio</label>
-            <input name="precio" type="number" min="0" step="0.01" value="${product.precio || ''}" />
+            <input name="precio" type="number" min="0" step="1" value="${product.precio || ''}" />
           </div>
 
           <label>Activo?</label>
