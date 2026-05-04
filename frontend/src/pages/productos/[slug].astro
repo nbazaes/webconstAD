@@ -352,10 +352,12 @@ const formattedPrice = producto?.precio != null
     const session = await sessionRes.json()
 
     if (!session.authenticated) {
-      if (window.openAuthModal) {
-        window.openAuthModal('login')
-      } else {
-        window.showStyledAlert?.('Debes iniciar sesión para agregar productos al carrito.')
+      const authModal = document.querySelector('[data-auth-modal]')
+      if (authModal) {
+        authModal.querySelectorAll('[data-auth-view]').forEach((s) => {
+          s.hidden = s.getAttribute('data-auth-view') !== 'login'
+        })
+        authModal.removeAttribute('hidden')
       }
       return
     }
