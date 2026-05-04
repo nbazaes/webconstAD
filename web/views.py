@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
-from django.http import Http404, HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
@@ -298,7 +298,6 @@ def api_categoria_productos(request, slug):
                 'activo': p.activo,
                 'imagen': p.imagen.url if p.imagen else None,
                 'preview_imagen': p.preview_imagen.url if p.preview_imagen else None,
-                'archivo': p.archivo.url if p.archivo else None,
                 'categoria_id': p.categoria_id,
                 'coleccion_id': p.coleccion_id,
             }
@@ -756,18 +755,13 @@ def api_publicar_producto(request):
 def api_producto_download(request, slug):
     producto = get_object_or_404(Producto, slug=slug, activo=True)
 
-    if producto.es_gratuito:
-        if not producto.archivo:
-            return _bad_request('producto sin archivo', status=404)
-        return JsonResponse({'ok': True, 'url': producto.archivo.url, 'requires_auth': False})
-
-    if not request.user.is_authenticated:
-        return _bad_request('login requerido para descargar productos de pago', status=401)
-
     if not producto.archivo:
         return _bad_request('producto sin archivo', status=404)
 
-    return JsonResponse({'ok': True, 'url': producto.archivo.url, 'requires_auth': True})
+    if not producto.es_gratuito and not request.user.is_authenticated:
+        return _bad_request('login requerido para descargar productos de pago', status=401)
+
+    return HttpResponseRedirect(producto.archivo.url)
 
 
 @require_GET

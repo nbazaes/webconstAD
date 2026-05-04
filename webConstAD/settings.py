@@ -236,8 +236,9 @@ AWS_STORAGE_BUCKET_NAME = os.environ.get('R2_BUCKET_NAME')
 _r2_account_id = os.environ.get('R2_ACCOUNT_ID')
 AWS_S3_ENDPOINT_URL = f"https://{_r2_account_id}.r2.cloudflarestorage.com" if _r2_account_id else None
 AWS_S3_REGION_NAME = 'auto'
-AWS_S3_CUSTOM_DOMAIN = 'pub-9d4134ed1b5c4103860ffc5f4bf17da8.r2.dev'
 AWS_S3_FILE_OVERWRITE = False
+AWS_QUERYSTRING_AUTH = True
+AWS_QUERYSTRING_EXPIRE = 3600
 
 if all([AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_STORAGE_BUCKET_NAME, AWS_S3_ENDPOINT_URL]):
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'

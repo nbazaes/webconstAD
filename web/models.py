@@ -37,7 +37,16 @@ def get_r2_storage():
     return S3Boto3Storage()
 
 
+def get_r2_public_storage():
+    from storages.backends.s3boto3 import S3Boto3Storage
+    return S3Boto3Storage(
+        custom_domain='pub-9d4134ed1b5c4103860ffc5f4bf17da8.r2.dev',
+        querystring_auth=False,
+    )
+
+
 r2_storage = get_r2_storage()
+r2_public_storage = get_r2_public_storage()
 
 
 class PerfilCliente(models.Model):
@@ -76,7 +85,7 @@ class Categoria(models.Model):
 	nombre = models.CharField(max_length=140)
 	slug = models.SlugField(max_length=180, unique=True)
 	descripcion = models.TextField(blank=True)
-	imagen = models.ImageField(upload_to='categorias/', storage=r2_storage, blank=True, null=True, validators=[validate_image_extension, validate_image_size])
+	imagen = models.ImageField(upload_to='categorias/', storage=r2_public_storage, blank=True, null=True, validators=[validate_image_extension, validate_image_size])
 	es_gratuita = models.BooleanField(default=False)
 
 	class Meta:
@@ -89,9 +98,9 @@ class Categoria(models.Model):
 
 class Coleccion(models.Model):
 	nombre = models.CharField(max_length=140)
-	descripcion = models.ImageField(upload_to='colecciones/descripciones/', storage=r2_storage, blank=True, null=True, validators=[validate_image_extension, validate_image_size])
+	descripcion = models.ImageField(upload_to='colecciones/descripciones/', storage=r2_public_storage, blank=True, null=True, validators=[validate_image_extension, validate_image_size])
 	slug = models.SlugField(max_length=180, unique=True)
-	imagen = models.ImageField(upload_to='colecciones/', storage=r2_storage, blank=True, null=True, validators=[validate_image_extension, validate_image_size])
+	imagen = models.ImageField(upload_to='colecciones/', storage=r2_public_storage, blank=True, null=True, validators=[validate_image_extension, validate_image_size])
 
 	class Meta:
 		verbose_name = "Coleccion"
@@ -107,8 +116,8 @@ class Producto(models.Model):
 	precio = models.PositiveIntegerField(null=True, blank=True)
 	es_gratuito = models.BooleanField(default=False)
 	archivo = models.FileField(upload_to='productos/', storage=r2_storage, blank=True, null=True, validators=[validate_file_extension, validate_file_size])
-	imagen = models.ImageField(upload_to='productos/', storage=r2_storage, blank=True, null=True, validators=[validate_image_extension, validate_image_size])
-	preview_imagen = models.ImageField(upload_to='productos/previews/', storage=r2_storage, blank=True, null=True, validators=[validate_image_extension, validate_image_size])
+	imagen = models.ImageField(upload_to='productos/', storage=r2_public_storage, blank=True, null=True, validators=[validate_image_extension, validate_image_size])
+	preview_imagen = models.ImageField(upload_to='productos/previews/', storage=r2_public_storage, blank=True, null=True, validators=[validate_image_extension, validate_image_size])
 	slug = models.SlugField(max_length=200, unique=True)
 	paginas = models.PositiveIntegerField(null=True, blank=True)
 	activo = models.BooleanField(default=True)
