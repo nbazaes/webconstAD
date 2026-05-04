@@ -11,7 +11,7 @@ from django.utils.text import slugify
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods
 
-from .models import Categoria, Coleccion, Producto, SuscriptorAnonimo
+from .models import Carrito, CarritoItem, Categoria, Coleccion, Producto, SuscriptorAnonimo
 
 
 FRONTEND_BUILD_DIR = settings.BASE_DIR / 'web' / 'static' / 'frontend'
@@ -748,3 +748,87 @@ def api_producto_download(request, slug):
         return _bad_request('producto sin archivo', status=404)
 
     return JsonResponse({'ok': True, 'url': producto.archivo.url, 'requires_auth': True})
+
+
+@require_GET
+def api_cart(request):
+    if not request.user.is_authenticated:
+        return _bad_request('autenticacion requerida', status=401)
+
+    carrito, _ = Carrito.objects.get_or_create(usuario=request.user)
+    items = carrito.items.select_related('producto').all()
+
+    items_data = []
+    total = 0
+    for item in items:
+        precio = item.producto.precio or 0
+        items_data.append({
+            'id': item.id,
+            'producto_id': item.producto_id,
+            'producto': {
+                'id': item.producto.id,
+                'nombre': item.producto.nombre,
+                'slug': item.producto.slug,
+                'precio': precio,
+                'imagen': item.producto.imagen.url if item.producto.imagen else None,
+            },
+            'subtotal': precio,
+        })
+        total += precio
+
+    return JsonResponse({
+        'items': items_data,
+        'total': total,
+        'count': len(items_data),
+    })
+
+
+@csrf_exempt
+@require_http_methods(['POST'])
+def api_cart_add(request):
+    if not request.user.is_authenticated:
+        return _bad_request('autenticacion requerida', status=401)
+
+    producto_id = request.POST.get('producto_id')
+    if not producto_id:
+        return _bad_request('producto_id es obligatorio')
+
+    try:
+        producto_id = int(producto_id)
+    except (TypeError, ValueError):
+        return _bad_request('producto_id invalido')
+
+    producto = get_object_or_404(Producto, id=producto_id, activo=True, es_gratuito=False)
+
+    carrito, _ = Carrito.objects.get_or_create(usuario=request.user)
+    item, created = CarritoItem.objects.get_or_create(carrito=carrito, producto=producto)
+
+    return JsonResponse({
+        'ok': True,
+        'created': created,
+        'item_id': item.id,
+    }, status=201 if created else 200)
+
+
+@csrf_exempt
+@require_http_methods(['DELETE'])
+def api_cart_item_delete(request, item_id):
+    if not request.user.is_authenticated:
+        return _bad_request('autenticacion requerida', status=401)
+
+    item = get_object_or_404(CarritoItem, id=item_id, carrito__usuario=request.user)
+    item.delete()
+
+    return JsonResponse({'ok': True})
+
+
+@csrf_exempt
+@require_http_methods(['POST'])
+def api_cart_checkout(request):
+    if not request.user.is_authenticated:
+        return _bad_request('autenticacion requerida', status=401)
+
+    details = getattr(settings, 'BANK_ACCOUNT_DETAILS', None) or {}
+    bank_account = getattr(settings, 'BANK_ACCOUNT', '') or ''
+
+    return JsonResponse({'bank_account': bank_account, 'details': details})

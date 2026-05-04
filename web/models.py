@@ -162,6 +162,45 @@ class Descarga(models.Model):
 		return f"Descarga {self.token}"
 
 
+class Carrito(models.Model):
+	usuario = models.OneToOneField(
+		settings.AUTH_USER_MODEL,
+		on_delete=models.CASCADE,
+		related_name="carrito",
+	)
+	created_at = models.DateTimeField(auto_now_add=True)
+	updated_at = models.DateTimeField(auto_now=True)
+
+	class Meta:
+		verbose_name = "Carrito"
+		verbose_name_plural = "Carritos"
+
+	def __str__(self):
+		return f"Carrito de {self.usuario.username}"
+
+
+class CarritoItem(models.Model):
+	carrito = models.ForeignKey(
+		Carrito,
+		on_delete=models.CASCADE,
+		related_name="items",
+	)
+	producto = models.ForeignKey(
+		Producto,
+		on_delete=models.CASCADE,
+		related_name="carrito_items",
+	)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		verbose_name = "Item del carrito"
+		verbose_name_plural = "Items del carrito"
+		unique_together = ("carrito", "producto")
+
+	def __str__(self):
+		return f"{self.producto.nombre} en carrito de {self.carrito.usuario.username}"
+
+
 class SuscriptorAnonimo(models.Model):
 	email = models.EmailField(unique=True)
 	created_at = models.DateTimeField(auto_now_add=True)
