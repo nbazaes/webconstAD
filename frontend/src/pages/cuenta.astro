@@ -9,6 +9,8 @@ import BaseLayout from '../layouts/BaseLayout.astro'
       <p class="lead">Revisa y actualiza tus datos personales.</p>
     </section>
 
+    <div class="flow-result-banner" data-flow-result hidden></div>
+
     <section class="products-hero text-block account-page-card" data-account-page>
       <p>Cargando información de tu cuenta...</p>
     </section>
@@ -29,6 +31,23 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 </BaseLayout>
 
 <script>
+  const flowResultBanner = document.querySelector('[data-flow-result]')
+  const flowParam = new URLSearchParams(window.location.search).get('flow')
+  if (flowParam && flowResultBanner) {
+    const messages = {
+      completada: { text: 'Pago recibido exitosamente. Tus productos están listos para descargar.', type: 'success' },
+      rechazada: { text: 'El pago fue rechazado. Intenta nuevamente o usa transferencia bancaria.', type: 'error' },
+      cancelada: { text: 'El pago fue cancelado.', type: 'info' },
+      pendiente: { text: 'El pago está siendo procesado. Recibirás una confirmación pronto.', type: 'info' },
+    }
+    const info = messages[flowParam] || { text: 'Estado de pago: ' + flowParam, type: 'info' }
+    flowResultBanner.textContent = info.text
+    flowResultBanner.className = 'flow-result-banner flow-result-banner--' + info.type
+    flowResultBanner.removeAttribute('hidden')
+    const newUrl = window.location.pathname + window.location.hash
+    window.history.replaceState({}, '', newUrl)
+  }
+
   const accountContainer = document.querySelector('[data-account-page]')
   const loginContainer = document.querySelector('[data-login-page]')
   const pageLoginForm = document.querySelector('[data-page-login-form]')

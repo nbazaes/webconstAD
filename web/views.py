@@ -1,3 +1,6 @@
+import json
+import secrets
+from datetime import timedelta
 from pathlib import Path
 from decimal import Decimal
 
@@ -8,11 +11,13 @@ from django.core.exceptions import ValidationError
 from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from django.utils.text import slugify
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods
 
-from .models import Carrito, CarritoItem, Categoria, Coleccion, Producto, SuscriptorAnonimo
+from .models import Carrito, CarritoItem, Categoria, Coleccion, Descarga, Orden, OrdenItem, Producto, SuscriptorAnonimo
+from .services.flow import FlowClient, FlowError
 
 
 FRONTEND_BUILD_DIR = settings.BASE_DIR / 'web' / 'static' / 'frontend'
@@ -844,3 +849,153 @@ def api_cart_checkout(request):
     bank_account = getattr(settings, 'BANK_ACCOUNT', '') or ''
 
     return JsonResponse({'bank_account': bank_account, 'details': details})
+
+
+# ─── FLOW PAYMENT GATEWAY ────────────────────────────────────────────────────
+
+
+@require_http_methods(['POST'])
+def api_flow_create_payment(request):
+    if not request.user.is_authenticated:
+        return _bad_request('autenticacion requerida', status=401)
+
+    carrito = getattr(request.user, 'carrito', None)
+    if not carrito:
+        return _bad_request('carrito vacio')
+    items = list(carrito.items.select_related('producto').all())
+    if not items:
+        return _bad_request('carrito vacio')
+
+    total = sum(item.producto.precio or 0 for item in items)
+    if total <= 0:
+        return _bad_request('monto invalido')
+
+    commerce_order = str(request.user.id) + '-' + str(int(carrito.pk))
+    subject = 'Compra en Constant Archivos Digitales'
+    email = request.user.email
+
+    if not email:
+        return _bad_request('el usuario debe tener un email registrado')
+
+    optional_data = {
+        'user_id': request.user.id,
+        'username': request.user.username,
+        'items': [
+            {'producto_id': item.producto_id, 'nombre': item.producto.nombre}
+            for item in items
+        ],
+    }
+
+    try:
+        client = FlowClient()
+        result = client.create_payment(
+            commerce_order=commerce_order,
+            subject=subject,
+            amount=total,
+            email=email,
+            url_confirmation=settings.FLOW_URL_CONFIRMATION,
+            url_return=settings.FLOW_URL_RETURN,
+            optional=json.dumps(optional_data),
+        )
+    except FlowError as e:
+        return _bad_request(str(e), status=502)
+
+    flow_token = result.get('token', '')
+    flow_url = result.get('url', '')
+
+    if not flow_token or not flow_url:
+        return _bad_request('Flow no retorno token o url', status=502)
+
+    orden = Orden.objects.create(
+        user=request.user,
+        estado='pendiente',
+        total=total,
+        pasarela='flow',
+        pasarela_orden_id=flow_token,
+        moneda='CLP',
+    )
+    for item in items:
+        OrdenItem.objects.create(
+            orden=orden,
+            producto=item.producto,
+            precio_al_momento=item.producto.precio or 0,
+        )
+
+    carrito.items.all().delete()
+
+    redirect_url = f"{flow_url}?token={flow_token}"
+
+    return JsonResponse({
+        'ok': True,
+        'redirect_url': redirect_url,
+        'orden_id': orden.pk,
+    })
+
+
+@csrf_exempt
+@require_http_methods(['POST'])
+def api_flow_confirmation(request):
+    token = request.POST.get('token', '')
+
+    if not token:
+        return _bad_request('token es obligatorio')
+
+    try:
+        client = FlowClient()
+        status_data = client.get_status(token=token)
+    except FlowError as e:
+        logger.error('Flow confirmation error for token=%s: %s', token[:12], e)
+        return _bad_request(str(e), status=502)
+
+    flow_status = status_data.get('status')
+    commerce_order = status_data.get('commerceOrder', '')
+
+    try:
+        orden = Orden.objects.get(pasarela_orden_id=token, pasarela='flow')
+    except Orden.DoesNotExist:
+        logger.warning('Flow confirmation: orden no encontrada para token=%s', token[:12])
+        return _bad_request('orden no encontrada', status=404)
+
+    if flow_status == 1:
+        orden.estado = 'completada'
+        orden.save()
+
+        for item in orden.items.select_related('producto').all():
+            Descarga.objects.create(
+                user=orden.user,
+                producto=item.producto,
+                token=secrets.token_urlsafe(48),
+                expira_en=timezone.now() + timedelta(days=365),
+            )
+        logger.info('Flow payment completed: orden=%s flowOrder=%s', orden.pk, status_data.get('flowOrder'))
+    elif flow_status == 2:
+        orden.estado = 'rechazada'
+        orden.save()
+        logger.info('Flow payment rejected: orden=%s', orden.pk)
+    elif flow_status == 3:
+        orden.estado = 'cancelada'
+        orden.save()
+        logger.info('Flow payment cancelled: orden=%s', orden.pk)
+    else:
+        logger.info('Flow payment status=%s for orden=%s', flow_status, orden.pk)
+
+    return JsonResponse({'ok': True})
+
+
+def api_flow_return(request):
+    flow_status = request.GET.get('flow_status', '')
+    token = request.GET.get('token', '')
+
+    frontend_url = settings.FLOW_URL_RETURN.split('?')[0]
+
+    status_map = {
+        '1': 'completada',
+        '2': 'rechazada',
+        '3': 'cancelada',
+    }
+    msg = status_map.get(flow_status, 'pendiente')
+
+    separator = '&' if '?' in frontend_url else '?'
+    redirect = f"{frontend_url}{separator}flow={msg}"
+
+    return HttpResponseRedirect(redirect)

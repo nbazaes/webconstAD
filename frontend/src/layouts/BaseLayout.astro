@@ -236,8 +236,8 @@ const asset = (path) => `/${path}`
           <span>Total</span>
           <span class="cart-total__amount" data-cart-total>$0</span>
         </div>
-        <button class="btn btn-cart-checkout" type="button" data-cart-checkout>Finalizar compra</button>
-        <p class="cart-footer-note">Transferencia bancaria &mdash; te enviaremos los datos al finalizar</p>
+        <button class="btn btn-cart-checkout" type="button" data-cart-checkout-flow>Pagar con Flow</button>
+        <p class="cart-footer-note">o bien, <button class="link-btn" type="button" data-cart-checkout>transferencia bancaria</button></p>
       </div>
     </aside>
 
@@ -245,13 +245,22 @@ const asset = (path) => `/${path}`
       <div class="checkout-modal__backdrop" data-checkout-close></div>
       <div class="checkout-modal__panel" role="dialog" aria-modal="true" aria-labelledby="checkout-modal-title">
         <h3 id="checkout-modal-title">Finalizar compra</h3>
+
+        <div class="checkout-modal__flow" data-checkout-flow hidden>
+          <p class="checkout-modal__lead">Redirigiendo a Flow para pagar con tarjeta de crédito, débito o transferencia...</p>
+          <p data-checkout-flow-status></p>
+          <div class="checkout-modal__actions">
+            <button class="btn" type="button" data-checkout-flow-redirect>Ir a pagar</button>
+          </div>
+        </div>
+
         <div class="checkout-modal__details" data-checkout-details>
           <p class="checkout-modal__lead">Transfiere a:</p>
           <dl class="checkout-modal__list" data-checkout-list></dl>
           <p class="checkout-modal__note">Envía el comprobante por Instagram a <a href="https://www.instagram.com/constantdesigns" target="_blank" rel="noreferrer">@constantdesigns</a>.</p>
         </div>
         <div class="checkout-modal__actions">
-          <button class="btn" type="button" data-checkout-close>Entendido</button>
+          <button class="btn" type="button" data-checkout-close>Cerrar</button>
         </div>
       </div>
     </div>
@@ -278,10 +287,15 @@ const asset = (path) => `/${path}`
         const cartFooter = document.querySelector('[data-cart-footer]')
         const cartTotal = document.querySelector('[data-cart-total]')
         const checkoutBtn = document.querySelector('[data-cart-checkout]')
+        const checkoutBtnFlow = document.querySelector('[data-cart-checkout-flow]')
 
         const checkoutModal = document.querySelector('[data-checkout-modal]')
         const checkoutList = document.querySelector('[data-checkout-list]')
         const checkoutClosers = document.querySelectorAll('[data-checkout-close]')
+        const checkoutFlowSection = document.querySelector('[data-checkout-flow]')
+        const checkoutDetailsSection = document.querySelector('[data-checkout-details]')
+        const checkoutFlowStatus = document.querySelector('[data-checkout-flow-status]')
+        const checkoutFlowRedirect = document.querySelector('[data-checkout-flow-redirect]')
 
         let peekTimeout = null
 
@@ -417,8 +431,23 @@ const asset = (path) => `/${path}`
           }
         }
 
+        const showCheckoutDetails = () => {
+          if (checkoutFlowSection) checkoutFlowSection.setAttribute('hidden', '')
+          if (checkoutDetailsSection) checkoutDetailsSection.removeAttribute('hidden')
+        }
+
+        const showCheckoutFlow = (redirectUrl) => {
+          if (checkoutDetailsSection) checkoutDetailsSection.setAttribute('hidden', '')
+          if (checkoutFlowSection) checkoutFlowSection.removeAttribute('hidden')
+          if (checkoutFlowStatus) checkoutFlowStatus.textContent = 'Serás redirigido a Flow para completar el pago.'
+          if (checkoutFlowRedirect) {
+            checkoutFlowRedirect.onclick = () => { window.location.href = redirectUrl }
+          }
+        }
+
         const showCheckoutModal = (details) => {
           if (!checkoutList || !checkoutModal) return
+          showCheckoutDetails()
           const fields = [
             { label: 'Nombre completo', key: 'nombre_completo' },
             { label: 'RUT', key: 'rut' },
@@ -473,6 +502,24 @@ const asset = (path) => `/${path}`
             showCheckoutModal(data.details || {})
           } catch {
             window.showStyledAlert?.('Error al obtener datos de pago.', 'Error')
+          }
+        })
+
+        checkoutBtnFlow?.addEventListener('click', async () => {
+          try {
+            const res = await fetch(backendUrl('/api/pagos/flow/create-payment/'), {
+              method: 'POST',
+              credentials: 'include',
+            })
+            const data = await res.json()
+            if (data.ok && data.redirect_url) {
+              showCheckoutFlow(data.redirect_url)
+              setTimeout(() => { window.location.href = data.redirect_url }, 1500)
+            } else {
+              window.showStyledAlert?.(data.message || 'Error al crear el pago.', 'Error')
+            }
+          } catch {
+            window.showStyledAlert?.('Error al conectar con Flow.', 'Error')
           }
         })
 

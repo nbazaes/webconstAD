@@ -291,7 +291,17 @@ const formattedPrice = producto?.precio != null
   <div class="buy-modal__backdrop" data-buy-close></div>
   <div class="buy-modal__panel" role="dialog" aria-modal="true" aria-labelledby="buy-modal-title">
     <h3 id="buy-modal-title">Comprar</h3>
-    <div class="buy-modal__details">
+
+    <div class="buy-modal__flow" data-buy-flow hidden>
+      <p class="buy-modal__lead">Redirigiendo a Flow para pagar con tarjeta de crédito, débito o transferencia...</p>
+      <p data-buy-flow-status></p>
+      <div class="buy-modal__actions">
+        <button class="btn" type="button" data-buy-flow-redirect>Ir a pagar</button>
+        <button class="btn btn-secondary" type="button" data-buy-flow-cancel>Cancelar</button>
+      </div>
+    </div>
+
+    <div class="buy-modal__details" data-buy-details>
       <p class="buy-modal__lead">Transfiere a:</p>
       <dl class="buy-modal__list">
         <div>
@@ -322,7 +332,7 @@ const formattedPrice = producto?.precio != null
       <p class="buy-modal__note">Envía el comprobante por Instagram a <a href="https://www.instagram.com/constantdesigns" target="_blank" rel="noreferrer">@constantdesigns</a>.</p>
     </div>
     <div class="buy-modal__actions">
-      <button class="btn" type="button" data-buy-close>Entendido</button>
+      <button class="btn" type="button" data-buy-close>Cerrar</button>
     </div>
   </div>
 </div>
@@ -331,6 +341,11 @@ const formattedPrice = producto?.precio != null
   const buyButton = document.querySelector('[data-buy-button]')
   const buyModal = document.querySelector('[data-buy-modal]')
   const buyClosers = document.querySelectorAll('[data-buy-close]')
+  const buyFlowSection = document.querySelector('[data-buy-flow]')
+  const buyDetailsSection = document.querySelector('[data-buy-details]')
+  const buyFlowStatus = document.querySelector('[data-buy-flow-status]')
+  const buyFlowRedirect = document.querySelector('[data-buy-flow-redirect]')
+  const buyFlowCancel = document.querySelector('[data-buy-flow-cancel]')
   const addToCartBtn = document.querySelector('[data-add-to-cart]')
   const productSection = document.querySelector('[data-product-id]')
   const productId = productSection?.dataset.productId
@@ -338,19 +353,30 @@ const formattedPrice = producto?.precio != null
   const backendOrigin = window.location.origin
   const backendUrl = (path) => `${backendOrigin}${path}`
 
+  let flowRedirectUrl = ''
+
+  const showBuyDetails = () => {
+    if (buyFlowSection) buyFlowSection.setAttribute('hidden', '')
+    if (buyDetailsSection) buyDetailsSection.removeAttribute('hidden')
+  }
+
+  const showBuyFlow = (redirectUrl) => {
+    flowRedirectUrl = redirectUrl
+    if (buyDetailsSection) buyDetailsSection.setAttribute('hidden', '')
+    if (buyFlowSection) buyFlowSection.removeAttribute('hidden')
+    if (buyFlowStatus) buyFlowStatus.textContent = 'Serás redirigido a Flow para completar el pago.'
+    if (buyFlowRedirect) {
+      buyFlowRedirect.onclick = () => { window.location.href = flowRedirectUrl }
+    }
+  }
+
   const closeBuyModal = () => {
     buyModal?.setAttribute('hidden', '')
   }
 
-  buyButton?.addEventListener('click', () => buyModal?.removeAttribute('hidden'))
-  buyClosers.forEach((button) => button.addEventListener('click', closeBuyModal))
-
-  addToCartBtn?.addEventListener('click', async () => {
-    if (!productId) return
-
+  const ensureAuth = async () => {
     const sessionRes = await fetch(backendUrl('/api/auth/session/'), { credentials: 'include' })
     const session = await sessionRes.json()
-
     if (!session.authenticated) {
       const authModal = document.querySelector('[data-auth-modal]')
       if (authModal) {
@@ -359,8 +385,68 @@ const formattedPrice = producto?.precio != null
         })
         authModal.removeAttribute('hidden')
       }
+      return null
+    }
+    return session
+  }
+
+  buyButton?.addEventListener('click', async () => {
+    if (!productId) return
+
+    const session = await ensureAuth()
+    if (!session) return
+
+    buyButton.disabled = true
+    buyButton.textContent = 'Procesando…'
+
+    try {
+      const formData = new URLSearchParams()
+      formData.append('producto_id', productId)
+      await fetch(backendUrl('/api/cart/add/'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData,
+      })
+      document.dispatchEvent(new CustomEvent('cart:updated'))
+    } catch {
+      buyButton.textContent = 'Comprar'
+      buyButton.disabled = false
+      window.showStyledAlert?.('Error al preparar la compra.', 'Error')
       return
     }
+
+    try {
+      const res = await fetch(backendUrl('/api/pagos/flow/create-payment/'), {
+        method: 'POST',
+        credentials: 'include',
+      })
+      const data = await res.json()
+      if (data.ok && data.redirect_url) {
+        buyModal?.removeAttribute('hidden')
+        showBuyFlow(data.redirect_url)
+        setTimeout(() => { window.location.href = data.redirect_url }, 2000)
+      } else {
+        buyModal?.removeAttribute('hidden')
+        showBuyDetails()
+      }
+    } catch {
+      buyModal?.removeAttribute('hidden')
+      showBuyDetails()
+    } finally {
+      buyButton.textContent = 'Comprar'
+      buyButton.disabled = false
+    }
+  })
+
+  buyClosers.forEach((button) => button.addEventListener('click', closeBuyModal))
+  buyFlowCancel?.addEventListener('click', closeBuyModal)
+
+  addToCartBtn?.addEventListener('click', async () => {
+    if (!productId) return
+
+    const session = await ensureAuth()
+    if (!session) return
 
     addToCartBtn.disabled = true
     addToCartBtn.textContent = 'Agregando…'

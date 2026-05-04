@@ -44,6 +44,14 @@ def _parse_json_env(raw_value: str):
 
 BANK_ACCOUNT_DETAILS = _parse_json_env(BANK_ACCOUNT_JSON)
 
+# FLOW PAYMENT GATEWAY
+FLOW_API_KEY = os.getenv('FLOW_API_KEY', '')
+FLOW_SECRET_KEY = os.getenv('FLOW_SECRET_KEY', '')
+FLOW_ENVIRONMENT = os.getenv('FLOW_ENVIRONMENT', 'sandbox')
+FLOW_URL_CONFIRMATION = os.getenv('FLOW_URL_CONFIRMATION', 'http://localhost:8000/api/pagos/flow/confirmacion/')
+FLOW_URL_RETURN = os.getenv('FLOW_URL_RETURN', 'http://localhost:4321/cuenta/?flow=resultado')
+FLOW_REQUEST_TIMEOUT = int(os.getenv('FLOW_REQUEST_TIMEOUT', '30'))
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
