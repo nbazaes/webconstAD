@@ -822,13 +822,37 @@ def api_cart_item_delete(request, item_id):
     return JsonResponse({'ok': True})
 
 
-@csrf_exempt
-@require_http_methods(['POST'])
+@require_GET
 def api_cart_checkout(request):
     if not request.user.is_authenticated:
         return _bad_request('autenticacion requerida', status=401)
 
-    details = getattr(settings, 'BANK_ACCOUNT_DETAILS', None) or {}
-    bank_account = getattr(settings, 'BANK_ACCOUNT', '') or ''
+    carrito, _ = Carrito.objects.get_or_create(usuario=request.user)
+    items = carrito.items.select_related('producto').all()
 
-    return JsonResponse({'bank_account': bank_account, 'details': details})
+    items_data = []
+    total = 0
+    for item in items:
+        precio = item.producto.precio or 0
+        items_data.append({
+            'id': item.id,
+            'producto_id': item.producto_id,
+            'producto': {
+                'id': item.producto.id,
+                'nombre': item.producto.nombre,
+                'slug': item.producto.slug,
+                'precio': precio,
+                'imagen': item.producto.imagen.url if item.producto.imagen else None,
+            },
+            'subtotal': precio,
+        })
+        total += precio
+
+    details = getattr(settings, 'BANK_ACCOUNT_DETAILS', None) or {}
+
+    return JsonResponse({
+        'items': items_data,
+        'total': total,
+        'count': len(items_data),
+        'details': details,
+    })
