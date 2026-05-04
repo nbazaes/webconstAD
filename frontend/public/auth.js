@@ -165,7 +165,7 @@ const renderAuthTabs = () => {
 
   const isAdmin = Boolean(
     authState.authenticated &&
-    (authState.user?.rol === 'admin' || authState.user?.is_staff || authState.user?.is_superuser)
+    (authState.user?.rol === 'admin' || authState.user?.rol === 'artista' || authState.user?.is_staff || authState.user?.is_superuser)
   )
   publishNavItems.forEach((item) => {
     item.hidden = !isAdmin

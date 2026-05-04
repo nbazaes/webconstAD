@@ -243,6 +243,7 @@ def api_catalog_colecciones(request):
             'nombre': c.nombre,
             'slug': c.slug,
             'descripcion': c.descripcion.url if c.descripcion else None,
+            'imagen': c.imagen.url if c.imagen else None,
         }
         for c in colecciones
     ]

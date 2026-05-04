@@ -12,7 +12,7 @@ const producto = response.ok ? await response.json() : null
 
 const pageTitle = `${producto?.nombre || 'Producto'} | Productos | Constant Archivos Digitales`
 const formattedPrice = producto?.precio != null
-  ? String(producto.precio).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+  ? String(parseInt(producto.precio)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
   : null
 ---
 
