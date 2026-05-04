@@ -14,19 +14,11 @@ r2_storage = get_r2_storage()
 
 
 class PerfilCliente(models.Model):
-	ROL_CLIENTE = "cliente"
-	ROL_ADMIN = "admin"
-	ROLES = (
-		(ROL_CLIENTE, "Cliente"),
-		(ROL_ADMIN, "Admin"),
-	)
-
 	user = models.OneToOneField(
 		settings.AUTH_USER_MODEL,
 		on_delete=models.CASCADE,
 		related_name="perfil_cliente",
 	)
-	rol = models.CharField(max_length=20, choices=ROLES, default=ROL_CLIENTE)
 	nombre = models.CharField(max_length=120)
 	apellido = models.CharField(max_length=120)
 	pais = models.CharField(max_length=120, blank=True)

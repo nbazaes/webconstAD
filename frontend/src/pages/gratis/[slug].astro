@@ -183,7 +183,7 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     const response = await fetch(backendUrl('/api/auth/session/'), { credentials: 'include' })
     if (!response.ok) return false
     const data = await response.json()
-    return Boolean(data.authenticated && (data.user?.rol === 'admin' || data.user?.is_staff || data.user?.is_superuser))
+    return Boolean(data.authenticated && (data.user?.rol === 'admin' || data.user?.rol === 'artista' || data.user?.is_staff || data.user?.is_superuser))
   }
 
   const createEditModal = async (product) => {
