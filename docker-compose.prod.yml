@@ -1,6 +1,6 @@
 services:
   web:
-    image: ghcr.io/nbazaes/webconstad:prod
+    image: ghcr.io/nbazaes/webconstad:${APP_VERSION}
     networks:
       - prod_net
     container_name: webconstad_web_prod

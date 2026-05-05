@@ -33,6 +33,7 @@ jobs:
           context: .
           push: true
           tags: |
+            ghcr.io/nbazaes/webconstad:${{ github.ref_name }}
             ghcr.io/nbazaes/webconstad:staging
             ghcr.io/nbazaes/webconstad:staging-${{ github.ref_name }}
           build-args: |
