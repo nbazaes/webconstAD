@@ -71,6 +71,26 @@ let confirmMode = 'confirm'
 const backendOrigin = window.location.origin
 const backendUrl = (path) => `${backendOrigin}${path}`
 
+const readJsonResponse = async (response) => {
+  try {
+    return await response.json()
+  } catch {
+    const text = await response.text().catch(() => '')
+    const message = text && text.includes('CSRF')
+      ? 'Fallo la verificación CSRF. Recarga la página e intenta de nuevo.'
+      : text
+        ? 'El servidor devolvió una respuesta inesperada.'
+        : 'No se pudo procesar la respuesta del servidor.'
+    return { ok: false, message }
+  }
+}
+
+const ensureCsrfToken = async () => {
+  if (window.getCsrfToken) {
+    await window.getCsrfToken()
+  }
+}
+
 const setAuthMessage = (text = '', isError = false) => {
   if (!authMessage) return
   authMessage.textContent = text
@@ -235,10 +255,15 @@ authTabs.forEach((tab) => {
       return
     }
 
-    await fetch(backendUrl('/api/auth/logout/'), {
+    await ensureCsrfToken()
+    const logoutResponse = await fetch(backendUrl('/api/auth/logout/'), {
       method: 'POST',
       credentials: 'include',
     })
+    if (!logoutResponse.ok) {
+      const errorData = await readJsonResponse(logoutResponse)
+      console.warn('Logout backend rejected request', errorData)
+    }
     authState = { authenticated: false, user: null }
     renderAuthTabs()
     window.location.href = '/'
@@ -280,6 +305,7 @@ loginForm?.addEventListener('submit', async (event) => {
   payload.append('username', identifier)
   payload.append('password', password)
 
+  await ensureCsrfToken()
   const response = await fetch(backendUrl('/api/auth/login/'), {
     method: 'POST',
     credentials: 'include',
@@ -289,13 +315,7 @@ loginForm?.addEventListener('submit', async (event) => {
     body: payload,
   })
 
-  let data = null
-  try {
-    data = await response.json()
-  } catch {
-    setAuthMessage('No se pudo procesar la respuesta del servidor.', true)
-    return
-  }
+  const data = await readJsonResponse(response)
   if (!response.ok || !data.ok) {
     const errorMessage = data.message || 'No se pudo iniciar sesión.'
     setAuthMessage(errorMessage, true)
@@ -346,6 +366,7 @@ registerForm?.addEventListener('submit', async (event) => {
   payload.append('pais', pais)
   payload.append('password', password)
 
+  await ensureCsrfToken()
   const response = await fetch(backendUrl('/api/auth/register/'), {
     method: 'POST',
     credentials: 'include',
@@ -355,7 +376,7 @@ registerForm?.addEventListener('submit', async (event) => {
     body: payload,
   })
 
-  const data = await response.json()
+  const data = await readJsonResponse(response)
   if (!response.ok || !data.ok) {
     const errorMessage = data.message || 'No se pudo crear la cuenta.'
     setAuthMessage(errorMessage, true)
