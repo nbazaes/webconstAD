@@ -215,12 +215,20 @@ import { Icon } from 'astro-icon/components'
 
     const formData = new FormData(form)
     try {
+      const controller = new AbortController()
+      const timeout = window.setTimeout(() => controller.abort(), 15000)
+
       const response = await fetch(backendUrl('/api/contacto/'), {
         method: 'POST',
         body: formData,
         credentials: 'include',
+        signal: controller.signal,
       })
-      const data = await response.json()
+      window.clearTimeout(timeout)
+      const contentType = response.headers.get('content-type') || ''
+      const data = contentType.includes('application/json')
+        ? await response.json()
+        : { message: await response.text() }
 
       if (!response.ok) {
         const message = data?.detail || data?.message || 'No se pudo enviar el mensaje.'
@@ -230,7 +238,10 @@ import { Icon } from 'astro-icon/components'
       form.reset()
       setStatus('Mensaje enviado correctamente.')
     } catch (error) {
-      setStatus(error.message || 'Error al enviar el mensaje.', true)
+      const message = error?.name === 'AbortError'
+        ? 'La solicitud tardó demasiado. Intenta de nuevo.'
+        : (error.message || 'Error al enviar el mensaje.')
+      setStatus(message, true)
     }
   })
 </script>

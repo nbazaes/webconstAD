@@ -2,11 +2,12 @@ from pathlib import Path
 from decimal import Decimal
 import logging
 
+import requests
+
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
-from django.core.mail import send_mail
 from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
@@ -14,6 +15,7 @@ from django.utils.text import slugify
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods
 from rest_framework import status
+from rest_framework.decorators import authentication_classes
 from rest_framework.decorators import parser_classes
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -162,6 +164,7 @@ def api_root(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@authentication_classes([])
 @parser_classes([MultiPartParser, FormParser, JSONParser])
 def api_contacto(request):
     serializer = MensajeContactoSerializer(data=request.data)
@@ -182,13 +185,29 @@ def api_contacto(request):
     )
 
     try:
-        send_mail(
-            asunto,
-            cuerpo,
-            settings.DEFAULT_FROM_EMAIL,
-            [destinatario],
-            fail_silently=False,
-        )
+        if settings.RESEND_API_KEY:
+            response = requests.post(
+                'https://api.resend.com/emails',
+                headers={
+                    'Authorization': f'Bearer {settings.RESEND_API_KEY}',
+                    'Content-Type': 'application/json',
+                },
+                json={
+                    'from': settings.RESEND_FROM_EMAIL,
+                    'to': [destinatario],
+                    'reply_to': mensaje.email,
+                    'subject': asunto,
+                    'text': cuerpo,
+                },
+                timeout=settings.EMAIL_TIMEOUT,
+            )
+            response.raise_for_status()
+            logger.info('Correo de contacto enviado con Resend a %s', destinatario)
+        else:
+            return JsonResponse(
+                {'ok': False, 'message': 'Falta RESEND_API_KEY en la configuracion'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
     except Exception:
         logger.exception('Error al enviar correo de contacto')
         return JsonResponse(
