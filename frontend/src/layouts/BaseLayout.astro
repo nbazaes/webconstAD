@@ -65,7 +65,7 @@ const asset = (path) => `/${path}`
     <meta name="twitter:description" content={description} />
 
     <!-- CSRF protection for API calls -->
-    <script defer src="/csrf.js"></script>
+    <script defer src={`/csrf.js?v=${appVersion}`}></script>
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json" set:html={JSON.stringify({
@@ -244,7 +244,7 @@ const asset = (path) => `/${path}`
 
     <Footer currentYear={currentYear} appVersion={appVersion} />
 
-    <script defer src="/auth.js"></script>
+    <script defer src={`/auth.js?v=${appVersion}`}></script>
     <script>
       (function() {
         const cartToggle = document.querySelector('[data-cart-toggle]')
