@@ -1,5 +1,6 @@
 from pathlib import Path
 from decimal import Decimal
+import base64
 import logging
 
 import requests
@@ -143,7 +144,7 @@ def _build_unique_simple_slug(model_cls, nombre, explicit_slug=None):
     return candidate
 
 
-def _send_resend_email(*, subject, text, recipients, reply_to=None):
+def _send_resend_email(*, subject, text, recipients, reply_to=None, html=None, attachments=None):
     if not settings.RESEND_API_KEY:
         return JsonResponse(
             {'ok': False, 'message': 'Falta RESEND_API_KEY en la configuracion'},
@@ -156,6 +157,10 @@ def _send_resend_email(*, subject, text, recipients, reply_to=None):
         'subject': subject,
         'text': text,
     }
+    if html:
+        payload['html'] = html
+    if attachments:
+        payload['attachments'] = attachments
     if reply_to:
         payload['reply_to'] = reply_to
 
@@ -170,6 +175,60 @@ def _send_resend_email(*, subject, text, recipients, reply_to=None):
     )
     response.raise_for_status()
     return None
+
+
+def _build_verification_email_html(request, user, verify_url):
+    site_url = request.build_absolute_uri('/')[:-1]
+    support_email = settings.CONTACT_MAIL_SOPORTE
+    return f'''
+    <div style="margin:0;padding:0;background:#f0dbdb;">
+      <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+        Verifica tu correo para activar tu cuenta en Constant Archivos Digitales.
+      </div>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f0dbdb;border-collapse:collapse;">
+        <tr>
+          <td align="center" style="padding:32px 16px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:100%;border-collapse:collapse;background:#fffaf5;border:1px solid #e8dfd7;border-radius:24px;overflow:hidden;box-shadow:0 18px 48px rgba(36,50,51,.14);">
+              <tr>
+                <td style="background:linear-gradient(135deg,#243233 0%,#35494a 100%);padding:28px 24px;text-align:center;">
+                  <img src="cid:logo-email" alt="Constant Archivos Digitales" width="160" style="display:block;margin:0 auto;max-width:160px;height:auto;" />
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:34px 28px 30px;font-family:Georgia,'Times New Roman',serif;color:#243233;">
+                  <div style="display:inline-block;padding:6px 12px;margin-bottom:18px;border-radius:999px;background:#d8e5dc;color:#243233;font-size:12px;letter-spacing:.08em;text-transform:uppercase;">Verificación de cuenta</div>
+                  <h1 style="margin:0 0 14px;font-size:30px;line-height:1.15;font-weight:700;">Hola {user.first_name or user.username}</h1>
+                  <p style="margin:0 0 22px;font-size:16px;line-height:1.7;color:#2f3f40;">Gracias por registrarte. Para activar tu cuenta y completar el acceso a tu perfil, haz clic en el botón de abajo.</p>
+                  <div style="text-align:center;margin:28px 0 26px;">
+                    <a href="{verify_url}" style="display:inline-block;background:#243233;color:#fff;text-decoration:none;font-size:16px;font-weight:700;padding:14px 24px;border-radius:999px;box-shadow:0 10px 24px rgba(36,50,51,.22);">Verificar correo</a>
+                  </div>
+                  <p style="margin:0 0 8px;font-size:14px;line-height:1.6;color:#536162;">Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+                  <p style="margin:0;word-break:break-all;font-size:13px;line-height:1.6;color:#243233;">{verify_url}</p>
+                  <hr style="border:0;border-top:1px solid #e8dfd7;margin:28px 0;" />
+                  <p style="margin:0;font-size:13px;line-height:1.7;color:#6b5f58;">Si no solicitaste esta cuenta, puedes ignorar este mensaje.</p>
+                  <div style="margin-top:28px;padding:18px 18px 16px;background:linear-gradient(180deg,#f7f1ea 0%,#fbf7f2 100%);border:1px solid #e8dfd7;border-radius:18px;box-shadow:inset 0 1px 0 rgba(255,255,255,.7);">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+                      <tr>
+                        <td valign="top" width="62" style="padding-right:14px;">
+                          <div style="width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#243233 0%,#3b5152 100%);color:#fff;font-family:Arial,sans-serif;font-size:18px;font-weight:700;line-height:52px;text-align:center;letter-spacing:.08em;box-shadow:0 10px 18px rgba(36,50,51,.18);">CAD</div>
+                        </td>
+                        <td valign="top" style="font-family:Georgia,'Times New Roman',serif;color:#243233;">
+                          <p style="margin:0 0 6px;font-size:14px;line-height:1.5;font-weight:700;">Saludos,</p>
+                          <p style="margin:0 0 10px;font-size:15px;line-height:1.5;">Equipo de Constant Archivos Digitales</p>
+                          <p style="margin:0;font-size:13px;line-height:1.6;color:#6b5f58;">Soporte: <a href="mailto:{support_email}" style="color:#243233;text-decoration:underline;">{support_email}</a></p>
+                          <p style="margin:0;font-size:13px;line-height:1.6;color:#6b5f58;">Web: <a href="{site_url}" style="color:#243233;text-decoration:underline;">{site_url}</a></p>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </div>
+    '''
 
 
 @require_GET
@@ -460,9 +519,25 @@ def api_auth_register(request):
         f'{verify_url}\n\n'
         'Si no creaste esta cuenta, puedes ignorar este mensaje.'
     )
+    html = _build_verification_email_html(request, user, verify_url)
+    logo_path = settings.BASE_DIR / 'web' / 'static' / 'web' / 'assets' / 'logo-email.png'
+    attachments = []
+    if logo_path.exists():
+        attachments.append({
+            'filename': 'logo-email.png',
+            'content': base64.b64encode(logo_path.read_bytes()).decode('ascii'),
+            'content_type': 'image/png',
+            'content_id': 'logo-email',
+        })
 
     try:
-        error = _send_resend_email(subject=asunto, text=cuerpo, recipients=[user.email])
+        error = _send_resend_email(
+            subject=asunto,
+            text=cuerpo,
+            recipients=[user.email],
+            html=html,
+            attachments=attachments,
+        )
         if error:
             user.delete()
             return error
