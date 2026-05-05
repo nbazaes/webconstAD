@@ -1,18 +1,29 @@
 from pathlib import Path
 from decimal import Decimal
+import logging
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
 from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods
+from rest_framework import status
+from rest_framework.decorators import parser_classes
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 
-from .models import Carrito, CarritoItem, Categoria, Coleccion, Producto, SuscriptorAnonimo
+from .models import Carrito, CarritoItem, Categoria, Coleccion, MensajeContacto, Producto, SuscriptorAnonimo
+from .serializers import MensajeContactoSerializer
+
+
+logger = logging.getLogger(__name__)
 
 
 FRONTEND_BUILD_DIR = settings.BASE_DIR / 'web' / 'static' / 'frontend'
@@ -142,9 +153,56 @@ def api_root(request):
                 'auth_logout': '/api/auth/logout/',
                 'auth_session': '/api/auth/session/',
                 'publicar_producto': '/api/publicar/producto/',
+                'contacto': '/api/contacto/',
                 'descargar_producto': '/api/productos/<slug>/download/',
             },
         }
+    )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@parser_classes([MultiPartParser, FormParser, JSONParser])
+def api_contacto(request):
+    serializer = MensajeContactoSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    mensaje = serializer.save()
+
+    destinatario = (
+        settings.CONTACT_MAIL_CONTACTO
+        if mensaje.motivo == MensajeContacto.MOTIVO_CONTACTO
+        else settings.CONTACT_MAIL_SOPORTE
+    )
+    asunto = f'Nuevo mensaje de {mensaje.get_motivo_display()}: {mensaje.nombre}'
+    cuerpo = (
+        f'Nombre: {mensaje.nombre}\n'
+        f'Email: {mensaje.email}\n'
+        f'Motivo: {mensaje.get_motivo_display()}\n\n'
+        f'{mensaje.mensaje}'
+    )
+
+    try:
+        send_mail(
+            asunto,
+            cuerpo,
+            settings.DEFAULT_FROM_EMAIL,
+            [destinatario],
+            fail_silently=False,
+        )
+    except Exception:
+        logger.exception('Error al enviar correo de contacto')
+        return JsonResponse(
+            {'ok': False, 'message': 'No se pudo enviar el mensaje'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    return JsonResponse(
+        {
+            'ok': True,
+            'message': 'Mensaje enviado correctamente',
+            'destinatario': destinatario,
+        },
+        status=status.HTTP_201_CREATED,
     )
 
 

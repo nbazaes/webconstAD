@@ -247,3 +247,27 @@ class SuscriptorAnonimo(models.Model):
 
 	def __str__(self):
 		return self.email
+
+
+class MensajeContacto(models.Model):
+	MOTIVO_CONTACTO = 'contacto'
+	MOTIVO_SOPORTE = 'soporte'
+	MOTIVO_CHOICES = [
+		(MOTIVO_CONTACTO, 'Contacto'),
+		(MOTIVO_SOPORTE, 'Soporte'),
+	]
+
+	nombre = models.CharField(max_length=120)
+	email = models.EmailField()
+	motivo = models.CharField(max_length=20, choices=MOTIVO_CHOICES)
+	mensaje = models.TextField()
+	creado_en = models.DateTimeField(auto_now_add=True)
+	leido = models.BooleanField(default=False)
+
+	class Meta:
+		verbose_name = 'Mensaje de contacto'
+		verbose_name_plural = 'Mensajes de contacto'
+		ordering = ['-creado_en', '-id']
+
+	def __str__(self):
+		return f'{self.nombre} - {self.get_motivo_display()}'
