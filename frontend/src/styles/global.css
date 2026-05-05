@@ -961,9 +961,37 @@ body.nav-open {
   z-index: 1;
 }
 
+.confirm-modal__panel--success {
+  border-color: #b9d7bf;
+  box-shadow: 0 18px 50px rgba(54, 96, 66, 0.14);
+}
+
+.confirm-modal__panel--danger {
+  border-color: #e0b0b0;
+  box-shadow: 0 18px 50px rgba(148, 45, 45, 0.12);
+}
+
+.confirm-modal__panel--alert {
+  border-color: #e8dfd7;
+}
+
 .confirm-modal__panel h3 {
   margin-top: 0;
   margin-bottom: 10px;
+}
+
+.confirm-modal__message {
+  white-space: pre-line;
+  color: #2a3b3b;
+  line-height: 1.45;
+}
+
+.confirm-modal__panel--success .confirm-modal__message {
+  color: #23533a;
+}
+
+.confirm-modal__panel--danger .confirm-modal__message {
+  color: #a02d2d;
 }
 
 .confirm-modal__actions {

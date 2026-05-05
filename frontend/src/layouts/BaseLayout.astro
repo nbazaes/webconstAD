@@ -209,9 +209,9 @@ const asset = (path) => `/${path}`
 
     <div class="confirm-modal" data-confirm-modal hidden>
       <div class="confirm-modal__backdrop" data-confirm-cancel></div>
-      <div class="confirm-modal__panel" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+      <div class="confirm-modal__panel" data-confirm-panel role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
         <h3 id="confirm-modal-title">Confirmación</h3>
-        <p data-confirm-message></p>
+        <div class="confirm-modal__message" data-confirm-message aria-live="polite"></div>
         <div class="confirm-modal__actions">
           <button class="btn btn-secondary" type="button" data-confirm-cancel>Cancelar</button>
           <button class="btn" type="button" data-confirm-accept>Aceptar</button>
