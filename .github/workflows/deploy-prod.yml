@@ -32,8 +32,8 @@ jobs:
           context: .
           push: true
           tags: |
+            ghcr.io/nbazaes/webconstad:${{ github.ref_name }}
             ghcr.io/nbazaes/webconstad:prod
-            ghcr.io/nbazaes/webconstad:prod-${{ github.ref_name }}
           build-args: |
             APP_VERSION=${{ github.ref_name }}
             NGINX_CONF=nginx.prod.conf
@@ -53,6 +53,8 @@ jobs:
           script: |
             set -e
             cd /home/github-deploy/webconstAD
+
+            export APP_VERSION=${{ github.ref_name }}
 
             git config --global --add safe.directory $(pwd)
             git fetch --all --tags
