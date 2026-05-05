@@ -701,7 +701,7 @@ a:hover {
   flex-shrink: 0;
   width: 100%;
   min-height: min(100px, 27.6vw);
-  padding: 20px;
+  padding: 28px 20px;
   background: #d8e5dc;
   text-align: center;
   position: relative;
@@ -710,6 +710,67 @@ a:hover {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  gap: 18px;
+}
+
+.site-footer::after {
+  content: '';
+  width: min(520px, 92vw);
+  height: 1px;
+  background: rgba(30, 73, 49, 0.2);
+}
+
+.site-footer__grid {
+  width: 100%;
+  max-width: 980px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 40px;
+  text-align: left;
+}
+
+.site-footer__column,
+.site-footer__contact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.site-footer__contact {
+  margin-top: 10px;
+  align-items: flex-start;
+  text-align: left;
+  width: 100%;
+  max-width: 980px;
+  padding-top: 4px;
+}
+
+.site-footer__contact a {
+  color: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.site-footer__column--links {
+  padding-left: 24px;
+  border-left: 1px solid rgba(30, 73, 49, 0.2);
+}
+
+.site-footer__title {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.site-footer__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
 }
 
 .site-footer p {
@@ -732,6 +793,52 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+.site-map-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  width: 100%;
+  margin-top: 24px;
+}
+
+.site-map-grid ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+@media (max-width: 720px) {
+  .site-footer {
+    padding-inline: 16px;
+  }
+
+  .site-footer__grid,
+  .site-map-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .site-footer__column--links {
+    padding-left: 0;
+    border-left: 0;
+    padding-top: 12px;
+    position: relative;
+  }
+
+  .site-footer__column--links::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: rgba(30, 73, 49, 0.2);
+  }
+
+  .site-footer__contact {
+    align-items: flex-start;
+    text-align: left;
+  }
 }
 
 .hamburger {
