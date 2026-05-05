@@ -200,17 +200,21 @@ const formattedPrice = producto?.precio != null
 
   .buy-modal__panel {
     position: relative;
-    width: min(420px, calc(100vw - 32px));
-    background: #fffaf5;
-    border: 1px solid #e8dfd7;
-    border-radius: 14px;
-    padding: 20px;
-    text-align: center;
+    width: min(460px, calc(100vw - 32px));
+    background: #ffffff;
+    border: 1px solid #e2d7ce;
+    border-radius: 16px;
+    padding: 24px;
+    text-align: left;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
     z-index: 1;
   }
 
   .buy-modal__panel h3 {
-    margin: 0 0 10px;
+    margin: 0;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    color: #243233;
   }
 
   .buy-modal__details {
@@ -218,48 +222,108 @@ const formattedPrice = producto?.precio != null
   }
 
   .buy-modal__lead {
-    margin: 0 0 12px;
-    font-weight: 600;
+    margin: 10px 0 16px;
+    font-size: 0.98rem;
+    color: #6a5f55;
+    line-height: 1.5;
   }
 
   .buy-modal__list {
     margin: 0;
     display: grid;
-    gap: 10px;
+    grid-template-columns: 140px minmax(0, 1fr);
+    gap: 10px 14px;
+    align-items: start;
+    background: #fffdfb;
+    border: 1px solid #ece3dc;
+    border-radius: 12px;
+    padding: 14px 16px;
   }
 
   .buy-modal__list div {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 4px;
-    padding: 10px 12px;
-    border: 1px solid #eee2d8;
-    border-radius: 10px;
-    background: #fffdfb;
+    display: contents;
   }
 
   .buy-modal__list dt {
-    font-size: 0.85rem;
-    letter-spacing: 0.04em;
+    margin: 0;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: #6a5f55;
+    color: #8a7f75;
+    font-weight: 700;
+    padding-top: 2px;
   }
 
   .buy-modal__list dd {
     margin: 0;
-    font-size: 1rem;
+    font-size: 0.98rem;
     color: #2d2622;
+    font-weight: 600;
     word-break: break-word;
   }
 
   .buy-modal__note {
-    margin: 14px 0 0;
+    margin: 18px 0 0;
+    padding: 14px 16px;
+    background: #f8f3ee;
+    border-left: 4px solid #d9bfbf;
+    border-radius: 0 8px 8px 0;
+    color: #5a4f45;
+    line-height: 1.6;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
   }
 
   .buy-modal__actions {
-    margin-top: 16px;
+    margin-top: 18px;
     display: flex;
     justify-content: center;
+  }
+
+  .buy-modal__actions .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 16px;
+  }
+
+  .buy-modal__details {
+    margin-top: 10px;
+  }
+
+  .buy-modal__note a {
+    color: #243233;
+    text-decoration: underline;
+    font-weight: 700;
+  }
+
+  .buy-modal__panel > h3::after {
+    content: '';
+    display: block;
+    width: 46px;
+    height: 2px;
+    margin-top: 6px;
+    background: #d9bfbf;
+    border-radius: 1px;
+  }
+
+  @media (max-width: 600px) {
+    .buy-modal__panel {
+      padding: 18px;
+    }
+
+    .buy-modal__list {
+      grid-template-columns: 1fr;
+      gap: 4px 0;
+    }
+
+    .buy-modal__list dt {
+      margin-top: 10px;
+    }
+
+    .buy-modal__list dt:first-of-type {
+      margin-top: 0;
+    }
   }
 
   @media (max-width: 700px) {
@@ -287,7 +351,7 @@ const formattedPrice = producto?.precio != null
   }
 </style>
 
-<div class="buy-modal" data-buy-modal hidden>
+  <div class="buy-modal" data-buy-modal hidden>
   <div class="buy-modal__backdrop" data-buy-close></div>
   <div class="buy-modal__panel" role="dialog" aria-modal="true" aria-labelledby="buy-modal-title">
     <h3 id="buy-modal-title">Comprar</h3>
@@ -319,7 +383,10 @@ const formattedPrice = producto?.precio != null
           <dd>{bankAccountDetails.numero_cuenta || '—'}</dd>
         </div>
       </dl>
-      <p class="buy-modal__note">Envía el comprobante por Instagram a <a href="https://www.instagram.com/constantdesigns" target="_blank" rel="noreferrer">@constantdesigns</a>.</p>
+      <p class="buy-modal__note">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a7f75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <span>Envía el comprobante por Instagram a <a href="https://www.instagram.com/constantdesigns" target="_blank" rel="noreferrer">@constantdesigns</a>.</span>
+      </p>
     </div>
     <div class="buy-modal__actions">
       <button class="btn" type="button" data-buy-close>Entendido</button>

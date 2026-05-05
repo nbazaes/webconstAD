@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css'
 import { Icon } from 'astro-icon/components' 
+import Footer from '../components/Footer.astro'
 
 const { title = 'Constant Archivos Digitales', description = 'Archivos digitales para imprimir o dibujar — cuadernas, libretas, novelas gráficas y más.', page = 'inicio', image = '/static/web/assets/logo.webp' } = Astro.props
 const currentYear = new Date().getFullYear()
@@ -62,6 +63,9 @@ const asset = (path) => `/${path}`
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
+
+    <!-- CSRF protection for API calls -->
+    <script defer src="/csrf.js"></script>
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json" set:html={JSON.stringify({
@@ -205,9 +209,9 @@ const asset = (path) => `/${path}`
 
     <div class="confirm-modal" data-confirm-modal hidden>
       <div class="confirm-modal__backdrop" data-confirm-cancel></div>
-      <div class="confirm-modal__panel" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+      <div class="confirm-modal__panel" data-confirm-panel role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
         <h3 id="confirm-modal-title">Confirmación</h3>
-        <p data-confirm-message></p>
+        <div class="confirm-modal__message" data-confirm-message aria-live="polite"></div>
         <div class="confirm-modal__actions">
           <button class="btn btn-secondary" type="button" data-confirm-cancel>Cancelar</button>
           <button class="btn" type="button" data-confirm-accept>Aceptar</button>
@@ -238,29 +242,7 @@ const asset = (path) => `/${path}`
       </div>
     </aside>
 
-    <div class="checkout-modal" data-checkout-modal hidden>
-      <div class="checkout-modal__backdrop" data-checkout-close></div>
-      <div class="checkout-modal__panel" role="dialog" aria-modal="true" aria-labelledby="checkout-modal-title">
-        <h3 id="checkout-modal-title">Finalizar compra</h3>
-        <div class="checkout-modal__details" data-checkout-details>
-          <p class="checkout-modal__lead">Transfiere a:</p>
-          <dl class="checkout-modal__list" data-checkout-list></dl>
-          <p class="checkout-modal__note">Envía el comprobante por Instagram a <a href="https://www.instagram.com/constantdesigns" target="_blank" rel="noreferrer">@constantdesigns</a>.</p>
-        </div>
-        <div class="checkout-modal__actions">
-          <button class="btn" type="button" data-checkout-close>Entendido</button>
-        </div>
-      </div>
-    </div>
-
-    <footer class="site-footer">
-      <img src={asset('static/web/assets/g40.svg')} alt="" class="decor decor-bottom-left" aria-hidden="true" width="380" height="299" loading="lazy" />
-      <p>Constant Archivos Digitales © {currentYear} · {appVersion}</p>
-      <p><a href="/politica-privacidad/">Política de privacidad</a></p>
-      <p class="footer-credit">
-        Web construida por <Icon name=lucide:github class='w-6 h-6 hover:text-pink-600'/> <a href="https://github.com/nbazaes">nbazaes</a>
-      </p>
-    </footer>
+    <Footer currentYear={currentYear} appVersion={appVersion} />
 
     <script defer src="/auth.js"></script>
     <script>
@@ -275,10 +257,6 @@ const asset = (path) => `/${path}`
         const cartFooter = document.querySelector('[data-cart-footer]')
         const cartTotal = document.querySelector('[data-cart-total]')
         const checkoutBtn = document.querySelector('[data-cart-checkout]')
-
-        const checkoutModal = document.querySelector('[data-checkout-modal]')
-        const checkoutList = document.querySelector('[data-checkout-list]')
-        const checkoutClosers = document.querySelectorAll('[data-checkout-close]')
 
         let peekTimeout = null
 
@@ -414,29 +392,6 @@ const asset = (path) => `/${path}`
           }
         }
 
-        const showCheckoutModal = (details) => {
-          if (!checkoutList || !checkoutModal) return
-          const fields = [
-            { label: 'Nombre completo', key: 'nombre_completo' },
-            { label: 'RUT', key: 'rut' },
-            { label: 'Email', key: 'email' },
-            { label: 'Tipo de cuenta', key: 'tipo_cuenta' },
-            { label: 'Banco', key: 'banco' },
-            { label: 'Num. de cuenta', key: 'numero_cuenta' },
-          ]
-          checkoutList.innerHTML = fields
-            .filter((f) => details[f.key])
-            .map((f) => `<div><dt>${f.label}</dt><dd>${details[f.key]}</dd></div>`)
-            .join('') || '<p>Datos de pago no disponibles.</p>'
-          checkoutModal.removeAttribute('hidden')
-        }
-
-        const closeCheckoutModal = () => {
-          checkoutModal?.setAttribute('hidden', '')
-        }
-
-        checkoutClosers.forEach((btn) => btn.addEventListener('click', closeCheckoutModal))
-
         cartToggle?.addEventListener('click', async () => {
           await fetchCart()
           openCart()
@@ -447,30 +402,15 @@ const asset = (path) => `/${path}`
         cartOverlay?.addEventListener('click', closeCart)
 
         document.addEventListener('keydown', (e) => {
-          if (e.key === 'Escape') {
-            if (checkoutModal && !checkoutModal.hasAttribute('hidden')) {
-              closeCheckoutModal()
-              return
-            }
-            if (cartDrawer?.classList.contains('open')) {
-              closeCart()
-            }
+          if (e.key === 'Escape' && cartDrawer?.classList.contains('open')) {
+            closeCart()
           }
         })
 
         document.addEventListener('cart:updated', fetchCart)
 
-        checkoutBtn?.addEventListener('click', async () => {
-          try {
-            const res = await fetch(backendUrl('/api/cart/checkout/'), {
-              method: 'POST',
-              credentials: 'include',
-            })
-            const data = await res.json()
-            showCheckoutModal(data.details || {})
-          } catch {
-            window.showStyledAlert?.('Error al obtener datos de pago.', 'Error')
-          }
+        checkoutBtn?.addEventListener('click', () => {
+          window.location.href = '/checkout/'
         })
 
         fetchCart()

@@ -1,17 +1,31 @@
 from pathlib import Path
 from decimal import Decimal
+import logging
+
+import requests
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.models import Group
-from django.http import Http404, HttpResponse, JsonResponse
+from django.core.exceptions import ValidationError
+from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods
+from rest_framework import status
+from rest_framework.decorators import authentication_classes
+from rest_framework.decorators import parser_classes
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 
-from .models import Carrito, CarritoItem, Categoria, Coleccion, Producto, SuscriptorAnonimo
+from .models import Carrito, CarritoItem, Categoria, Coleccion, MensajeContacto, Producto, SuscriptorAnonimo
+from .serializers import MensajeContactoSerializer
+
+
+logger = logging.getLogger(__name__)
 
 
 FRONTEND_BUILD_DIR = settings.BASE_DIR / 'web' / 'static' / 'frontend'
@@ -77,6 +91,26 @@ def _ensure_admin(request):
     return None
 
 
+def _ensure_superadmin(request):
+    if not request.user.is_authenticated:
+        return _bad_request('autenticacion requerida', status=401)
+    if not getattr(request.user, 'is_superuser', False):
+        return _bad_request('solo superadmin puede realizar esta accion', status=403)
+    return None
+
+
+def _save_model(instance):
+    try:
+        instance.full_clean()
+    except ValidationError as e:
+        messages = []
+        for field, errors in e.message_dict.items():
+            messages.append(f'{field}: {", ".join(errors)}')
+        return _bad_request('; '.join(messages))
+    instance.save()
+    return None
+
+
 def _build_unique_slug(nombre, explicit_slug=None, exclude_producto_id=None):
     base = slugify(explicit_slug or nombre or '')
     if not base:
@@ -121,9 +155,73 @@ def api_root(request):
                 'auth_logout': '/api/auth/logout/',
                 'auth_session': '/api/auth/session/',
                 'publicar_producto': '/api/publicar/producto/',
+                'contacto': '/api/contacto/',
                 'descargar_producto': '/api/productos/<slug>/download/',
             },
         }
+    )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@authentication_classes([])
+@parser_classes([MultiPartParser, FormParser, JSONParser])
+def api_contacto(request):
+    serializer = MensajeContactoSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    mensaje = serializer.save()
+
+    destinatario = (
+        settings.CONTACT_MAIL_CONTACTO
+        if mensaje.motivo == MensajeContacto.MOTIVO_CONTACTO
+        else settings.CONTACT_MAIL_SOPORTE
+    )
+    asunto = f'Nuevo mensaje de {mensaje.get_motivo_display()}: {mensaje.nombre}'
+    cuerpo = (
+        f'Nombre: {mensaje.nombre}\n'
+        f'Email: {mensaje.email}\n'
+        f'Motivo: {mensaje.get_motivo_display()}\n\n'
+        f'{mensaje.mensaje}'
+    )
+
+    try:
+        if settings.RESEND_API_KEY:
+            response = requests.post(
+                'https://api.resend.com/emails',
+                headers={
+                    'Authorization': f'Bearer {settings.RESEND_API_KEY}',
+                    'Content-Type': 'application/json',
+                },
+                json={
+                    'from': settings.RESEND_FROM_EMAIL,
+                    'to': [destinatario],
+                    'reply_to': mensaje.email,
+                    'subject': asunto,
+                    'text': cuerpo,
+                },
+                timeout=settings.EMAIL_TIMEOUT,
+            )
+            response.raise_for_status()
+            logger.info('Correo de contacto enviado con Resend a %s', destinatario)
+        else:
+            return JsonResponse(
+                {'ok': False, 'message': 'Falta RESEND_API_KEY en la configuracion'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+    except Exception:
+        logger.exception('Error al enviar correo de contacto')
+        return JsonResponse(
+            {'ok': False, 'message': 'No se pudo enviar el mensaje'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    return JsonResponse(
+        {
+            'ok': True,
+            'message': 'Mensaje enviado correctamente',
+            'destinatario': destinatario,
+        },
+        status=status.HTTP_201_CREATED,
     )
 
 
@@ -160,7 +258,6 @@ def api_products(request):
             'activo': p.activo,
             'imagen': p.imagen.url if p.imagen else None,
             'preview_imagen': p.preview_imagen.url if p.preview_imagen else None,
-            'archivo': p.archivo.url if p.archivo else None,
             'categoria_id': p.categoria_id,
             'coleccion': p.coleccion.nombre if p.coleccion else None,
             'coleccion_id': p.coleccion_id,
@@ -194,7 +291,6 @@ def api_producto_detalle(request, slug):
             'activo': producto.activo,
             'imagen': producto.imagen.url if producto.imagen else None,
             'preview_imagen': producto.preview_imagen.url if producto.preview_imagen else None,
-            'archivo': producto.archivo.url if producto.archivo else None,
             'categoria_id': producto.categoria_id,
             'coleccion': producto.coleccion.nombre if producto.coleccion else None,
             'coleccion_id': producto.coleccion_id,
@@ -279,7 +375,6 @@ def api_categoria_productos(request, slug):
                 'activo': p.activo,
                 'imagen': p.imagen.url if p.imagen else None,
                 'preview_imagen': p.preview_imagen.url if p.preview_imagen else None,
-                'archivo': p.archivo.url if p.archivo else None,
                 'categoria_id': p.categoria_id,
                 'coleccion_id': p.coleccion_id,
             }
@@ -295,7 +390,6 @@ def api_auth_csrf(request):
     return JsonResponse({'ok': True, 'csrfToken': token})
 
 
-@csrf_exempt
 @require_http_methods(['POST'])
 def api_auth_register(request):
     username = (request.POST.get('username') or '').strip()
@@ -346,7 +440,6 @@ def api_auth_register(request):
     )
 
 
-@csrf_exempt
 @require_http_methods(['POST'])
 def api_suscriptor_anonimo_crear(request):
     email = (request.POST.get('email') or '').strip().lower()
@@ -357,7 +450,6 @@ def api_suscriptor_anonimo_crear(request):
     return JsonResponse({'ok': True, 'created': created, 'email': suscriptor.email})
 
 
-@csrf_exempt
 @require_http_methods(['POST'])
 def api_auth_login(request):
     username = (request.POST.get('username') or '').strip()
@@ -388,7 +480,6 @@ def api_auth_login(request):
     )
 
 
-@csrf_exempt
 @require_http_methods(['POST'])
 def api_auth_logout(request):
     logout(request)
@@ -409,7 +500,6 @@ def api_auth_session(request):
     )
 
 
-@csrf_exempt
 @require_http_methods(['POST'])
 def api_auth_account_update(request):
     if not request.user.is_authenticated:
@@ -473,7 +563,6 @@ def api_admin_productos(request):
     return JsonResponse({'count': len(data), 'results': data})
 
 
-@csrf_exempt
 @require_http_methods(['POST'])
 def api_admin_producto_editar(request, producto_id):
     admin_error = _ensure_admin(request)
@@ -537,14 +626,15 @@ def api_admin_producto_editar(request, producto_id):
     if 'archivo' in request.FILES:
         producto.archivo = request.FILES['archivo']
 
-    producto.save()
+    err = _save_model(producto)
+    if err:
+        return err
     return JsonResponse({'ok': True})
 
 
-@csrf_exempt
 @require_http_methods(['POST'])
 def api_admin_producto_eliminar(request, producto_id):
-    admin_error = _ensure_admin(request)
+    admin_error = _ensure_superadmin(request)
     if admin_error:
         return admin_error
 
@@ -553,7 +643,6 @@ def api_admin_producto_eliminar(request, producto_id):
     return JsonResponse({'ok': True})
 
 
-@csrf_exempt
 @require_http_methods(['POST'])
 def api_admin_catalogo_crear(request):
     admin_error = _ensure_admin(request)
@@ -580,7 +669,9 @@ def api_admin_catalogo_crear(request):
         )
         if 'imagen' in request.FILES:
             item.imagen = request.FILES['imagen']
-        item.save()
+        err = _save_model(item)
+        if err:
+            return err
         return JsonResponse({'ok': True, 'tipo': 'categoria', 'id': item.id, 'nombre': item.nombre})
 
     item = Coleccion(
@@ -591,11 +682,12 @@ def api_admin_catalogo_crear(request):
         item.imagen = request.FILES['imagen']
     if 'descripcion' in request.FILES:
         item.descripcion = request.FILES['descripcion']
-    item.save()
+    err = _save_model(item)
+    if err:
+        return err
     return JsonResponse({'ok': True, 'tipo': 'coleccion', 'id': item.id, 'nombre': item.nombre})
 
 
-@csrf_exempt
 @require_http_methods(['POST'])
 def api_admin_catalogo_editar(request, tipo, item_id):
     admin_error = _ensure_admin(request)
@@ -617,7 +709,9 @@ def api_admin_catalogo_editar(request, tipo, item_id):
         item.slug = _build_unique_simple_slug(Categoria, nombre, explicit_slug=request.POST.get('slug') or item.slug)
         if 'imagen' in request.FILES:
             item.imagen = request.FILES['imagen']
-        item.save()
+        err = _save_model(item)
+        if err:
+            return err
         return JsonResponse({'ok': True})
 
     if tipo == 'coleccion':
@@ -628,16 +722,17 @@ def api_admin_catalogo_editar(request, tipo, item_id):
             item.imagen = request.FILES['imagen']
         if 'descripcion' in request.FILES:
             item.descripcion = request.FILES['descripcion']
-        item.save()
+        err = _save_model(item)
+        if err:
+            return err
         return JsonResponse({'ok': True})
 
     return _bad_request('tipo invalido')
 
 
-@csrf_exempt
 @require_http_methods(['POST'])
 def api_admin_catalogo_eliminar(request, tipo, item_id):
-    admin_error = _ensure_admin(request)
+    admin_error = _ensure_superadmin(request)
     if admin_error:
         return admin_error
 
@@ -656,7 +751,6 @@ def api_admin_catalogo_eliminar(request, tipo, item_id):
     return _bad_request('tipo invalido')
 
 
-@csrf_exempt
 @require_http_methods(['POST'])
 def api_publicar_producto(request):
     admin_error = _ensure_admin(request)
@@ -713,7 +807,9 @@ def api_publicar_producto(request):
     if 'archivo' in request.FILES:
         producto.archivo = request.FILES['archivo']
 
-    producto.save()
+    err = _save_model(producto)
+    if err:
+        return err
 
     return JsonResponse(
         {
@@ -736,18 +832,13 @@ def api_publicar_producto(request):
 def api_producto_download(request, slug):
     producto = get_object_or_404(Producto, slug=slug, activo=True)
 
-    if producto.es_gratuito:
-        if not producto.archivo:
-            return _bad_request('producto sin archivo', status=404)
-        return JsonResponse({'ok': True, 'url': producto.archivo.url, 'requires_auth': False})
-
-    if not request.user.is_authenticated:
-        return _bad_request('login requerido para descargar productos de pago', status=401)
-
     if not producto.archivo:
         return _bad_request('producto sin archivo', status=404)
 
-    return JsonResponse({'ok': True, 'url': producto.archivo.url, 'requires_auth': True})
+    if not producto.es_gratuito and not request.user.is_authenticated:
+        return _bad_request('login requerido para descargar productos de pago', status=401)
+
+    return HttpResponseRedirect(producto.archivo.url)
 
 
 @require_GET
@@ -783,7 +874,6 @@ def api_cart(request):
     })
 
 
-@csrf_exempt
 @require_http_methods(['POST'])
 def api_cart_add(request):
     if not request.user.is_authenticated:
@@ -810,7 +900,6 @@ def api_cart_add(request):
     }, status=201 if created else 200)
 
 
-@csrf_exempt
 @require_http_methods(['DELETE'])
 def api_cart_item_delete(request, item_id):
     if not request.user.is_authenticated:
@@ -822,13 +911,37 @@ def api_cart_item_delete(request, item_id):
     return JsonResponse({'ok': True})
 
 
-@csrf_exempt
-@require_http_methods(['POST'])
+@require_GET
 def api_cart_checkout(request):
     if not request.user.is_authenticated:
         return _bad_request('autenticacion requerida', status=401)
 
-    details = getattr(settings, 'BANK_ACCOUNT_DETAILS', None) or {}
-    bank_account = getattr(settings, 'BANK_ACCOUNT', '') or ''
+    carrito, _ = Carrito.objects.get_or_create(usuario=request.user)
+    items = carrito.items.select_related('producto').all()
 
-    return JsonResponse({'bank_account': bank_account, 'details': details})
+    items_data = []
+    total = 0
+    for item in items:
+        precio = item.producto.precio or 0
+        items_data.append({
+            'id': item.id,
+            'producto_id': item.producto_id,
+            'producto': {
+                'id': item.producto.id,
+                'nombre': item.producto.nombre,
+                'slug': item.producto.slug,
+                'precio': precio,
+                'imagen': item.producto.imagen.url if item.producto.imagen else None,
+            },
+            'subtotal': precio,
+        })
+        total += precio
+
+    details = getattr(settings, 'BANK_ACCOUNT_DETAILS', None) or {}
+
+    return JsonResponse({
+        'items': items_data,
+        'total': total,
+        'count': len(items_data),
+        'details': details,
+    })

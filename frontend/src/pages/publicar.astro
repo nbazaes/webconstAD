@@ -394,7 +394,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     }
 
     const wantsPublish = await (window.showStyledConfirm
-      ? window.showStyledConfirm(`Confirmas publicar este producto?\n\nNombre: ${nombre}\nTipo: ${esGratuito ? 'Gratis' : 'Pago'}`)
+      ? window.showStyledConfirm(`Confirmas publicar este producto?\n\nNombre: ${nombre}\nTipo: ${esGratuito ? 'Gratis' : 'Pago'}\nPrecio: ${esGratuito ? 'N/A' : precio || 'Sin definir'}\nActivo: ${String(formData.get('activo') || 'true') === 'true' ? 'Sí' : 'No'}\nSlug: ${String(formData.get('slug') || '').trim() || 'Autogenerado'}`)
       : Promise.resolve(confirm(`Confirmas publicar este producto?\n\nNombre: ${nombre}\nTipo: ${esGratuito ? 'Gratis' : 'Pago'}`)))
     if (!wantsPublish) return
 
@@ -410,7 +410,11 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     closeLoadingModal()
 
     if (!response.ok || !data.ok) {
-      setMessage(data.message || 'No se pudo publicar el producto.', true)
+      const errorMessage = data.message || 'No se pudo publicar el producto.'
+      setMessage(errorMessage, true)
+      await (window.showStyledAlert
+        ? window.showStyledAlert(`Error al publicar\n${errorMessage}`, 'Error', 'danger')
+        : Promise.resolve(alert(`Error al publicar\n${errorMessage}`)))
       return
     }
 
@@ -420,7 +424,11 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     setMessage('')
 
     await (window.showStyledAlert
-      ? window.showStyledAlert(`Publicacion ${data.producto?.nombre || ''} exitosa!`, 'Publicacion')
+      ? window.showStyledAlert(
+          `Publicación exitosa\n\nNombre: ${data.producto?.nombre || nombre}\nTipo: ${esGratuito ? 'Gratis' : 'Pago'}\nPrecio: ${esGratuito ? 'N/A' : precio || 'Sin definir'}\nSlug: ${String(formData.get('slug') || '').trim() || 'Autogenerado'}`,
+          'Éxito',
+          'success'
+        )
       : Promise.resolve(alert(`Publicacion ${data.producto?.nombre || ''} exitosa!`)))
 
     window.scrollTo({ top: 0, behavior: 'smooth' })

@@ -57,6 +57,7 @@ const openRegisterButtons = document.querySelectorAll('[data-open-register]')
 const openLoginButtons = document.querySelectorAll('[data-open-login]')
 
 const confirmModal = document.querySelector('[data-confirm-modal]')
+const confirmPanel = document.querySelector('[data-confirm-panel]')
 const confirmTitle = document.querySelector('#confirm-modal-title')
 const confirmMessage = document.querySelector('[data-confirm-message]')
 const confirmAcceptButton = document.querySelector('[data-confirm-accept]')
@@ -65,6 +66,7 @@ const confirmCancelButtons = document.querySelectorAll('[data-confirm-cancel]')
 
 let authState = { authenticated: false, user: null }
 let confirmResolver = null
+let confirmMode = 'confirm'
 
 const backendOrigin = window.location.origin
 const backendUrl = (path) => `${backendOrigin}${path}`
@@ -97,6 +99,8 @@ const closeAuthModal = () => {
 const closeConfirmModal = (accepted = false) => {
   if (!confirmModal) return
   confirmModal.setAttribute('hidden', '')
+  confirmModal.dataset.variant = 'confirm'
+  confirmMode = 'confirm'
   if (confirmResolver) {
     confirmResolver(accepted)
     confirmResolver = null
@@ -108,6 +112,9 @@ const showStyledConfirm = (message) => {
     return Promise.resolve(window.confirm(message))
   }
 
+  confirmMode = 'confirm'
+  confirmModal.dataset.variant = 'confirm'
+  confirmPanel?.classList.remove('confirm-modal__panel--alert', 'confirm-modal__panel--success', 'confirm-modal__panel--danger')
   if (confirmTitle) confirmTitle.textContent = 'Confirmación'
   if (confirmCancelButton) confirmCancelButton.hidden = false
   if (confirmAcceptButton) confirmAcceptButton.textContent = 'Aceptar'
@@ -118,20 +125,20 @@ const showStyledConfirm = (message) => {
   })
 }
 
-const showStyledAlert = (message, title = 'Aviso') => {
+const showStyledAlert = (message, title = 'Aviso', variant = 'alert') => {
   if (!confirmModal || !confirmMessage) {
     window.alert(message)
     return Promise.resolve(true)
   }
 
+  confirmMode = 'alert'
+  confirmModal.dataset.variant = variant
+  confirmPanel?.classList.remove('confirm-modal__panel--alert', 'confirm-modal__panel--success', 'confirm-modal__panel--danger')
+  confirmPanel?.classList.add(`confirm-modal__panel--${variant}`)
   if (confirmTitle) confirmTitle.textContent = title
   if (confirmCancelButton) confirmCancelButton.hidden = true
   if (confirmAcceptButton) confirmAcceptButton.textContent = 'Entendido'
-  if (/<[a-z][\s\S]*>/i.test(message)) {
-    confirmMessage.innerHTML = message
-  } else {
-    confirmMessage.textContent = message
-  }
+  confirmMessage.textContent = message
   confirmModal.removeAttribute('hidden')
 
   return new Promise((resolve) => {
@@ -150,6 +157,16 @@ document.addEventListener('keydown', (event) => {
 confirmAcceptButton?.addEventListener('click', () => closeConfirmModal(true))
 confirmCancelButtons.forEach((button) => {
   button.addEventListener('click', () => closeConfirmModal(false))
+})
+
+confirmModal?.addEventListener('click', (event) => {
+  if (event.target === confirmModal || event.target.matches('[data-confirm-cancel]')) {
+    if (confirmMode === 'alert') {
+      closeConfirmModal(true)
+      return
+    }
+    closeConfirmModal(false)
+  }
 })
 
 const renderAuthTabs = () => {
@@ -280,13 +297,16 @@ loginForm?.addEventListener('submit', async (event) => {
     return
   }
   if (!response.ok || !data.ok) {
-    setAuthMessage(data.message || 'No se pudo iniciar sesión.', true)
+    const errorMessage = data.message || 'No se pudo iniciar sesión.'
+    setAuthMessage(errorMessage, true)
+    await showStyledAlert(`Error al iniciar sesión\n${errorMessage}`, 'Error', 'danger')
     return
   }
 
   await refreshSession()
   loginForm.reset()
   closeAuthModal()
+  await showStyledAlert('Sesión iniciada\nBienvenido de vuelta.', 'Éxito', 'success')
 })
 
 registerForm?.addEventListener('submit', async (event) => {
@@ -337,7 +357,9 @@ registerForm?.addEventListener('submit', async (event) => {
 
   const data = await response.json()
   if (!response.ok || !data.ok) {
-    setAuthMessage(data.message || 'No se pudo crear la cuenta.', true)
+    const errorMessage = data.message || 'No se pudo crear la cuenta.'
+    setAuthMessage(errorMessage, true)
+    await showStyledAlert(`Error al registrarse\n${errorMessage}`, 'Error', 'danger')
     return
   }
 
@@ -345,6 +367,7 @@ registerForm?.addEventListener('submit', async (event) => {
   renderAuthTabs()
   registerForm.reset()
   closeAuthModal()
+  await showStyledAlert('Registro exitoso\nTu cuenta fue creada correctamente.', 'Éxito', 'success')
 })
 
 refreshRibbonLabels()

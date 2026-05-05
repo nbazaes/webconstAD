@@ -4,43 +4,244 @@ import { Icon } from 'astro-icon/components'
 ---
 
 <BaseLayout title="Contacto | Constant Archivos Digitales" page="contacto">
-  <main class="content">
-    <section class="products-hero">
+  <main class="content contact-page">
+    <section class="products-hero text-block contact-hero">
       <h2>CONTACTO</h2>
-      <div class="contact-grid">
-        <article class="contact-card text-block">
-          <p class="lead">Escríbenos o síguenos en redes</p>
-          <p>
-            <strong>Instagram:</strong>
-            <a href="https://instagram.com/constantdesigns" class="social-link">
-              <Icon name="lucide:instagram" class="w-6 h-6 hover:text-pink-500" />
-              <span>Sígueme en Instagram</span>
-              <span> - @constantdesigns</span>
-            </a>
-          </p>
-          <p>
-            <strong>Correo:</strong>
-            <a href="mailto:contacto@constantdigitales.com">contacto@constantdigitales.com</a>
-          </p>
-          <p><strong>Horario de respuesta:</strong> Respondemos en un plazo de 48 horas laborables.</p>
-          <p><strong>Privacidad:</strong> Tus datos se usan únicamente para responder a tu consulta.</p>
-        </article>
+      <p class="lead">Redes, mensajes y datos técnicos en un solo lugar.</p>
+    </section>
 
-        <article class="contact-card">
-          <form class="contact-form" action="mailto:contacto@constantdigitales.com" method="post" enctype="text/plain">
-            <label for="name">Nombre</label>
-            <input type="text" id="name" name="name" required />
+    <section class="contact-section contact-section--intro">
+      <article class="contact-panel contact-panel--accent">
+        <h3>Redes y autora</h3>
+        <p class="panel-lead">Para seguir el proyecto o escribir directamente a la autora.</p>
 
-            <label for="email">Correo electrónico</label>
-            <input type="email" id="email" name="email" required />
+        <div class="contact-list">
+          <a href="https://instagram.com/constantdesigns" class="contact-link" target="_blank" rel="noreferrer">
+            <Icon name="lucide:instagram" />
+            <span>@constantdesigns</span>
+          </a>
+          <a href="mailto:contacto@constantdigitales.com" class="contact-link">
+            <Icon name="lucide:mail" />
+            <span>contacto@constantdigitales.com</span>
+          </a>
+        </div>
+      </article>
 
-            <label for="message">Mensaje</label>
-            <textarea id="message" name="message" rows="6" required></textarea>
+      <article class="contact-panel contact-panel--form">
+        <h3>Enviar mensaje</h3>
+        <p class="panel-lead">Elige el motivo para ayudarte de la mejor manera.</p>
 
-            <button type="submit" class="btn">Enviar mensaje</button>
-          </form>
-        </article>
-      </div>
+        <form class="contact-form" data-contact-form>
+          <label for="contact-name">Nombre</label>
+          <input id="contact-name" name="nombre" type="text" autocomplete="name" required />
+
+          <label for="contact-email">Correo electrónico</label>
+          <input id="contact-email" name="email" type="email" autocomplete="email" required />
+
+          <label for="contact-motivo">Motivo</label>
+          <select id="contact-motivo" name="motivo" required>
+            <option value="">Selecciona una opción</option>
+            <option value="contacto">Contacto</option>
+            <option value="soporte">Soporte técnico</option>
+          </select>
+
+          <label for="contact-message">Mensaje</label>
+          <textarea id="contact-message" name="mensaje" rows="7" required></textarea>
+
+          <button class="btn contact-submit" type="submit">Enviar mensaje</button>
+          <p class="contact-status" data-contact-status aria-live="polite"></p>
+        </form>
+      </article>
+    </section>
+
+    <section class="contact-section">
+      <article class="contact-panel contact-panel--developer">
+        <h3>Contacto del desarrollador</h3>
+        <p class="panel-lead">Canales técnicos para coordinación y soporte del sitio.</p>
+
+        <div class="developer-grid">
+          <a href="mailto:admin@constantdigitales.com" class="developer-item">
+            <Icon name="lucide:mail" />
+            <span>admin@constantdigitales.com</span>
+          </a>
+          <a href="mailto:contact@nbazaes.dev" class="developer-item">
+            <Icon name="lucide:mail" />
+            <span>contact@nbazaes.dev</span>
+          </a>
+          <a href="https://github.com/nbazaes" class="developer-item" target="_blank" rel="noreferrer">
+            <Icon name="lucide:github" />
+            <span>github /nbazaes</span>
+          </a>
+        </div>
+      </article>
     </section>
   </main>
 </BaseLayout>
+
+<style>
+  .contact-page {
+    display: grid;
+    gap: 1.5rem;
+    padding-bottom: 4rem;
+  }
+
+  .contact-hero {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .contact-section {
+    display: grid;
+    gap: 1rem;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  .contact-section--intro {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .contact-panel {
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(12px);
+    border-radius: 1rem;
+    padding: 0.9rem 1rem;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.05);
+    align-self: start;
+  }
+
+  .contact-panel--accent {
+    background: linear-gradient(180deg, rgba(255, 250, 242, 0.96), rgba(255, 255, 255, 0.88));
+  }
+
+  .contact-panel h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1.15rem;
+  }
+
+  .panel-lead {
+    margin: 0 0 0.9rem;
+    opacity: 0.78;
+  }
+
+  .contact-list,
+  .developer-grid {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .contact-link,
+  .developer-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    text-decoration: none;
+    color: inherit;
+    padding: 0.65rem 0.85rem;
+    border-radius: 0.9rem;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .contact-form {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .contact-form label {
+    font-weight: 700;
+  }
+
+  .contact-form input,
+  .contact-form select,
+  .contact-form textarea {
+    width: 100%;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 0.85rem;
+    padding: 0.75rem 0.9rem;
+    font: inherit;
+    background: rgba(255, 255, 255, 0.92);
+  }
+
+  .contact-form textarea {
+    resize: vertical;
+    min-height: 110px;
+  }
+
+  .contact-submit {
+    justify-self: start;
+  }
+
+  .contact-status {
+    min-height: 1.5rem;
+    margin: 0;
+    font-size: 0.95rem;
+  }
+
+  @media (max-width: 900px) {
+    .contact-section--intro {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 700px) {
+    .contact-page {
+      gap: 1rem;
+    }
+
+    .contact-panel {
+      padding: 0.95rem;
+    }
+  }
+</style>
+
+<script>
+  const backendUrl = (path) => `${window.location.origin}${path}`
+  const form = document.querySelector('[data-contact-form]')
+  const status = document.querySelector('[data-contact-status]')
+
+  const setStatus = (message, isError = false) => {
+    if (!status) return
+    status.textContent = message
+    status.style.color = isError ? '#b42318' : '#1f5c2e'
+  }
+
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    setStatus('Enviando mensaje...')
+
+    const formData = new FormData(form)
+    try {
+      const controller = new AbortController()
+      const timeout = window.setTimeout(() => controller.abort(), 15000)
+
+      const response = await fetch(backendUrl('/api/contacto/'), {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        signal: controller.signal,
+      })
+      window.clearTimeout(timeout)
+      const contentType = response.headers.get('content-type') || ''
+      const data = contentType.includes('application/json')
+        ? await response.json()
+        : { message: await response.text() }
+
+      if (!response.ok) {
+        const message = data?.detail || data?.message || 'No se pudo enviar el mensaje.'
+        throw new Error(message)
+      }
+
+      form.reset()
+      setStatus('Mensaje enviado correctamente.')
+    } catch (error) {
+      const message = error?.name === 'AbortError'
+        ? 'La solicitud tardó demasiado. Intenta de nuevo.'
+        : (error.message || 'Error al enviar el mensaje.')
+      setStatus(message, true)
+    }
+  })
+</script>

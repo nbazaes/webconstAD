@@ -80,14 +80,22 @@ import BaseLayout from '../layouts/BaseLayout.astro'
       const passwordConfirm = String(formData.get('password_confirm') || '')
 
       if (!nombre || !apellido || !pais) {
-        message.textContent = 'Nombre, apellido y país son obligatorios.'
+        const errorMessage = 'Nombre, apellido y país son obligatorios.'
+        message.textContent = errorMessage
         message.classList.add('error')
+        await (window.showStyledAlert
+          ? window.showStyledAlert(`Error al actualizar cuenta\n${errorMessage}`, 'Error', 'danger')
+          : Promise.resolve(alert(`Error al actualizar cuenta\n${errorMessage}`)))
         return
       }
 
       if ((password || passwordConfirm) && password !== passwordConfirm) {
-        message.textContent = 'Las contraseñas no coinciden.'
+        const errorMessage = 'Las contraseñas no coinciden.'
+        message.textContent = errorMessage
         message.classList.add('error')
+        await (window.showStyledAlert
+          ? window.showStyledAlert(`Error al actualizar cuenta\n${errorMessage}`, 'Error', 'danger')
+          : Promise.resolve(alert(`Error al actualizar cuenta\n${errorMessage}`)))
         return
       }
 
@@ -117,14 +125,21 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 
       const data = await response.json()
       if (!response.ok || !data.ok) {
-        message.textContent = data.message || 'No se pudo actualizar la cuenta.'
+        const errorMessage = data.message || 'No se pudo actualizar la cuenta.'
+        message.textContent = errorMessage
         message.classList.add('error')
+        await (window.showStyledAlert
+          ? window.showStyledAlert(`Error al actualizar cuenta\n${errorMessage}`, 'Error', 'danger')
+          : Promise.resolve(alert(`Error al actualizar cuenta\n${errorMessage}`)))
         return
       }
 
       message.textContent = 'Cuenta actualizada correctamente.'
       message.classList.remove('error')
       renderAccount(data.user)
+      await (window.showStyledAlert
+        ? window.showStyledAlert(`Cuenta actualizada\nNombre: ${nombre}\nApellido: ${apellido}\nPaís: ${pais}`, 'Éxito', 'success')
+        : Promise.resolve(alert(`Cuenta actualizada\nNombre: ${nombre}\nApellido: ${apellido}\nPaís: ${pais}`)))
     })
   }
 
@@ -162,9 +177,17 @@ import BaseLayout from '../layouts/BaseLayout.astro'
       body: payload,
     })
 
-    if (!response.ok) return
+    if (!response.ok) {
+      await (window.showStyledAlert
+        ? window.showStyledAlert('No se pudo iniciar sesión.', 'Error', 'danger')
+        : Promise.resolve(alert('No se pudo iniciar sesión.')))
+      return
+    }
     pageLoginForm.reset()
     loadSession()
+    await (window.showStyledAlert
+      ? window.showStyledAlert('Sesión iniciada correctamente.', 'Éxito', 'success')
+      : Promise.resolve(alert('Sesión iniciada correctamente.')))
   })
 
   loadSession()

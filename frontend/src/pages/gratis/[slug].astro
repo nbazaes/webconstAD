@@ -91,7 +91,7 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
   const backendUrl = (path) => `${backendOrigin}${path}`
   let isGuestUser = true
 
-  let selectedUrl = ''
+  let selectedSlug = ''
   let selectedName = ''
 
   const openLoadingModal = (text = 'Procesando...') => {
@@ -106,7 +106,7 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
   const closeModal = () => {
     if (!modal) return
     modal.setAttribute('hidden', '')
-    selectedUrl = ''
+    selectedSlug = ''
     guestSubscription?.setAttribute('hidden', '')
     if (newsletterStatus) newsletterStatus.textContent = ''
     if (newsletterInput) newsletterInput.value = ''
@@ -115,13 +115,13 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
   closeButtons.forEach((button) => button.addEventListener('click', closeModal))
 
   confirmButton?.addEventListener('click', async () => {
-    if (!selectedUrl) {
+    if (!selectedSlug) {
       closeModal()
       return
     }
 
     const link = document.createElement('a')
-    link.href = selectedUrl
+    link.href = backendUrl(`/api/productos/${selectedSlug}/download/`)
     link.rel = 'noopener'
     link.target = '_blank'
     document.body.appendChild(link)
@@ -142,7 +142,7 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     if (!productsGrid) return
     productsGrid.querySelectorAll('.free-product-card').forEach((card) => {
       card.addEventListener('click', () => {
-        selectedUrl = card.getAttribute('data-file-url') || ''
+        selectedSlug = card.getAttribute('data-product-slug') || ''
         selectedName = card.getAttribute('data-product-name') || 'este archivo'
         if (!message || !modal) return
         message.textContent = `Quieres descargar "${selectedName}"?`
@@ -337,7 +337,7 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
       .map(
         (producto) => `
           <article class="free-product-wrap" data-admin-product data-product-id="${producto.id}" data-product-json='${JSON.stringify(producto).replace(/'/g, '&apos;')}'>
-            <button type="button" class="free-product-card" data-file-url="${producto.archivo || ''}" data-product-name="${producto.nombre}" title="${producto.descripcion || producto.nombre}">
+            <button type="button" class="free-product-card" data-product-slug="${producto.slug}" data-product-name="${producto.nombre}" title="${producto.descripcion || producto.nombre}">
               ${
                 producto.imagen
                   ? `<img src="${producto.imagen}" alt="${producto.descripcion || producto.nombre}" title="${producto.descripcion || producto.nombre}" width="220" height="220" />`
