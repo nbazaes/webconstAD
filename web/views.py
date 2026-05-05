@@ -6,11 +6,14 @@ import requests
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model, login, logout
+from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.text import slugify
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods
@@ -140,6 +143,35 @@ def _build_unique_simple_slug(model_cls, nombre, explicit_slug=None):
     return candidate
 
 
+def _send_resend_email(*, subject, text, recipients, reply_to=None):
+    if not settings.RESEND_API_KEY:
+        return JsonResponse(
+            {'ok': False, 'message': 'Falta RESEND_API_KEY en la configuracion'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    payload = {
+        'from': settings.RESEND_FROM_EMAIL,
+        'to': recipients,
+        'subject': subject,
+        'text': text,
+    }
+    if reply_to:
+        payload['reply_to'] = reply_to
+
+    response = requests.post(
+        'https://api.resend.com/emails',
+        headers={
+            'Authorization': f'Bearer {settings.RESEND_API_KEY}',
+            'Content-Type': 'application/json',
+        },
+        json=payload,
+        timeout=settings.EMAIL_TIMEOUT,
+    )
+    response.raise_for_status()
+    return None
+
+
 @require_GET
 def api_root(request):
     return JsonResponse(
@@ -154,6 +186,7 @@ def api_root(request):
                 'auth_login': '/api/auth/login/',
                 'auth_logout': '/api/auth/logout/',
                 'auth_session': '/api/auth/session/',
+                'auth_verify_email': '/api/auth/verify-email/<uidb64>/<token>/',
                 'publicar_producto': '/api/publicar/producto/',
                 'contacto': '/api/contacto/',
                 'descargar_producto': '/api/productos/<slug>/download/',
@@ -185,29 +218,15 @@ def api_contacto(request):
     )
 
     try:
-        if settings.RESEND_API_KEY:
-            response = requests.post(
-                'https://api.resend.com/emails',
-                headers={
-                    'Authorization': f'Bearer {settings.RESEND_API_KEY}',
-                    'Content-Type': 'application/json',
-                },
-                json={
-                    'from': settings.RESEND_FROM_EMAIL,
-                    'to': [destinatario],
-                    'reply_to': mensaje.email,
-                    'subject': asunto,
-                    'text': cuerpo,
-                },
-                timeout=settings.EMAIL_TIMEOUT,
-            )
-            response.raise_for_status()
-            logger.info('Correo de contacto enviado con Resend a %s', destinatario)
-        else:
-            return JsonResponse(
-                {'ok': False, 'message': 'Falta RESEND_API_KEY en la configuracion'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        error = _send_resend_email(
+            subject=asunto,
+            text=cuerpo,
+            recipients=[destinatario],
+            reply_to=mensaje.email,
+        )
+        if error:
+            return error
+        logger.info('Correo de contacto enviado con Resend a %s', destinatario)
     except Exception:
         logger.exception('Error al enviar correo de contacto')
         return JsonResponse(
@@ -409,6 +428,8 @@ def api_auth_register(request):
     User = get_user_model()
     if User.objects.filter(username=username).exists():
         return _bad_request('username ya existe')
+    if User.objects.filter(email__iexact=email).exists():
+        return _bad_request('email ya existe')
 
     user = User.objects.create_user(
         username=username,
@@ -416,6 +437,7 @@ def api_auth_register(request):
         password=password,
         first_name=first_name,
         last_name=last_name,
+        is_active=False,
     )
 
     cliente_group = Group.objects.filter(name__iexact='Cliente').first()
@@ -428,16 +450,72 @@ def api_auth_register(request):
     perfil.pais = pais
     perfil.save(update_fields=['nombre', 'apellido', 'pais'])
 
+    token = default_token_generator.make_token(user)
+    uidb64 = urlsafe_base64_encode(str(user.pk).encode())
+    verify_url = request.build_absolute_uri(f'/verificar-cuenta/{uidb64}/{token}/')
+    asunto = 'Verifica tu correo'
+    cuerpo = (
+        f'Hola {first_name},\n\n'
+        'Gracias por registrarte. Para activar tu cuenta y completar el alta, abre este enlace:\n\n'
+        f'{verify_url}\n\n'
+        'Si no creaste esta cuenta, puedes ignorar este mensaje.'
+    )
+
+    try:
+        error = _send_resend_email(subject=asunto, text=cuerpo, recipients=[user.email])
+        if error:
+            user.delete()
+            return error
+        logger.info('Correo de verificacion enviado con Resend a %s', user.email)
+    except Exception:
+        logger.exception('Error al enviar correo de verificacion')
+        user.delete()
+        return JsonResponse(
+            {'ok': False, 'message': 'No se pudo enviar el correo de verificacion'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    return JsonResponse(
+        {
+            'ok': True,
+            'message': 'Cuenta creada. Revisa tu correo para verificarla.',
+        },
+        status=201,
+    )
+
+
+@require_GET
+def api_auth_verify_email(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = get_user_model().objects.get(pk=uid)
+    except (ValueError, TypeError, OverflowError, get_user_model().DoesNotExist):
+        return _bad_request('enlace de verificacion invalido', status=400)
+
+    if not default_token_generator.check_token(user, token):
+        return _bad_request('enlace de verificacion invalido o expirado', status=400)
+
+    if not user.is_active:
+        user.is_active = True
+        user.save(update_fields=['is_active'])
+
     login(request, user)
     request.session.set_expiry(settings.SESSION_COOKIE_AGE)
 
     return JsonResponse(
         {
             'ok': True,
+            'message': 'Correo verificado correctamente',
             'user': _serialize_user(user),
-        },
-        status=201,
+        }
     )
+
+
+@require_GET
+def api_auth_verify_page(request, uidb64, token):
+    if not request.user.is_authenticated:
+        return HttpResponseRedirect(f'/verificar-cuenta/{uidb64}/{token}/?status=success')
+    return HttpResponseRedirect('/')
 
 
 @require_http_methods(['POST'])
@@ -459,11 +537,18 @@ def api_auth_login(request):
         return _bad_request('username y password son obligatorios')
 
     login_identifier = username
+    matched_user = None
     if '@' in username:
         User = get_user_model()
-        matched = User.objects.filter(email__iexact=username).first()
-        if matched:
-            login_identifier = matched.username
+        matched_user = User.objects.filter(email__iexact=username).first()
+        if matched_user:
+            login_identifier = matched_user.username
+    else:
+        User = get_user_model()
+        matched_user = User.objects.filter(username=username).first()
+
+    if matched_user and not matched_user.is_active:
+        return _bad_request('debes verificar tu correo antes de iniciar sesion', status=403)
 
     user = authenticate(request, username=login_identifier, password=password)
     if not user:

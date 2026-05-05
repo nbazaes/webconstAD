@@ -1,0 +1,52 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro'
+
+const { uidb64, token } = Astro.params
+---
+
+<BaseLayout title="Verificando cuenta | Constant Archivos Digitales" page="cuenta">
+  <main class="content">
+    <section class="products-hero text-block" style="text-align: center; padding-top: 60px;">
+      <h2>Verificando tu cuenta</h2>
+      <p class="lead">Espera un momento mientras activamos tu acceso.</p>
+    </section>
+  </main>
+</BaseLayout>
+
+<script define:vars={{ uidb64, token }}>
+  const backendOrigin = window.location.origin
+  const backendUrl = (path) => `${backendOrigin}${path}`
+
+  const showResult = async () => {
+    const response = await fetch(backendUrl(`/api/auth/verify-email/${uidb64}/${token}/`), {
+      credentials: 'include',
+    })
+
+    let data = null
+    try {
+      data = await response.json()
+    } catch {
+      data = null
+    }
+
+    if (!response.ok || !data?.ok) {
+      const message = data?.message || 'No se pudo verificar el correo.'
+      await (window.showStyledAlert
+        ? window.showStyledAlert(message, 'Error', 'danger')
+        : Promise.resolve(alert(message)))
+      window.location.href = '/cuenta/'
+      return
+    }
+
+    if (data.user) {
+      window.dispatchEvent(new CustomEvent('auth:verified', { detail: data.user }))
+    }
+
+    await (window.showStyledAlert
+      ? window.showStyledAlert('Correo verificado correctamente. Ya iniciaste sesión.', 'Éxito', 'success')
+      : Promise.resolve(alert('Correo verificado correctamente. Ya iniciaste sesión.')))
+    window.location.href = '/cuenta/'
+  }
+
+  showResult()
+</script>
