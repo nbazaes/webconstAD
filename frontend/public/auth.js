@@ -363,11 +363,13 @@ registerForm?.addEventListener('submit', async (event) => {
     return
   }
 
-  authState = { authenticated: true, user: data.user }
-  renderAuthTabs()
   registerForm.reset()
   closeAuthModal()
-  await showStyledAlert('Registro exitoso\nTu cuenta fue creada correctamente.', 'Éxito', 'success')
+  await showStyledAlert(
+    'Registro exitoso\nRevisa tu correo para verificar tu cuenta. Luego podrás iniciar sesión automáticamente al abrir el enlace.',
+    'Éxito',
+    'success'
+  )
 })
 
 refreshRibbonLabels()
