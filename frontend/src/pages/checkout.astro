@@ -352,6 +352,34 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     gap: 12px;
   }
 
+  .co-terms {
+    margin: 18px 0 0;
+    padding: 16px 18px;
+    background: #eef4f7;
+    border-left: 4px solid #89a8b8;
+    border-radius: 0 8px 8px 0;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    color: #425b67;
+    line-height: 1.55;
+    font-size: 0.95rem;
+  }
+
+  .co-terms input {
+    margin-top: 3px;
+    width: 18px;
+    height: 18px;
+    accent-color: #5d7f92;
+    flex-shrink: 0;
+  }
+
+  .co-terms a {
+    color: #2f4f63;
+    text-decoration: underline;
+    font-weight: 700;
+  }
+
   .co-payment__note svg {
     flex-shrink: 0;
     margin-top: 4px;
@@ -509,9 +537,14 @@ import BaseLayout from '../layouts/BaseLayout.astro'
               </div>
               
               <p class="co-lead">Transfiere el monto exacto a la siguiente cuenta bancaria:</p>
-              
+
               <dl class="co-payment__grid">${paymentHtml}</dl>
-              
+
+              <label class="co-terms">
+                <input type="checkbox" aria-label="Acepto los términos y condiciones" />
+                <span>Acepto los <a href="/terminos-de-uso/" target="_blank" rel="noreferrer">términos y condiciones</a> de la compra.</span>
+              </label>
+
               <div class="co-payment__note">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8a7f75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                 <span>Envía tu comprobante por Instagram a <a href="https://www.instagram.com/constantdesigns" target="_blank" rel="noreferrer">@constantdesigns</a> y te enviaremos tus archivos a la brevedad.</span>
