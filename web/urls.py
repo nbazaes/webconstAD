@@ -17,6 +17,7 @@ urlpatterns = [
     path('api/auth/login/', views.api_auth_login, name='api-auth-login'),
     path('api/auth/logout/', views.api_auth_logout, name='api-auth-logout'),
     path('api/auth/session/', views.api_auth_session, name='api-auth-session'),
+    path('api/auth/verify-email/<str:uidb64>/<str:token>/', views.api_auth_verify_email, name='api-auth-verify-email'),
     path('api/auth/account/update/', views.api_auth_account_update, name='api-auth-account-update'),
     path('api/newsletter/suscribir/', views.api_suscriptor_anonimo_crear, name='api-newsletter-suscribir'),
     path('api/publicar/producto/', views.api_publicar_producto, name='api-publicar-producto'),
