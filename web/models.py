@@ -40,7 +40,7 @@ def get_r2_storage():
 def get_r2_public_storage():
     from storages.backends.s3boto3 import S3Boto3Storage
     return S3Boto3Storage(
-        custom_domain='pub-9d4134ed1b5c4103860ffc5f4bf17da8.r2.dev',
+        custom_domain=settings.R2_PUBLIC_DOMAIN,
         querystring_auth=False,
     )
 

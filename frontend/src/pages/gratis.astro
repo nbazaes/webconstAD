@@ -1,14 +1,17 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
 
+export const prerender = false
+
 let categorias = []
 let allCategoriasData = { results: [] }
 try {
-  const respuesta = await fetch('/api/categorias/')
+  const apiBase = new URL('/api/', Astro.url)
+  const respuesta = await fetch(new URL('categorias/', apiBase))
   const datos = await respuesta.json()
   categorias = datos.results || []
 
-  const allCategoriasRes = await fetch('/api/catalog/categorias/')
+  const allCategoriasRes = await fetch(new URL('catalog/categorias/', apiBase))
   allCategoriasData = await allCategoriasRes.json()
 } catch (e) {
   // API may not be available during build; use empty data
