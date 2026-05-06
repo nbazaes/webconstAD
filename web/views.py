@@ -34,6 +34,7 @@ from .models import (
     MensajeContacto,
     Producto,
     SuscriptorAnonimo,
+    get_r2_public_storage,
     get_r2_storage,
 )
 from .serializers import MensajeContactoSerializer
@@ -171,7 +172,7 @@ def api_public_media(request, file_path):
     if not _is_allowed_public_media(file_path):
         raise Http404('archivo no disponible')
 
-    storage = get_r2_storage()
+    storage = get_r2_public_storage()
     return HttpResponseRedirect(storage.url(file_path))
 
 
