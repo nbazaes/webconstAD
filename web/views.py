@@ -34,7 +34,6 @@ from .models import (
     MensajeContacto,
     Producto,
     SuscriptorAnonimo,
-    get_r2_public_storage,
     get_r2_storage,
 )
 from .serializers import MensajeContactoSerializer
@@ -172,8 +171,26 @@ def api_public_media(request, file_path):
     if not _is_allowed_public_media(file_path):
         raise Http404('archivo no disponible')
 
-    storage = get_r2_public_storage()
-    return HttpResponseRedirect(storage.url(file_path))
+    storage = get_r2_storage()
+    try:
+        f = storage.open(file_path, 'rb')
+        content = f.read()
+        f.close()
+    except Exception:
+        raise Http404('archivo no disponible')
+
+    content_type = {
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+        '.svg': 'image/svg+xml',
+    }.get(Path(file_path).suffix.lower(), 'application/octet-stream')
+
+    response = HttpResponse(content, content_type=content_type)
+    response['Cache-Control'] = 'public, max-age=86400, immutable'
+    return response
 
 
 def _send_resend_email(*, subject, text, recipients, reply_to=None, html=None, attachments=None):
