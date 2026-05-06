@@ -123,7 +123,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
         body: payload,
       })
 
-      const data = await response.json()
+      const data = response.ok ? await (window.safeFetchJson?.(response) ?? response.json()) : {}
       if (!response.ok || !data.ok) {
         const errorMessage = data.message || 'No se pudo actualizar la cuenta.'
         message.textContent = errorMessage
@@ -145,6 +145,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 
   const loadSession = async () => {
     const response = await fetch(backendUrl('/api/auth/session/'), { credentials: 'include' })
+    if (!response.ok) return
     const data = await response.json()
 
     if (!data.authenticated) {

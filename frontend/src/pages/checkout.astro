@@ -594,14 +594,19 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     payload.append('username', formData.get('identifier'))
     payload.append('password', formData.get('password'))
 
-    const res = await fetch(backendUrl('/api/auth/login/'), {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: payload,
-    })
-    const data = await res.json()
-    if (data.ok) {
+    let res, data
+    try {
+      res = await fetch(backendUrl('/api/auth/login/'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: payload,
+      })
+      data = await (window.safeFetchJson?.(res) ?? res.json())
+    } catch {
+      data = { ok: false, message: 'Error de conexión al iniciar sesión.' }
+    }
+    if (data?.ok) {
       loginSection.setAttribute('hidden', '')
       loadingEl.removeAttribute('hidden')
       loadCheckout()

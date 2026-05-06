@@ -40,17 +40,23 @@ const backendUrl = (path) => `${backendOrigin}${path}`
 
 const readJsonResponse = async (response) => {
   try {
+    if (!response.ok) {
+      const text = await response.text().catch(() => '')
+      return { ok: false, message: `HTTP ${response.status}${text ? ': ' + text.slice(0, 200) : ''}` }
+    }
     return await response.json()
   } catch {
     const text = await response.text().catch(() => '')
     const message = text && text.includes('CSRF')
-      ? 'Fallo la verificación CSRF. Recarga la página e intenta de nuevo.'
+      ? 'Fallo la verificaci\u00f3n CSRF. Recarga la p\u00e1gina e intenta de nuevo.'
       : text
-        ? 'El servidor devolvió una respuesta inesperada.'
+        ? 'El servidor devolvi\u00f3 una respuesta inesperada.'
         : 'No se pudo procesar la respuesta del servidor.'
     return { ok: false, message }
   }
 }
+
+window.safeFetchJson = readJsonResponse
 
 const ensureCsrfToken = async () => {
   if (window.getCsrfToken) {
