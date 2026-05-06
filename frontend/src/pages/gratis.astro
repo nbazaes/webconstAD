@@ -1,30 +1,37 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
+import { getApiOrigin } from '../lib/api-origin'
+
+export const prerender = false
+
+const apiOrigin = getApiOrigin(Astro)
 
 let categorias = []
-let allCategoriasData = { results: [] }
+let categoriasCatalogo = []
 try {
-  const respuesta = await fetch('/api/categorias/')
+  const apiBase = new URL('/api/', apiOrigin)
+  const respuesta = await fetch(new URL('categorias/', apiBase))
   const datos = await respuesta.json()
   categorias = datos.results || []
 
-  const allCategoriasRes = await fetch('/api/catalog/categorias/')
-  allCategoriasData = await allCategoriasRes.json()
+  const catalogRes = await fetch(new URL('catalog/categorias/', apiBase))
+  const catalogData = await catalogRes.json()
+  categoriasCatalogo = catalogData.results || []
 } catch (e) {
   // API may not be available during build; use empty data
 }
 
-const categoriasGratis = (allCategoriasData.results || []).filter((c) => c.es_gratuita)
-
 const categoriasConImagen = new Map(categorias.map((item) => [item.slug, item]))
-const categoriasRender = categoriasGratis.map((item) => {
-  const fromList = categoriasConImagen.get(item.slug)
-  return {
-    ...item,
-    descripcion: fromList?.descripcion || '',
-    imagen: fromList?.imagen || null,
-  }
-})
+const categoriasRender = [...categoriasCatalogo]
+  .sort((a, b) => Number(b.es_gratuita) - Number(a.es_gratuita) || a.nombre.localeCompare(b.nombre, 'es'))
+  .map((item) => {
+    const fromList = categoriasConImagen.get(item.slug)
+    return {
+      ...item,
+      descripcion: fromList?.descripcion || '',
+      imagen: fromList?.imagen || null,
+    }
+  })
 ---
 
 <BaseLayout title="Gratis | Constant Archivos Digitales" page="gratis">
@@ -34,8 +41,9 @@ const categoriasRender = categoriasGratis.map((item) => {
 <p class="lead">Recursos gratuitos para <em>imprimir</em> o <em>dibujar</em> digitalmente.</p>
     </section>
 
-    {categoriasRender.length > 0 ? (
-      <section class="products-grid" data-free-categories>
+    <section class="products-grid" data-free-categories hidden={categoriasRender.length === 0}>
+      {categoriasRender.length > 0 ? (
+        <>
         {categoriasRender.map((cat) => (
           <div class="product">
             <a href={`/gratis/${cat.slug}/`} class="product-link" title={cat.descripcion || ''}>
@@ -62,17 +70,18 @@ const categoriasRender = categoriasGratis.map((item) => {
             </div>
           </div>
         ))}
-      </section>
-    ) : (
-      <section class="products-hero text-block" data-free-empty>
-        <p>Próximamente recursos gratuitos.</p>
-        <ul>
-          <li>Plantillas de práctica</li>
-          <li>Mini colecciones de muestra</li>
-          <li>Recursos estacionales</li>
-        </ul>
-      </section>
-    )}
+        </>
+      ) : null}
+    </section>
+
+    <section class="products-hero text-block" data-free-empty hidden={categoriasRender.length > 0}>
+      <p>Próximamente recursos gratuitos.</p>
+      <ul>
+        <li>Plantillas de práctica</li>
+        <li>Mini colecciones de muestra</li>
+        <li>Recursos estacionales</li>
+      </ul>
+    </section>
   </main>
 </BaseLayout>
 
@@ -187,57 +196,131 @@ const categoriasRender = categoriasGratis.map((item) => {
     const wrapper = document.createElement('article')
     wrapper.className = 'product'
     wrapper.setAttribute('data-add-categoria', '')
-    wrapper.innerHTML = `
-      <div class="catalog-cta">
-        <h3>Agregar categoría</h3>
-        <!--<p>Crea una nueva categoría gratuita desde aquí.</p>-->
-        <div class="catalog-cta__actions">
-          <button class="btn" type="button" data-open-add-categoria>Crear categoría</button>
-          <a class="btn btn-secondary" href="/publicar/">Ir a publicar</a>
-        </div>
-        <!--<div class="catalog-cta__helper">Disponible para admins y artistas.</div>-->
-      </div>
-    `
+    const cta = document.createElement('div')
+    cta.className = 'catalog-cta'
+
+    const title = document.createElement('h3')
+    title.textContent = 'Agregar categoría'
+
+    const actions = document.createElement('div')
+    actions.className = 'catalog-cta__actions'
+
+    const createButton = document.createElement('button')
+    createButton.className = 'btn'
+    createButton.type = 'button'
+    createButton.setAttribute('data-open-add-categoria', '')
+    createButton.textContent = 'Crear categoría'
+
+    const publishLink = document.createElement('a')
+    publishLink.className = 'btn btn-secondary'
+    publishLink.href = '/publicar/'
+    publishLink.textContent = 'Ir a publicar'
+
+    actions.append(createButton, publishLink)
+    cta.append(title, actions)
+    wrapper.appendChild(cta)
     grid.prepend(wrapper)
   }
 
   const openCatalogModal = async () => {
     const modal = document.createElement('div')
     modal.className = 'catalog-modal'
-    modal.innerHTML = `
-      <div class="catalog-modal__backdrop" data-close-catalog></div>
-      <div class="catalog-modal__panel" role="dialog" aria-modal="true">
-        <h3>Nueva categoría gratis</h3>
-        <form class="auth-form" data-catalog-form>
-          <input type="hidden" name="tipo" value="categoria" />
-          <label>Nombre</label><input name="nombre" type="text" required />
-          <label>Descripción</label><textarea name="descripcion" rows="3"></textarea>
-          <label>Imagen (opcional)</label><input name="imagen" type="file" accept="image/*" />
-          <input type="hidden" name="es_gratuita" value="true" />
-          <div class="published-actions">
-            <button class="btn" type="submit">Crear</button>
-            <button class="btn btn-secondary" type="button" data-close-catalog>Cancelar</button>
-          </div>
-        </form>
-        <p class="auth-message" data-catalog-message></p>
-      </div>
-    `
+    const backdrop = document.createElement('div')
+    backdrop.className = 'catalog-modal__backdrop'
+    backdrop.setAttribute('data-close-catalog', '')
+
+    const panel = document.createElement('div')
+    panel.className = 'catalog-modal__panel'
+    panel.setAttribute('role', 'dialog')
+    panel.setAttribute('aria-modal', 'true')
+
+    const heading = document.createElement('h3')
+    heading.textContent = 'Nueva categoría gratis'
+
+    const form = document.createElement('form')
+    form.className = 'auth-form'
+    form.setAttribute('data-catalog-form', '')
+
+    const tipoInput = document.createElement('input')
+    tipoInput.type = 'hidden'
+    tipoInput.name = 'tipo'
+    tipoInput.value = 'categoria'
+
+    const nombreLabel = document.createElement('label')
+    nombreLabel.textContent = 'Nombre'
+    const nombreInput = document.createElement('input')
+    nombreInput.name = 'nombre'
+    nombreInput.type = 'text'
+    nombreInput.required = true
+
+    const descripcionLabel = document.createElement('label')
+    descripcionLabel.textContent = 'Descripción'
+    const descripcionTextarea = document.createElement('textarea')
+    descripcionTextarea.name = 'descripcion'
+    descripcionTextarea.rows = 3
+
+    const imagenLabel = document.createElement('label')
+    imagenLabel.textContent = 'Imagen (opcional)'
+    const imagenInput = document.createElement('input')
+    imagenInput.name = 'imagen'
+    imagenInput.type = 'file'
+    imagenInput.accept = 'image/*'
+
+    const gratuitaInput = document.createElement('input')
+    gratuitaInput.type = 'hidden'
+    gratuitaInput.name = 'es_gratuita'
+    gratuitaInput.value = 'true'
+
+    const actions = document.createElement('div')
+    actions.className = 'published-actions'
+
+    const submitButton = document.createElement('button')
+    submitButton.className = 'btn'
+    submitButton.type = 'submit'
+    submitButton.textContent = 'Crear'
+
+    const cancelButton = document.createElement('button')
+    cancelButton.className = 'btn btn-secondary'
+    cancelButton.type = 'button'
+    cancelButton.setAttribute('data-close-catalog', '')
+    cancelButton.textContent = 'Cancelar'
+
+    actions.append(submitButton, cancelButton)
+
+    const message = document.createElement('p')
+    message.className = 'auth-message'
+    message.setAttribute('data-catalog-message', '')
+
+    form.append(
+      tipoInput,
+      nombreLabel,
+      nombreInput,
+      descripcionLabel,
+      descripcionTextarea,
+      imagenLabel,
+      imagenInput,
+      gratuitaInput,
+      actions
+    )
+
+    panel.append(heading, form, message)
+    modal.append(backdrop, panel)
 
     document.body.appendChild(modal)
     const close = () => modal.remove()
     modal.querySelectorAll('[data-close-catalog]').forEach((el) => el.addEventListener('click', close))
 
-    const form = modal.querySelector('[data-catalog-form]')
-    const message = modal.querySelector('[data-catalog-message]')
-    form?.addEventListener('submit', async (event) => {
+    const catalogForm = modal.querySelector('[data-catalog-form]')
+    const catalogMessage = modal.querySelector('[data-catalog-message]')
+    catalogForm?.addEventListener('submit', async (event) => {
       event.preventDefault()
-      if (message) message.textContent = ''
+      if (catalogMessage) catalogMessage.textContent = ''
 
-      const formData = new FormData(form)
+      const formData = new FormData(catalogForm)
       formData.set('es_gratuita', 'true')
       const nombre = String(formData.get('nombre') || '').trim()
       if (!nombre) {
-        if (message) message.textContent = 'Nombre es obligatorio.'
+        if (catalogMessage) catalogMessage.textContent = 'Nombre es obligatorio.'
         return
       }
 
@@ -253,7 +336,7 @@ const categoriasRender = categoriasGratis.map((item) => {
       })
       const data = await response.json().catch(() => ({}))
       if (!response.ok || !data.ok) {
-        if (message) message.textContent = data.message || 'No se pudo crear la categoría.'
+        if (catalogMessage) catalogMessage.textContent = data.message || 'No se pudo crear la categoría.'
         return
       }
 
@@ -265,40 +348,104 @@ const categoriasRender = categoriasGratis.map((item) => {
   const openEditCategoriaModal = (id, nombre, descripcion) => {
     const modal = document.createElement('div')
     modal.className = 'catalog-modal'
-    modal.innerHTML = `
-      <div class="catalog-modal__backdrop" data-close-catalog></div>
-      <div class="catalog-modal__panel" role="dialog" aria-modal="true">
-        <h3>Editar categoría</h3>
-        <form class="auth-form" data-catalog-form>
-          <input type="hidden" name="tipo" value="categoria" />
-          <label>Nombre</label><input name="nombre" type="text" value="${nombre}" required />
-          <label>Descripción</label><textarea name="descripcion" rows="3">${descripcion}</textarea>
-          <label>Imagen (opcional)</label><input name="imagen" type="file" accept="image/*" />
-          <input type="hidden" name="es_gratuita" value="true" />
-          <div class="published-actions">
-            <button class="btn" type="submit">Guardar</button>
-            <button class="btn btn-secondary" type="button" data-close-catalog>Cancelar</button>
-          </div>
-        </form>
-        <p class="auth-message" data-catalog-message></p>
-      </div>
-    `
+    const backdrop = document.createElement('div')
+    backdrop.className = 'catalog-modal__backdrop'
+    backdrop.setAttribute('data-close-catalog', '')
+
+    const panel = document.createElement('div')
+    panel.className = 'catalog-modal__panel'
+    panel.setAttribute('role', 'dialog')
+    panel.setAttribute('aria-modal', 'true')
+
+    const heading = document.createElement('h3')
+    heading.textContent = 'Editar categoría'
+
+    const form = document.createElement('form')
+    form.className = 'auth-form'
+    form.setAttribute('data-catalog-form', '')
+
+    const tipoInput = document.createElement('input')
+    tipoInput.type = 'hidden'
+    tipoInput.name = 'tipo'
+    tipoInput.value = 'categoria'
+
+    const nombreLabel = document.createElement('label')
+    nombreLabel.textContent = 'Nombre'
+    const nombreInput = document.createElement('input')
+    nombreInput.name = 'nombre'
+    nombreInput.type = 'text'
+    nombreInput.required = true
+    nombreInput.value = nombre || ''
+
+    const descripcionLabel = document.createElement('label')
+    descripcionLabel.textContent = 'Descripción'
+    const descripcionTextarea = document.createElement('textarea')
+    descripcionTextarea.name = 'descripcion'
+    descripcionTextarea.rows = 3
+    descripcionTextarea.value = descripcion || ''
+
+    const imagenLabel = document.createElement('label')
+    imagenLabel.textContent = 'Imagen (opcional)'
+    const imagenInput = document.createElement('input')
+    imagenInput.name = 'imagen'
+    imagenInput.type = 'file'
+    imagenInput.accept = 'image/*'
+
+    const gratuitaInput = document.createElement('input')
+    gratuitaInput.type = 'hidden'
+    gratuitaInput.name = 'es_gratuita'
+    gratuitaInput.value = 'true'
+
+    const actions = document.createElement('div')
+    actions.className = 'published-actions'
+
+    const submitButton = document.createElement('button')
+    submitButton.className = 'btn'
+    submitButton.type = 'submit'
+    submitButton.textContent = 'Guardar'
+
+    const cancelButton = document.createElement('button')
+    cancelButton.className = 'btn btn-secondary'
+    cancelButton.type = 'button'
+    cancelButton.setAttribute('data-close-catalog', '')
+    cancelButton.textContent = 'Cancelar'
+
+    actions.append(submitButton, cancelButton)
+
+    const message = document.createElement('p')
+    message.className = 'auth-message'
+    message.setAttribute('data-catalog-message', '')
+
+    form.append(
+      tipoInput,
+      nombreLabel,
+      nombreInput,
+      descripcionLabel,
+      descripcionTextarea,
+      imagenLabel,
+      imagenInput,
+      gratuitaInput,
+      actions
+    )
+
+    panel.append(heading, form, message)
+    modal.append(backdrop, panel)
 
     document.body.appendChild(modal)
     const close = () => modal.remove()
     modal.querySelectorAll('[data-close-catalog]').forEach((el) => el.addEventListener('click', close))
 
-    const form = modal.querySelector('[data-catalog-form]')
-    const message = modal.querySelector('[data-catalog-message]')
-    form?.addEventListener('submit', async (event) => {
+    const catalogEditForm = modal.querySelector('[data-catalog-form]')
+    const catalogEditMessage = modal.querySelector('[data-catalog-message]')
+    catalogEditForm?.addEventListener('submit', async (event) => {
       event.preventDefault()
-      if (message) message.textContent = ''
+      if (catalogEditMessage) catalogEditMessage.textContent = ''
 
-      const formData = new FormData(form)
+      const formData = new FormData(catalogEditForm)
       formData.set('es_gratuita', 'true')
       const nombreVal = String(formData.get('nombre') || '').trim()
       if (!nombreVal) {
-        if (message) message.textContent = 'Nombre es obligatorio.'
+        if (catalogEditMessage) catalogEditMessage.textContent = 'Nombre es obligatorio.'
         return
       }
 
@@ -314,7 +461,7 @@ const categoriasRender = categoriasGratis.map((item) => {
       })
       const data = await response.json().catch(() => ({}))
       if (!response.ok || !data.ok) {
-        if (message) message.textContent = data.message || 'No se pudo editar la categoría.'
+        if (catalogEditMessage) catalogEditMessage.textContent = data.message || 'No se pudo editar la categoría.'
         return
       }
 
@@ -355,17 +502,21 @@ const categoriasRender = categoriasGratis.map((item) => {
     })
   }
 
+  const applyAdminCatalogUi = () => {
+    if (!grid) return
+    insertAddCard()
+    grid.querySelector('[data-open-add-categoria]')?.addEventListener('click', openCatalogModal)
+    wireCategoriaActions()
+  }
+
   const initAddCategoria = async () => {
     const response = await fetch(backendUrl('/api/auth/session/'), { credentials: 'include' })
     if (!response.ok) return
     const data = await response.json()
     if (!canManageCatalog(data)) return
 
-    wireCategoriaActions()
-
     if (grid) {
-      insertAddCard()
-      grid.querySelector('[data-open-add-categoria]')?.addEventListener('click', openCatalogModal)
+      applyAdminCatalogUi()
       return
     }
 
@@ -389,4 +540,104 @@ const categoriasRender = categoriasGratis.map((item) => {
 
   window.initAddCategoria = initAddCategoria
   initAddCategoria()
+
+  const renderFreeCategories = (items) => {
+    if (!grid) return
+    grid.replaceChildren()
+
+    items.forEach((cat) => {
+      const article = document.createElement('div')
+      article.className = 'product'
+      article.dataset.categoriaId = String(cat.id)
+      article.dataset.categoriaNombre = cat.nombre || ''
+      article.dataset.categoriaDescripcion = cat.descripcion || ''
+
+      const link = document.createElement('a')
+      link.className = 'product-link'
+      link.href = `/gratis/${cat.slug}/`
+      link.title = cat.descripcion || ''
+
+      if (cat.imagen) {
+        const img = document.createElement('img')
+        img.src = cat.imagen
+        img.alt = cat.descripcion || cat.nombre || ''
+        img.width = 286
+        img.height = 372
+        img.loading = 'lazy'
+        link.appendChild(img)
+      } else {
+        const card = document.createElement('div')
+        card.className = 'card'
+        const img = document.createElement('img')
+        img.src = '/static/web/assets/g345.webp'
+        img.alt = 'Sin imagen'
+        img.width = 190
+        img.height = 89
+        card.appendChild(img)
+        link.appendChild(card)
+      }
+
+      const title = document.createElement('a')
+      title.className = 'product-title'
+      title.href = `/gratis/${cat.slug}/`
+      title.title = cat.descripcion || ''
+      title.textContent = cat.nombre || ''
+
+      const actions = document.createElement('div')
+      actions.className = 'published-actions'
+      actions.setAttribute('data-admin-actions', '')
+      actions.hidden = true
+
+      const editButton = document.createElement('button')
+      editButton.className = 'btn'
+      editButton.type = 'button'
+      editButton.setAttribute('data-edit-categoria', String(cat.id))
+      editButton.textContent = 'Editar'
+
+      const deleteButton = document.createElement('button')
+      deleteButton.className = 'btn btn-secondary'
+      deleteButton.type = 'button'
+      deleteButton.setAttribute('data-delete-categoria', String(cat.id))
+      deleteButton.textContent = 'Eliminar'
+
+      actions.append(editButton, deleteButton)
+      article.append(link, title, actions)
+      grid.appendChild(article)
+    })
+    grid.removeAttribute('hidden')
+    emptyBlock?.setAttribute('hidden', '')
+  }
+
+  const hydrateFreeCategories = async () => {
+    if (!grid || grid.children.length > 0) return
+    try {
+      const [freeRes, catalogRes] = await Promise.all([
+        fetch(backendUrl('/api/categorias/')),
+        fetch(backendUrl('/api/catalog/categorias/')),
+      ])
+      const [freeData, catalogData] = await Promise.all([freeRes.json(), catalogRes.json()])
+      const categorias = freeData.results || []
+      const categoriasCatalogo = catalogData.results || []
+      const categoriasConImagen = new Map(categorias.map((item) => [item.slug, item]))
+      const categoriasRender = categoriasCatalogo
+        .sort((a, b) => Number(b.es_gratuita) - Number(a.es_gratuita) || a.nombre.localeCompare(b.nombre, 'es'))
+        .map((item) => {
+          const fromList = categoriasConImagen.get(item.slug)
+          return {
+            ...item,
+            descripcion: fromList?.descripcion || '',
+            imagen: fromList?.imagen || null,
+          }
+        })
+
+      if (categoriasRender.length > 0) {
+        renderFreeCategories(categoriasRender)
+        applyAdminCatalogUi()
+      }
+    } catch (error) {
+      // keep the SSR fallback if the API isn't reachable in local dev
+    }
+  }
+
+  hydrateFreeCategories()
 </script>

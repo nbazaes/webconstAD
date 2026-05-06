@@ -34,6 +34,7 @@ from .models import (
     MensajeContacto,
     Producto,
     SuscriptorAnonimo,
+    get_r2_public_storage,
     get_r2_storage,
 )
 from .serializers import MensajeContactoSerializer
@@ -160,9 +161,18 @@ def _media_redirect_url(request, file_field):
     return reverse('api-public-media', kwargs={'file_path': file_field.name})
 
 
+def _is_allowed_public_media(file_path: str) -> bool:
+    if not file_path or file_path.startswith('/') or '..' in file_path or '\\' in file_path:
+        return False
+    return file_path.startswith(('categorias/', 'colecciones/', 'productos/'))
+
+
 @require_GET
 def api_public_media(request, file_path):
-    storage = get_r2_storage()
+    if not _is_allowed_public_media(file_path):
+        raise Http404('archivo no disponible')
+
+    storage = get_r2_public_storage()
     return HttpResponseRedirect(storage.url(file_path))
 
 
@@ -450,7 +460,7 @@ def api_catalog_colecciones(request):
 def api_categoria_productos(request, slug):
     categoria = get_object_or_404(Categoria, slug=slug, es_gratuita=True)
     productos = (
-        Producto.objects.filter(categoria=categoria, activo=True, es_gratuito=True)
+        Producto.objects.filter(categoria=categoria, activo=True)
         .order_by('nombre')
     )
 
