@@ -1,19 +1,22 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro'
 
-export async function getStaticPaths() {
-  const buildApiOrigin = import.meta.env.BUILD_API_ORIGIN || 'http://127.0.0.1:8000'
-  const res = await fetch(`${buildApiOrigin}/api/catalog/categorias/`)
-  const data = await res.json()
-  const categorias = (data.results || []).filter((c) => c.es_gratuita)
+export const prerender = false
 
-  return categorias.map((categoria) => ({
-    params: { slug: categoria.slug },
-    props: { categoriaNombre: categoria.nombre },
-  }))
+const { slug = '' } = Astro.params
+const apiBase = new URL('/api/', Astro.url)
+let categoriaNombre = 'Categoria'
+
+try {
+  const res = await fetch(new URL(`categorias/${slug}/productos/`, apiBase))
+  if (res.ok) {
+    const data = await res.json()
+    categoriaNombre = data.categoria?.nombre || categoriaNombre
+  }
+} catch (e) {
+  // fallback to the default title when the API is unavailable
 }
 
-const { categoriaNombre = 'Categoria' } = Astro.props
 const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
 
 ---

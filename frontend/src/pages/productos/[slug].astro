@@ -1,13 +1,16 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro'
 
-const apiOrigin = import.meta.env.API_ORIGIN || import.meta.env.BUILD_API_ORIGIN || 'http://127.0.0.1:8000'
+export const prerender = false
+
 const { slug } = Astro.params
-const paymentDetailsResponse = await fetch(`${apiOrigin}/api/pagos/detalle/`)
+const apiBase = new URL('/api/', Astro.url)
+
+const paymentDetailsResponse = await fetch(new URL('pagos/detalle/', apiBase))
 const paymentDetails = paymentDetailsResponse.ok ? await paymentDetailsResponse.json() : null
 const bankAccount = paymentDetails?.bank_account || '<bank_account>'
 const bankAccountDetails = paymentDetails?.details || {}
-const response = await fetch(`${apiOrigin}/api/productos/${slug}/`)
+const response = await fetch(new URL(`productos/${slug}/`, apiBase))
 const producto = response.ok ? await response.json() : null
 
 const pageTitle = `${producto?.nombre || 'Producto'} | Productos | Constant Archivos Digitales`
