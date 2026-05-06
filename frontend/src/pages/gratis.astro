@@ -4,30 +4,16 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 export const prerender = false
 
 let categorias = []
-let allCategoriasData = { results: [] }
 try {
   const apiBase = new URL('/api/', Astro.url)
   const respuesta = await fetch(new URL('categorias/', apiBase))
   const datos = await respuesta.json()
   categorias = datos.results || []
-
-  const allCategoriasRes = await fetch(new URL('catalog/categorias/', apiBase))
-  allCategoriasData = await allCategoriasRes.json()
 } catch (e) {
   // API may not be available during build; use empty data
 }
 
-const categoriasGratis = (allCategoriasData.results || []).filter((c) => c.es_gratuita)
-
-const categoriasConImagen = new Map(categorias.map((item) => [item.slug, item]))
-const categoriasRender = categoriasGratis.map((item) => {
-  const fromList = categoriasConImagen.get(item.slug)
-  return {
-    ...item,
-    descripcion: fromList?.descripcion || '',
-    imagen: fromList?.imagen || null,
-  }
-})
+const categoriasRender = categorias
 ---
 
 <BaseLayout title="Gratis | Constant Archivos Digitales" page="gratis">
