@@ -16,6 +16,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.text import slugify
+from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods
 from rest_framework import status
@@ -25,7 +26,16 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 
-from .models import Carrito, CarritoItem, Categoria, Coleccion, MensajeContacto, Producto, SuscriptorAnonimo
+from .models import (
+    Carrito,
+    CarritoItem,
+    Categoria,
+    Coleccion,
+    MensajeContacto,
+    Producto,
+    SuscriptorAnonimo,
+    get_r2_storage,
+)
 from .serializers import MensajeContactoSerializer
 
 
@@ -142,6 +152,20 @@ def _build_unique_simple_slug(model_cls, nombre, explicit_slug=None):
         candidate = f'{base}-{counter}'
         counter += 1
     return candidate
+
+
+def _media_redirect_url(request, file_field):
+    if not file_field:
+        return None
+    return request.build_absolute_uri(
+        reverse('api-public-media', kwargs={'file_path': file_field.name})
+    )
+
+
+@require_GET
+def api_public_media(request, file_path):
+    storage = get_r2_storage()
+    return HttpResponseRedirect(storage.url(file_path))
 
 
 def _send_resend_email(*, subject, text, recipients, reply_to=None, html=None, attachments=None):
@@ -334,8 +358,8 @@ def api_products(request):
             'es_gratuito': p.es_gratuito,
             'paginas': p.paginas,
             'activo': p.activo,
-            'imagen': p.imagen.url if p.imagen else None,
-            'preview_imagen': p.preview_imagen.url if p.preview_imagen else None,
+            'imagen': _media_redirect_url(request, p.imagen),
+            'preview_imagen': _media_redirect_url(request, p.preview_imagen),
             'categoria_id': p.categoria_id,
             'coleccion': p.coleccion.nombre if p.coleccion else None,
             'coleccion_id': p.coleccion_id,
@@ -367,12 +391,12 @@ def api_producto_detalle(request, slug):
             'es_gratuito': producto.es_gratuito,
             'paginas': producto.paginas,
             'activo': producto.activo,
-            'imagen': producto.imagen.url if producto.imagen else None,
-            'preview_imagen': producto.preview_imagen.url if producto.preview_imagen else None,
+            'imagen': _media_redirect_url(request, producto.imagen),
+            'preview_imagen': _media_redirect_url(request, producto.preview_imagen),
             'categoria_id': producto.categoria_id,
             'coleccion': producto.coleccion.nombre if producto.coleccion else None,
             'coleccion_id': producto.coleccion_id,
-            'coleccion_descripcion': producto.coleccion.descripcion.url if producto.coleccion and producto.coleccion.descripcion else None,
+            'coleccion_descripcion': _media_redirect_url(request, producto.coleccion.descripcion) if producto.coleccion else None,
         }
     )
 
@@ -386,7 +410,7 @@ def api_categorias(request):
             'nombre': c.nombre,
             'slug': c.slug,
             'descripcion': c.descripcion,
-            'imagen': c.imagen.url if c.imagen else None,
+            'imagen': _media_redirect_url(request, c.imagen),
         }
         for c in categorias
     ]
@@ -416,8 +440,8 @@ def api_catalog_colecciones(request):
             'id': c.id,
             'nombre': c.nombre,
             'slug': c.slug,
-            'descripcion': c.descripcion.url if c.descripcion else None,
-            'imagen': c.imagen.url if c.imagen else None,
+            'descripcion': _media_redirect_url(request, c.descripcion),
+            'imagen': _media_redirect_url(request, c.imagen),
         }
         for c in colecciones
     ]
@@ -438,7 +462,7 @@ def api_categoria_productos(request, slug):
             'nombre': categoria.nombre,
             'slug': categoria.slug,
             'descripcion': categoria.descripcion,
-            'imagen': categoria.imagen.url if categoria.imagen else None,
+            'imagen': _media_redirect_url(request, categoria.imagen),
         },
         'count': productos.count(),
         'results': [
@@ -451,8 +475,8 @@ def api_categoria_productos(request, slug):
                 'es_gratuito': p.es_gratuito,
                 'paginas': p.paginas,
                 'activo': p.activo,
-                'imagen': p.imagen.url if p.imagen else None,
-                'preview_imagen': p.preview_imagen.url if p.preview_imagen else None,
+                'imagen': _media_redirect_url(request, p.imagen),
+                'preview_imagen': _media_redirect_url(request, p.preview_imagen),
                 'categoria_id': p.categoria_id,
                 'coleccion_id': p.coleccion_id,
             }
@@ -710,8 +734,8 @@ def api_admin_productos(request):
             'es_gratuito': p.es_gratuito,
             'paginas': p.paginas,
             'activo': p.activo,
-            'imagen': p.imagen.url if p.imagen else None,
-            'preview_imagen': p.preview_imagen.url if p.preview_imagen else None,
+            'imagen': _media_redirect_url(request, p.imagen),
+            'preview_imagen': _media_redirect_url(request, p.preview_imagen),
             'archivo': p.archivo.url if p.archivo else None,
             'categoria_id': p.categoria_id,
             'categoria_nombre': p.categoria.nombre if p.categoria else None,
@@ -980,7 +1004,7 @@ def api_publicar_producto(request):
                 'slug': producto.slug,
                 'es_gratuito': producto.es_gratuito,
             'precio': producto.precio if producto.precio is not None else None,
-                'imagen': producto.imagen.url if producto.imagen else None,
+                'imagen': _media_redirect_url(request, producto.imagen),
                 'archivo': producto.archivo.url if producto.archivo else None,
             },
         },
@@ -1021,7 +1045,7 @@ def api_cart(request):
                 'nombre': item.producto.nombre,
                 'slug': item.producto.slug,
                 'precio': precio,
-                'imagen': item.producto.imagen.url if item.producto.imagen else None,
+                'imagen': _media_redirect_url(request, item.producto.imagen),
             },
             'subtotal': precio,
         })
@@ -1091,7 +1115,7 @@ def api_cart_checkout(request):
                 'nombre': item.producto.nombre,
                 'slug': item.producto.slug,
                 'precio': precio,
-                'imagen': item.producto.imagen.url if item.producto.imagen else None,
+                'imagen': _media_redirect_url(request, item.producto.imagen),
             },
             'subtotal': precio,
         })
