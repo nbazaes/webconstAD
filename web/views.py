@@ -460,7 +460,7 @@ def api_catalog_colecciones(request):
 def api_categoria_productos(request, slug):
     categoria = get_object_or_404(Categoria, slug=slug, es_gratuita=True)
     productos = (
-        Producto.objects.filter(categoria=categoria, activo=True, es_gratuito=True)
+        Producto.objects.filter(categoria=categoria, activo=True)
         .order_by('nombre')
     )
 
