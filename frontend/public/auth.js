@@ -1,43 +1,10 @@
-const buildRibbonArc = (labelText) => {
-  const chars = Array.from(labelText)
-  const visibleCount = chars.reduce((count, ch) => (ch === ' ' ? count : count + 1), 0)
-  const midpoint = (visibleCount - 1) / 2
-  const maxLift = 3.4
-
-  const wrapper = document.createElement('span')
-  wrapper.className = 'ribbon-arc'
-
-  let visibleIndex = 0
-  chars.forEach((ch) => {
-    const chunk = document.createElement('span')
-    chunk.textContent = ch
-    if (ch !== ' ') {
-      const distance = Math.abs(visibleIndex - midpoint)
-      const normalized = midpoint === 0 ? 1 : distance / midpoint
-      const lift = maxLift * (1 - normalized ** 1.4)
-      const direction = midpoint === 0 ? 0 : (visibleIndex - midpoint) / midpoint
-      const tilt = 10 * direction
-      chunk.style.setProperty('--arc-lift', lift.toFixed(2))
-      chunk.style.setProperty('--arc-tilt', tilt.toFixed(2))
-      visibleIndex += 1
-    } else {
-      chunk.style.setProperty('--arc-lift', '0')
-      chunk.style.setProperty('--arc-tilt', '0')
-      chunk.style.width = '0.2em'
-    }
-    wrapper.append(chunk)
-  })
-
-  return wrapper
-}
-
 const refreshRibbonLabels = () => {
   const sideNavLinks = document.querySelectorAll('.side-nav li a')
   sideNavLinks.forEach((link) => {
     const rawLabel = (link.textContent || '').replace(/\s+/g, ' ').trim()
     if (!rawLabel) return
     link.dataset.ribbonLabel = rawLabel
-    link.replaceChildren(buildRibbonArc(rawLabel))
+    link.textContent = rawLabel
   })
 }
 
