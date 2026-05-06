@@ -1,10 +1,12 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro'
+import { getApiOrigin } from '../../lib/api-origin'
 
 export const prerender = false
 
 const { slug = '' } = Astro.params
-const apiBase = new URL('/api/', Astro.url)
+const apiOrigin = getApiOrigin(Astro)
+const apiBase = new URL('/api/', apiOrigin)
 let categoriaNombre = 'Categoria'
 
 try {
@@ -201,46 +203,168 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
 
     const modalEdit = document.createElement('div')
     modalEdit.className = 'edit-modal'
-    modalEdit.innerHTML = `
-      <div class="edit-modal__backdrop" data-close-edit></div>
-      <div class="edit-modal__panel" role="dialog" aria-modal="true">
-        <h3>Editar producto</h3>
-        <form class="auth-form" data-edit-form>
-          <label>Nombre</label><input name="nombre" type="text" value="${product.nombre || ''}" required />
-          <label>Descripcion</label><textarea name="descripcion" rows="3">${product.descripcion || ''}</textarea>
-          <label>Imagen preview (opcional)</label><input name="imagen" type="file" accept="image/*" />
-          <label>Es gratuito?</label>
-          <select name="es_gratuito" data-edit-gratis>
-            <option value="true" ${product.es_gratuito ? 'selected' : ''}>Si</option>
-            <option value="false" ${!product.es_gratuito ? 'selected' : ''}>No</option>
-          </select>
-          <div data-edit-categoria-wrap ${product.es_gratuito ? '' : 'hidden'}>
-            <label>Categoria</label>
-            <select name="categoria_id">
-              <option value="">Sin categoria</option>
-              ${categorias.map((c) => `<option value="${c.id}" ${product.categoria_id === c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}
-            </select>
-          </div>
-          <div data-edit-coleccion-wrap ${product.es_gratuito ? 'hidden' : ''}>
-            <label>Coleccion</label>
-            <select name="coleccion_id">
-              <option value="">Sin coleccion</option>
-              ${colecciones.map((c) => `<option value="${c.id}" ${product.coleccion_id === c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}
-            </select>
-          </div>
-          <label>Paginas</label><input name="paginas" type="number" min="1" step="1" value="${product.paginas || ''}" />
-          <div data-edit-precio-wrap ${product.es_gratuito ? 'hidden' : ''}>
-            <label>Precio</label><input name="precio" type="number" min="0" step="1" value="${parseInt(product.precio) || ''}" />
-          </div>
-          <label>Activo?</label>
-          <select name="activo"><option value="true" ${product.activo ? 'selected' : ''}>Si</option><option value="false" ${!product.activo ? 'selected' : ''}>No</option></select>
-          <div class="published-actions">
-            <button class="btn" type="submit">Guardar</button>
-            <button class="btn btn-secondary" type="button" data-close-edit>Cancelar</button>
-          </div>
-        </form>
-      </div>
-    `
+    const backdrop = document.createElement('div')
+    backdrop.className = 'edit-modal__backdrop'
+    backdrop.setAttribute('data-close-edit', '')
+
+    const panel = document.createElement('div')
+    panel.className = 'edit-modal__panel'
+    panel.setAttribute('role', 'dialog')
+    panel.setAttribute('aria-modal', 'true')
+
+    const heading = document.createElement('h3')
+    heading.textContent = 'Editar producto'
+
+    const editFormNode = document.createElement('form')
+    editFormNode.className = 'auth-form'
+    editFormNode.setAttribute('data-edit-form', '')
+
+    const nombreLabel = document.createElement('label')
+    nombreLabel.textContent = 'Nombre'
+    const nombreInput = document.createElement('input')
+    nombreInput.name = 'nombre'
+    nombreInput.type = 'text'
+    nombreInput.required = true
+    nombreInput.value = product.nombre || ''
+
+    const descripcionLabel = document.createElement('label')
+    descripcionLabel.textContent = 'Descripcion'
+    const descripcionTextarea = document.createElement('textarea')
+    descripcionTextarea.name = 'descripcion'
+    descripcionTextarea.rows = 3
+    descripcionTextarea.value = product.descripcion || ''
+
+    const imagenLabel = document.createElement('label')
+    imagenLabel.textContent = 'Imagen preview (opcional)'
+    const imagenInput = document.createElement('input')
+    imagenInput.name = 'imagen'
+    imagenInput.type = 'file'
+    imagenInput.accept = 'image/*'
+
+    const gratisLabel = document.createElement('label')
+    gratisLabel.textContent = 'Es gratuito?'
+    const gratisSelectField = document.createElement('select')
+    gratisSelectField.name = 'es_gratuito'
+    gratisSelectField.setAttribute('data-edit-gratis', '')
+    ;['true', 'false'].forEach((value) => {
+      const option = document.createElement('option')
+      option.value = value
+      option.textContent = value === 'true' ? 'Si' : 'No'
+      if ((value === 'true') === Boolean(product.es_gratuito)) option.selected = true
+      gratisSelectField.appendChild(option)
+    })
+
+    const categoriaWrapField = document.createElement('div')
+    categoriaWrapField.setAttribute('data-edit-categoria-wrap', '')
+    if (!product.es_gratuito) categoriaWrapField.hidden = true
+    const categoriaLabel = document.createElement('label')
+    categoriaLabel.textContent = 'Categoria'
+    const categoriaFieldNew = document.createElement('select')
+    categoriaFieldNew.name = 'categoria_id'
+    const categoriaEmpty = document.createElement('option')
+    categoriaEmpty.value = ''
+    categoriaEmpty.textContent = 'Sin categoria'
+    categoriaFieldNew.appendChild(categoriaEmpty)
+    categorias.forEach((c) => {
+      const option = document.createElement('option')
+      option.value = String(c.id)
+      option.textContent = c.nombre
+      if (product.categoria_id === c.id) option.selected = true
+      categoriaFieldNew.appendChild(option)
+    })
+    categoriaWrapField.append(categoriaLabel, categoriaFieldNew)
+
+    const coleccionWrapField = document.createElement('div')
+    coleccionWrapField.setAttribute('data-edit-coleccion-wrap', '')
+    if (product.es_gratuito) coleccionWrapField.hidden = true
+    const coleccionLabel = document.createElement('label')
+    coleccionLabel.textContent = 'Coleccion'
+    const coleccionFieldNew = document.createElement('select')
+    coleccionFieldNew.name = 'coleccion_id'
+    const coleccionEmpty = document.createElement('option')
+    coleccionEmpty.value = ''
+    coleccionEmpty.textContent = 'Sin coleccion'
+    coleccionFieldNew.appendChild(coleccionEmpty)
+    colecciones.forEach((c) => {
+      const option = document.createElement('option')
+      option.value = String(c.id)
+      option.textContent = c.nombre
+      if (product.coleccion_id === c.id) option.selected = true
+      coleccionFieldNew.appendChild(option)
+    })
+    coleccionWrapField.append(coleccionLabel, coleccionFieldNew)
+
+    const paginasLabel = document.createElement('label')
+    paginasLabel.textContent = 'Paginas'
+    const paginasInput = document.createElement('input')
+    paginasInput.name = 'paginas'
+    paginasInput.type = 'number'
+    paginasInput.min = '1'
+    paginasInput.step = '1'
+    paginasInput.value = product.paginas || ''
+
+    const precioWrapField = document.createElement('div')
+    precioWrapField.setAttribute('data-edit-precio-wrap', '')
+    if (product.es_gratuito) precioWrapField.hidden = true
+    const precioLabel = document.createElement('label')
+    precioLabel.textContent = 'Precio'
+    const precioInputField = document.createElement('input')
+    precioInputField.name = 'precio'
+    precioInputField.type = 'number'
+    precioInputField.min = '0'
+    precioInputField.step = '1'
+    precioInputField.value = parseInt(product.precio) || ''
+    precioWrapField.append(precioLabel, precioInputField)
+
+    const activoLabel = document.createElement('label')
+    activoLabel.textContent = 'Activo?'
+    const activoSelectField = document.createElement('select')
+    activoSelectField.name = 'activo'
+    ;['true', 'false'].forEach((value) => {
+      const option = document.createElement('option')
+      option.value = value
+      option.textContent = value === 'true' ? 'Si' : 'No'
+      if ((value === 'true') === Boolean(product.activo)) option.selected = true
+      activoSelectField.appendChild(option)
+    })
+
+    const actions = document.createElement('div')
+    actions.className = 'published-actions'
+
+    const submitButton = document.createElement('button')
+    submitButton.className = 'btn'
+    submitButton.type = 'submit'
+    submitButton.textContent = 'Guardar'
+
+    const cancelButton = document.createElement('button')
+    cancelButton.className = 'btn btn-secondary'
+    cancelButton.type = 'button'
+    cancelButton.setAttribute('data-close-edit', '')
+    cancelButton.textContent = 'Cancelar'
+
+    actions.append(submitButton, cancelButton)
+
+    editFormNode.append(
+      nombreLabel,
+      nombreInput,
+      descripcionLabel,
+      descripcionTextarea,
+      imagenLabel,
+      imagenInput,
+      gratisLabel,
+      gratisSelectField,
+      categoriaWrapField,
+      coleccionWrapField,
+      paginasLabel,
+      paginasInput,
+      precioWrapField,
+      activoLabel,
+      activoSelectField,
+      actions
+    )
+
+    panel.append(heading, editFormNode)
+    modalEdit.append(backdrop, panel)
     document.body.appendChild(modalEdit)
     modalEdit.querySelectorAll('[data-close-edit]').forEach((el) => el.addEventListener('click', () => modalEdit.remove()))
 
@@ -270,15 +394,15 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     gratisSelect?.addEventListener('change', applyEditRules)
     applyEditRules()
 
-    const form = modalEdit.querySelector('[data-edit-form]')
-    form?.addEventListener('submit', async (event) => {
+    const editForm = modalEdit.querySelector('[data-edit-form]')
+    editForm?.addEventListener('submit', async (event) => {
       event.preventDefault()
       const ok = await (window.showStyledConfirm
         ? window.showStyledConfirm(`¿Confirmas guardar cambios en ${product.nombre}?`)
         : Promise.resolve(confirm(`¿Confirmas guardar cambios en ${product.nombre}?`)))
       if (!ok) return
 
-      const formData = new FormData(form)
+      const formData = new FormData(editForm)
       openLoadingModal('Guardando cambios...')
       const response = await fetch(backendUrl(`/api/admin/productos/${product.id}/editar/`), {
         method: 'POST',
@@ -300,7 +424,11 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     document.querySelectorAll('[data-admin-actions]').forEach((actions) => actions.removeAttribute('hidden'))
 
     wrappers().forEach((wrapper) => {
-      const product = JSON.parse(wrapper.getAttribute('data-product-json') || '{}')
+      const product = {
+        id: Number(wrapper.getAttribute('data-product-id') || 0),
+        nombre: wrapper.dataset.productNombre || '',
+        descripcion: wrapper.dataset.productDescripcion || '',
+      }
 
       wrapper.querySelector('[data-delete-product]')?.addEventListener('click', async () => {
         const ok = await (window.showStyledConfirm
@@ -336,27 +464,66 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
       return
     }
 
-    productsGrid.innerHTML = products
-      .map(
-        (producto) => `
-          <article class="free-product-wrap" data-admin-product data-product-id="${producto.id}" data-product-json='${JSON.stringify(producto).replace(/'/g, '&apos;')}'>
-            <button type="button" class="free-product-card" data-product-slug="${producto.slug}" data-product-name="${producto.nombre}" title="${producto.descripcion || producto.nombre}">
-              ${
-                producto.imagen
-                  ? `<img src="${producto.imagen}" alt="${producto.descripcion || producto.nombre}" title="${producto.descripcion || producto.nombre}" width="220" height="220" />`
-                  : `<img src="/static/web/assets/g345.webp" alt="${producto.descripcion || producto.nombre}" width="220" height="220" />`
-              }
-              <span class="product-name" title="${producto.descripcion || producto.nombre}">${producto.nombre}</span>
-              ${producto.paginas ? `<span class="product-meta">${producto.paginas} pág.</span>` : ''}
-            </button>
-            <div class="published-actions" data-admin-actions hidden>
-              <button class="btn" type="button" data-edit-product>Editar</button>
-              <button class="btn btn-secondary" type="button" data-delete-product>Eliminar</button>
-            </div>
-          </article>
-        `
-      )
-      .join('')
+    productsGrid.replaceChildren()
+
+    products.forEach((producto) => {
+      const article = document.createElement('article')
+      article.className = 'free-product-wrap'
+      article.setAttribute('data-admin-product', '')
+      article.setAttribute('data-product-id', String(producto.id))
+      article.dataset.productNombre = producto.nombre || ''
+      article.dataset.productDescripcion = producto.descripcion || ''
+
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = 'free-product-card'
+      button.setAttribute('data-product-slug', producto.slug || '')
+      button.setAttribute('data-product-name', producto.nombre || '')
+      button.title = producto.descripcion || producto.nombre || ''
+
+      const img = document.createElement('img')
+      img.src = producto.imagen || '/static/web/assets/g345.webp'
+      img.alt = producto.descripcion || producto.nombre || ''
+      img.title = producto.descripcion || producto.nombre || ''
+      img.width = 220
+      img.height = 220
+      if (producto.imagen) img.loading = 'lazy'
+
+      const name = document.createElement('span')
+      name.className = 'product-name'
+      name.title = producto.descripcion || producto.nombre || ''
+      name.textContent = producto.nombre || ''
+
+      button.append(img, name)
+
+      if (producto.paginas) {
+        const meta = document.createElement('span')
+        meta.className = 'product-meta'
+        meta.textContent = `${producto.paginas} pág.`
+        button.appendChild(meta)
+      }
+
+      const actions = document.createElement('div')
+      actions.className = 'published-actions'
+      actions.setAttribute('data-admin-actions', '')
+      actions.hidden = true
+
+      const editButton = document.createElement('button')
+      editButton.className = 'btn'
+      editButton.type = 'button'
+      editButton.setAttribute('data-edit-product', '')
+      editButton.textContent = 'Editar'
+
+      const deleteButton = document.createElement('button')
+      deleteButton.className = 'btn btn-secondary'
+      deleteButton.type = 'button'
+      deleteButton.setAttribute('data-delete-product', '')
+      deleteButton.textContent = 'Eliminar'
+
+      actions.append(editButton, deleteButton)
+      article.append(button, actions)
+      productsGrid.appendChild(article)
+    })
 
     productsGrid.removeAttribute('hidden')
     wireDownloadCards()

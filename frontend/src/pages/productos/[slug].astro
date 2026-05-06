@@ -1,10 +1,11 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro'
+import { getApiOrigin } from '../../lib/api-origin'
 
 export const prerender = false
 
 const { slug } = Astro.params
-const apiBase = new URL('/api/', Astro.url)
+const apiBase = new URL('/api/', getApiOrigin(Astro))
 
 const paymentDetailsResponse = await fetch(new URL('pagos/detalle/', apiBase))
 const paymentDetails = paymentDetailsResponse.ok ? await paymentDetailsResponse.json() : null
