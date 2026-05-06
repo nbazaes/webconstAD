@@ -26,7 +26,16 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 
-from .models import Carrito, CarritoItem, Categoria, Coleccion, MensajeContacto, Producto, SuscriptorAnonimo
+from .models import (
+    Carrito,
+    CarritoItem,
+    Categoria,
+    Coleccion,
+    MensajeContacto,
+    Producto,
+    SuscriptorAnonimo,
+    get_r2_storage,
+)
 from .serializers import MensajeContactoSerializer
 
 
