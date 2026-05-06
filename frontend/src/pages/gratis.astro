@@ -1,16 +1,14 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
 
-const buildApiOrigin = import.meta.env.BUILD_API_ORIGIN || 'http://127.0.0.1:8000'
-
 let categorias = []
 let allCategoriasData = { results: [] }
 try {
-  const respuesta = await fetch(`${buildApiOrigin}/api/categorias/`)
+  const respuesta = await fetch('/api/categorias/')
   const datos = await respuesta.json()
   categorias = datos.results || []
 
-  const allCategoriasRes = await fetch(`${buildApiOrigin}/api/catalog/categorias/`)
+  const allCategoriasRes = await fetch('/api/catalog/categorias/')
   allCategoriasData = await allCategoriasRes.json()
 } catch (e) {
   // API may not be available during build; use empty data

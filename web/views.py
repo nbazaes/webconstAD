@@ -157,9 +157,7 @@ def _build_unique_simple_slug(model_cls, nombre, explicit_slug=None):
 def _media_redirect_url(request, file_field):
     if not file_field:
         return None
-    return request.build_absolute_uri(
-        reverse('api-public-media', kwargs={'file_path': file_field.name})
-    )
+    return reverse('api-public-media', kwargs={'file_path': file_field.name})
 
 
 @require_GET
