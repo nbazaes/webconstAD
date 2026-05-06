@@ -379,6 +379,7 @@ def api_products(request):
             'nombre': p.nombre,
             'slug': p.slug,
             'descripcion': p.descripcion,
+            'descripcion_imagen': _media_redirect_url(request, p.descripcion_imagen),
             'precio': p.precio if p.precio is not None else None,
             'es_gratuito': p.es_gratuito,
             'paginas': p.paginas,
@@ -412,6 +413,7 @@ def api_producto_detalle(request, slug):
             'nombre': producto.nombre,
             'slug': producto.slug,
             'descripcion': producto.descripcion,
+            'descripcion_imagen': _media_redirect_url(request, producto.descripcion_imagen),
             'precio': producto.precio if producto.precio is not None else None,
             'es_gratuito': producto.es_gratuito,
             'paginas': producto.paginas,
@@ -421,7 +423,6 @@ def api_producto_detalle(request, slug):
             'categoria_id': producto.categoria_id,
             'coleccion': producto.coleccion.nombre if producto.coleccion else None,
             'coleccion_id': producto.coleccion_id,
-            'coleccion_descripcion': _media_redirect_url(request, producto.coleccion.descripcion) if producto.coleccion else None,
         }
     )
 
@@ -465,7 +466,6 @@ def api_catalog_colecciones(request):
             'id': c.id,
             'nombre': c.nombre,
             'slug': c.slug,
-            'descripcion': _media_redirect_url(request, c.descripcion),
             'imagen': _media_redirect_url(request, c.imagen),
         }
         for c in colecciones
@@ -496,6 +496,7 @@ def api_categoria_productos(request, slug):
                 'nombre': p.nombre,
                 'slug': p.slug,
                 'descripcion': p.descripcion,
+                'descripcion_imagen': _media_redirect_url(request, p.descripcion_imagen),
                 'precio': p.precio if p.precio is not None else None,
                 'es_gratuito': p.es_gratuito,
                 'paginas': p.paginas,
@@ -755,6 +756,7 @@ def api_admin_productos(request):
             'nombre': p.nombre,
             'slug': p.slug,
             'descripcion': p.descripcion,
+            'descripcion_imagen': _media_redirect_url(request, p.descripcion_imagen),
             'precio': p.precio if p.precio is not None else '',
             'es_gratuito': p.es_gratuito,
             'paginas': p.paginas,
@@ -830,6 +832,8 @@ def api_admin_producto_editar(request, producto_id):
 
     if 'imagen' in request.FILES:
         producto.imagen = request.FILES['imagen']
+    if 'descripcion_imagen' in request.FILES:
+        producto.descripcion_imagen = request.FILES['descripcion_imagen']
     if 'preview_imagen' in request.FILES:
         producto.preview_imagen = request.FILES['preview_imagen']
     if 'archivo' in request.FILES:
@@ -889,8 +893,6 @@ def api_admin_catalogo_crear(request):
     )
     if 'imagen' in request.FILES:
         item.imagen = request.FILES['imagen']
-    if 'descripcion' in request.FILES:
-        item.descripcion = request.FILES['descripcion']
     err = _save_model(item)
     if err:
         return err
@@ -1011,6 +1013,8 @@ def api_publicar_producto(request):
 
     if 'imagen' in request.FILES:
         producto.imagen = request.FILES['imagen']
+    if 'descripcion_imagen' in request.FILES:
+        producto.descripcion_imagen = request.FILES['descripcion_imagen']
     if 'preview_imagen' in request.FILES:
         producto.preview_imagen = request.FILES['preview_imagen']
     if 'archivo' in request.FILES:

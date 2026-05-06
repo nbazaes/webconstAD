@@ -196,6 +196,7 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
       fetch(backendUrl('/api/catalog/categorias/'), { credentials: 'include' }),
       fetch(backendUrl('/api/catalog/colecciones/'), { credentials: 'include' }),
     ])
+    if (!catRes.ok || !colRes.ok) return
     const catData = await catRes.json()
     const colData = await colRes.json()
     const categorias = (catData.results || []).filter((c) => c.es_gratuita)

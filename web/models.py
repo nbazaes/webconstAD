@@ -98,7 +98,6 @@ class Categoria(models.Model):
 
 class Coleccion(models.Model):
 	nombre = models.CharField(max_length=140)
-	descripcion = models.ImageField(upload_to='colecciones/descripciones/', storage=r2_public_storage, blank=True, null=True, validators=[validate_image_extension, validate_image_size])
 	slug = models.SlugField(max_length=180, unique=True)
 	imagen = models.ImageField(upload_to='colecciones/', storage=r2_public_storage, blank=True, null=True, validators=[validate_image_extension, validate_image_size])
 
@@ -113,6 +112,7 @@ class Coleccion(models.Model):
 class Producto(models.Model):
 	nombre = models.CharField(max_length=180)
 	descripcion = models.TextField(blank=True)
+	descripcion_imagen = models.ImageField(upload_to='productos/descripciones/', storage=r2_public_storage, blank=True, null=True, validators=[validate_image_extension, validate_image_size])
 	precio = models.PositiveIntegerField(null=True, blank=True)
 	es_gratuito = models.BooleanField(default=False)
 	archivo = models.FileField(upload_to='productos/', storage=r2_storage, blank=True, null=True, validators=[validate_file_extension, validate_file_size])

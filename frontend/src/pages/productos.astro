@@ -105,6 +105,13 @@ const products = []
 <script>
   const catalogBackendOrigin = window.location.origin
   const catalogBackendUrl = (path) => `${catalogBackendOrigin}${path}`
+  const escapeHtml = (value) =>
+    String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;')
   const productsGrid = document.querySelector('[data-products-grid]')
   const emptyState = document.querySelector('[data-products-empty]')
   const loadingState = document.querySelector('[data-products-loading]')
@@ -127,7 +134,6 @@ const products = []
           <input type="hidden" name="tipo" value="coleccion" />
           <label>Nombre</label><input name="nombre" type="text" required />
           <label>Imagen (opcional)</label><input name="imagen" type="file" accept="image/*" />
-          <label>Descripción (imagen opcional)</label><input name="descripcion" type="file" accept="image/*" />
           <div class="published-actions">
             <button class="btn" type="submit">Crear</button>
             <button class="btn btn-secondary" type="button" data-close-catalog>Cancelar</button>
@@ -237,6 +243,7 @@ const products = []
       fetch(catalogBackendUrl('/api/catalog/categorias/'), { credentials: 'include' }),
       fetch(catalogBackendUrl('/api/catalog/colecciones/'), { credentials: 'include' }),
     ])
+    if (!catRes.ok || !colRes.ok) return
     const catData = await catRes.json()
     const colData = await colRes.json()
     const categorias = (catData.results || []).filter((c) => c.es_gratuita)
@@ -249,10 +256,15 @@ const products = []
       <div class="edit-modal__panel" role="dialog" aria-modal="true">
         <h3>Editar producto</h3>
         <form class="auth-form" data-edit-form>
-          <label>Nombre</label><input name="nombre" type="text" value="${product.nombre || ''}" required />
-          <label>Descripción</label><textarea name="descripcion" rows="3">${product.descripcion || ''}</textarea>
+          <label>Nombre</label><input name="nombre" type="text" value="${escapeHtml(product.nombre || '')}" required />
+          <label>Descripción</label><textarea name="descripcion" rows="3">${escapeHtml(product.descripcion || '')}</textarea>
+          <div data-edit-descripcion-imagen-wrap ${product.es_gratuito ? 'hidden' : ''} style="width:100%">
+            <label>Descripción imagen (opcional)</label><input name="descripcion_imagen" type="file" accept="image/*" style="width:100%" />
+          </div>
           <label>Imagen preview (opcional)</label><input name="imagen" type="file" accept="image/*" />
-          <label>Preview de paginas (opcional)</label><input name="preview_imagen" type="file" accept="image/*" />
+          <div style="width:100%">
+            <label>Preview de paginas (opcional)</label><input name="preview_imagen" type="file" accept="image/*" style="width:100%" />
+          </div>
           <label>¿Es gratuito?</label>
           <select name="es_gratuito" data-edit-gratis>
             <option value="true" ${product.es_gratuito ? 'selected' : ''}>Sí</option>
@@ -262,14 +274,14 @@ const products = []
             <label>Categoria</label>
             <select name="categoria_id">
               <option value="">Sin categoria</option>
-              ${categorias.map((c) => `<option value="${c.id}" ${product.categoria_id === c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+              ${categorias.map((c) => `<option value="${c.id}" ${product.categoria_id === c.id ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`).join('')}
             </select>
           </div>
           <div data-edit-coleccion-wrap ${product.es_gratuito ? 'hidden' : ''}>
             <label>Coleccion</label>
             <select name="coleccion_id">
               <option value="">Sin coleccion</option>
-              ${colecciones.map((c) => `<option value="${c.id}" ${product.coleccion_id === c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+              ${colecciones.map((c) => `<option value="${c.id}" ${product.coleccion_id === c.id ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`).join('')}
             </select>
           </div>
           <label>Paginas</label><input name="paginas" type="number" min="1" step="1" value="${product.paginas || ''}" />
@@ -294,6 +306,8 @@ const products = []
     const categoriaWrap = modal.querySelector('[data-edit-categoria-wrap]')
     const coleccionWrap = modal.querySelector('[data-edit-coleccion-wrap]')
     const precioWrap = modal.querySelector('[data-edit-precio-wrap]')
+    const descripcionImagenWrap = modal.querySelector('[data-edit-descripcion-imagen-wrap]')
+    const descripcionImagenField = modal.querySelector('input[name="descripcion_imagen"]')
     const categoriaField = modal.querySelector('select[name="categoria_id"]')
     const coleccionField = modal.querySelector('select[name="coleccion_id"]')
     const precioField = modal.querySelector('input[name="precio"]')
@@ -303,12 +317,15 @@ const products = []
       if (categoriaWrap) categoriaWrap.hidden = !isFree
       if (coleccionWrap) coleccionWrap.hidden = isFree
       if (precioWrap) precioWrap.hidden = isFree
+      if (descripcionImagenWrap) descripcionImagenWrap.hidden = isFree
       if (categoriaField) categoriaField.disabled = !isFree
       if (coleccionField) coleccionField.disabled = isFree
       if (precioField) precioField.disabled = isFree
+      if (descripcionImagenField) descripcionImagenField.disabled = isFree
       if (isFree) {
         if (coleccionField) coleccionField.value = ''
         if (precioField) precioField.value = ''
+        if (descripcionImagenField) descripcionImagenField.value = ''
       } else if (categoriaField) {
         categoriaField.value = ''
       }
@@ -381,12 +398,12 @@ const products = []
       .map(
         (product) => `
           <article class="product" data-admin-product data-product-id="${product.id}" data-product-json='${JSON.stringify(product).replace(/'/g, '&apos;')}'>
-            <a href="/productos/${product.slug}/" class="product-card" title="${product.descripcion || product.nombre}">
-              <img src="${product.imagen || '/static/web/assets/hero1.webp'}" alt="${product.descripcion || product.nombre}" width="286" height="286" loading="lazy" />
+            <a href="/productos/${encodeURIComponent(product.slug)}/" class="product-card" title="${escapeHtml(product.descripcion || product.nombre)}">
+              <img src="${product.imagen || '/static/web/assets/hero1.webp'}" alt="${escapeHtml(product.descripcion || product.nombre)}" width="286" height="286" loading="lazy" />
               <br />
-              <span class="product-collection"><em>${product.coleccion || 'Coleccion'}</em></span>
+              <span class="product-collection"><em>${escapeHtml(product.coleccion || 'Coleccion')}</em></span>
               <br />
-              <span class="product-title">${product.nombre}</span>
+              <span class="product-title">${escapeHtml(product.nombre)}</span>
             </a>
             <div class="published-actions" data-admin-actions hidden>
               <button class="btn" type="button" data-edit-product>Editar</button>
@@ -423,5 +440,3 @@ const products = []
   loadProducts()
   initColeccionCta()
 </script>
-
-

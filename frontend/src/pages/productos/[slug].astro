@@ -34,9 +34,9 @@ const formattedPrice = producto?.precio != null
               )}
             </div>
             <div class="product-hero__content">
-              {producto.coleccion_descripcion ? (
+              {producto.descripcion_imagen ? (
                 <div class="lead">
-                  <img src={producto.coleccion_descripcion} alt={producto.coleccion || 'Coleccion'} width="400" height="263" loading="lazy" />
+                  <img src={producto.descripcion_imagen} alt={producto.nombre || 'Descripcion'} width="400" height="263" loading="lazy" />
                 </div>
               ) : null}
             </div>
@@ -420,6 +420,7 @@ const formattedPrice = producto?.precio != null
     if (!productId) return
 
     const sessionRes = await fetch(backendUrl('/api/auth/session/'), { credentials: 'include' })
+    if (!sessionRes.ok) return
     const session = await sessionRes.json()
 
     if (!session.authenticated) {
