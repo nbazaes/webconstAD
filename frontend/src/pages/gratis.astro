@@ -94,6 +94,14 @@ const categoriasRender = [...categoriasCatalogo]
         <li>Recursos estacionales</li>
       </ul>
     </section>
+
+    <div class="global-loading-modal" data-global-loading hidden>
+      <div class="global-loading-modal__backdrop"></div>
+      <div class="global-loading-modal__panel">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <p>Procesando...</p>
+      </div>
+    </div>
   </main>
 </BaseLayout>
 
@@ -221,6 +229,19 @@ const categoriasRender = [...categoriasCatalogo]
   const backendOrigin = window.location.origin
   const backendUrl = (path) => `${backendOrigin}${path}`
   const grid = document.querySelector('[data-free-categories]')
+
+  const openLoadingModal = (text = 'Procesando...') => {
+    const el = document.querySelector('[data-global-loading]')
+    if (!el) return
+    const p = el.querySelector('p')
+    if (p) p.textContent = text
+    el.removeAttribute('hidden')
+  }
+
+  const closeLoadingModal = () => {
+    const el = document.querySelector('[data-global-loading]')
+    el?.setAttribute('hidden', '')
+  }
   const emptyBlock = document.querySelector('[data-free-empty]')
 
   const canManageCatalog = (data) =>
@@ -345,19 +366,24 @@ const categoriasRender = [...categoriasCatalogo]
         : Promise.resolve(confirm(`¿Crear la categoría "${nombre}"?`)))
       if (!ok) return
 
-      const response = await fetch(backendUrl('/api/admin/catalogo/crear/'), {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      })
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok || !data.ok) {
-        if (catalogMessage) catalogMessage.textContent = data.message || 'No se pudo crear la categoría.'
-        return
-      }
+      openLoadingModal('Creando categoría...')
+      try {
+        const response = await fetch(backendUrl('/api/admin/catalogo/crear/'), {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        })
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok || !data.ok) {
+          if (catalogMessage) catalogMessage.textContent = data.message || 'No se pudo crear la categoría.'
+          return
+        }
 
-      close()
-      window.location.reload()
+        close()
+        window.location.reload()
+      } finally {
+        closeLoadingModal()
+      }
     })
   }
 
@@ -470,19 +496,24 @@ const categoriasRender = [...categoriasCatalogo]
         : Promise.resolve(confirm(`¿Guardar cambios en "${nombreVal}"?`)))
       if (!ok) return
 
-      const response = await fetch(backendUrl(`/api/admin/catalogo/categoria/${id}/editar/`), {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      })
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok || !data.ok) {
-        if (catalogEditMessage) catalogEditMessage.textContent = data.message || 'No se pudo editar la categoría.'
-        return
-      }
+      openLoadingModal('Editando categoría...')
+      try {
+        const response = await fetch(backendUrl(`/api/admin/catalogo/categoria/${id}/editar/`), {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        })
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok || !data.ok) {
+          if (catalogEditMessage) catalogEditMessage.textContent = data.message || 'No se pudo editar la categoría.'
+          return
+        }
 
-      close()
-      window.location.reload()
+        close()
+        window.location.reload()
+      } finally {
+        closeLoadingModal()
+      }
     })
   }
 
@@ -504,16 +535,21 @@ const categoriasRender = [...categoriasCatalogo]
           ? window.showStyledConfirm(`¿Eliminar la categoría "${nombre}"?`)
           : Promise.resolve(confirm(`¿Eliminar la categoría "${nombre}"?`)))
         if (!ok) return
-        const response = await fetch(backendUrl(`/api/admin/catalogo/categoria/${id}/eliminar/`), {
-          method: 'POST',
-          credentials: 'include',
-        })
-        const data = await response.json().catch(() => ({}))
-        if (!response.ok || !data.ok) {
-          alert(data.message || 'No se pudo eliminar la categoría.')
-          return
+        openLoadingModal('Eliminando categoría...')
+        try {
+          const response = await fetch(backendUrl(`/api/admin/catalogo/categoria/${id}/eliminar/`), {
+            method: 'POST',
+            credentials: 'include',
+          })
+          const data = await response.json().catch(() => ({}))
+          if (!response.ok || !data.ok) {
+            alert(data.message || 'No se pudo eliminar la categoría.')
+            return
+          }
+          window.location.reload()
+        } finally {
+          closeLoadingModal()
         }
-        window.location.reload()
       })
     })
   }

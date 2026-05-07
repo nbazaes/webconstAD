@@ -1241,6 +1241,21 @@ body.nav-open {
   text-align: center;
 }
 
+.global-loading-modal:not([hidden]) .global-loading-modal__panel {
+  animation: modal-enter 0.25s ease both;
+}
+
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 .global-loading-modal__panel .loading-spinner {
   margin: 0 auto 10px;
 }
@@ -1381,6 +1396,11 @@ body.nav-open {
 .btn:focus-visible {
   transform: translateY(-2px);
   opacity: 0.92;
+}
+
+.btn--loading {
+  pointer-events: none;
+  opacity: 0.75;
 }
 
 .auth-message {

@@ -165,7 +165,7 @@ const asset = (path) => `/${path}`
             <label for="login-password">Contraseña</label>
             <input id="login-password" name="password" type="password" required />
 
-            <button class="btn" type="submit">Iniciar sesión</button>
+            <button class="btn" type="submit" data-loading-text="Iniciando sesión">Iniciar sesión</button>
             <button class="auth-link" type="button" data-open-register>
               ¿No tienes cuenta de usuario? Regístrate aquí
             </button>
@@ -196,7 +196,7 @@ const asset = (path) => `/${path}`
             <label for="register-password-confirm">Confirmar contraseña</label>
             <input id="register-password-confirm" name="password_confirm" type="password" required minlength="8" />
 
-            <button class="btn" type="submit">Crear cuenta</button>
+            <button class="btn" type="submit" data-loading-text="Creando cuenta">Crear cuenta</button>
             <button class="auth-link" type="button" data-open-login>
               ¿Ya tienes cuenta? Inicia sesión aquí
             </button>
