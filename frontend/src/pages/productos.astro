@@ -200,19 +200,24 @@ const products = []
         : Promise.resolve(confirm(`¿Crear la colección "${nombre}"?`)))
       if (!ok) return
 
-      const response = await fetch(catalogBackendUrl('/api/admin/catalogo/crear/'), {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      })
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok || !data.ok) {
-        if (message) message.textContent = data.message || 'No se pudo crear la colección.'
-        return
-      }
+      openLoadingModal('Creando colección...')
+      try {
+        const response = await fetch(catalogBackendUrl('/api/admin/catalogo/crear/'), {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        })
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok || !data.ok) {
+          if (message) message.textContent = data.message || 'No se pudo crear la colección.'
+          return
+        }
 
-      close()
-      window.location.reload()
+        close()
+        window.location.reload()
+      } finally {
+        closeLoadingModal()
+      }
     })
   }
 

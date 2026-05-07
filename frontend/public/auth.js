@@ -16,6 +16,8 @@ const authMessage = document.querySelector('[data-auth-message]')
 const authViews = document.querySelectorAll('[data-auth-view]')
 const loginForm = document.querySelector('[data-login-form]')
 const registerForm = document.querySelector('[data-register-form]')
+const loginBtn = loginForm?.querySelector('button[type="submit"]')
+const registerBtn = registerForm?.querySelector('button[type="submit"]')
 const authTabs = document.querySelectorAll('[data-auth-tab]')
 const navAccountLinks = document.querySelectorAll('[data-nav-id="cuenta"]')
 const publishNavItems = document.querySelectorAll('[data-publish-nav]')
@@ -69,6 +71,27 @@ const setAuthMessage = (text = '', isError = false) => {
   authMessage.textContent = text
   authMessage.classList.toggle('error', isError)
 }
+
+const setButtonLoading = (button, isLoading) => {
+  if (!button || !button.dataset.loadingText) return
+  if (isLoading) {
+    button.dataset.originalText = button.textContent
+    button.classList.add('btn--loading')
+    button.disabled = true
+    let count = 0
+    button._ellipsisTimer = setInterval(() => {
+      count = (count + 1) % 4
+      button.textContent = button.dataset.loadingText + '.'.repeat(count)
+    }, 400)
+  } else {
+    clearInterval(button._ellipsisTimer)
+    button.textContent = button.dataset.originalText || button.textContent
+    button.disabled = false
+    button.classList.remove('btn--loading')
+  }
+}
+
+window.setButtonLoading = setButtonLoading
 
 const setVisibleAuthView = (view) => {
   authViews.forEach((section) => {
@@ -278,28 +301,33 @@ loginForm?.addEventListener('submit', async (event) => {
   payload.append('username', identifier)
   payload.append('password', password)
 
-  await ensureCsrfToken()
-  const response = await fetch(backendUrl('/api/auth/login/'), {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: payload,
-  })
+  setButtonLoading(loginBtn, true)
+  try {
+    await ensureCsrfToken()
+    const response = await fetch(backendUrl('/api/auth/login/'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: payload,
+    })
 
-  const data = await readJsonResponse(response)
-  if (!response.ok || !data.ok) {
-    const errorMessage = data.message || 'No se pudo iniciar sesión.'
-    setAuthMessage(errorMessage, true)
-    await showStyledAlert(`Error al iniciar sesión\n${errorMessage}`, 'Error', 'danger')
-    return
+    const data = await readJsonResponse(response)
+    if (!response.ok || !data.ok) {
+      const errorMessage = data.message || 'No se pudo iniciar sesión.'
+      setAuthMessage(errorMessage, true)
+      await showStyledAlert(`Error al iniciar sesión\n${errorMessage}`, 'Error', 'danger')
+      return
+    }
+
+    await refreshSession()
+    loginForm.reset()
+    closeAuthModal()
+    await showStyledAlert('Sesión iniciada\nBienvenido de vuelta.', 'Éxito', 'success')
+  } finally {
+    setButtonLoading(loginBtn, false)
   }
-
-  await refreshSession()
-  loginForm.reset()
-  closeAuthModal()
-  await showStyledAlert('Sesión iniciada\nBienvenido de vuelta.', 'Éxito', 'success')
 })
 
 registerForm?.addEventListener('submit', async (event) => {
@@ -339,31 +367,36 @@ registerForm?.addEventListener('submit', async (event) => {
   payload.append('pais', pais)
   payload.append('password', password)
 
-  await ensureCsrfToken()
-  const response = await fetch(backendUrl('/api/auth/register/'), {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: payload,
-  })
+  setButtonLoading(registerBtn, true)
+  try {
+    await ensureCsrfToken()
+    const response = await fetch(backendUrl('/api/auth/register/'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: payload,
+    })
 
-  const data = await readJsonResponse(response)
-  if (!response.ok || !data.ok) {
-    const errorMessage = data.message || 'No se pudo crear la cuenta.'
-    setAuthMessage(errorMessage, true)
-    await showStyledAlert(`Error al registrarse\n${errorMessage}`, 'Error', 'danger')
-    return
+    const data = await readJsonResponse(response)
+    if (!response.ok || !data.ok) {
+      const errorMessage = data.message || 'No se pudo crear la cuenta.'
+      setAuthMessage(errorMessage, true)
+      await showStyledAlert(`Error al registrarse\n${errorMessage}`, 'Error', 'danger')
+      return
+    }
+
+    registerForm.reset()
+    closeAuthModal()
+    await showStyledAlert(
+      'Registro exitoso\nRevisa tu correo para verificar tu cuenta. Luego podrás iniciar sesión automáticamente al abrir el enlace.',
+      'Éxito',
+      'success'
+    )
+  } finally {
+    setButtonLoading(registerBtn, false)
   }
-
-  registerForm.reset()
-  closeAuthModal()
-  await showStyledAlert(
-    'Registro exitoso\nRevisa tu correo para verificar tu cuenta. Luego podrás iniciar sesión automáticamente al abrir el enlace.',
-    'Éxito',
-    'success'
-  )
 })
 
 refreshRibbonLabels()

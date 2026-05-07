@@ -69,7 +69,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
         <label for="pub-archivo">Archivo (producto)</label>
         <input id="pub-archivo" name="archivo" type="file" />
 
-        <button class="btn" type="submit">Publicar producto</button>
+        <button class="btn" type="submit" data-loading-text="Publicando...">Publicar producto</button>
       </form>
 
       <div class="publicar-list" data-publicar-list hidden>
@@ -92,6 +92,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 
 <script>
   const publicarForm = document.querySelector('[data-publicar-form]')
+  const publicarBtn = publicarForm?.querySelector('button[type="submit"]')
   const publicarMessage = document.querySelector('[data-publicar-message]')
   const publicarLoading = document.querySelector('[data-publicar-loading]')
   const categoriaSelect = document.querySelector('#pub-categoria')
@@ -307,7 +308,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
           </select>
 
           <div class="published-actions">
-            <button class="btn" type="submit">Guardar</button>
+            <button class="btn" type="submit" data-loading-text="Guardando...">Guardar</button>
             <button class="btn btn-secondary" type="button" data-close-edit>Cancelar</button>
           </div>
         </form>
@@ -358,23 +359,28 @@ import BaseLayout from '../layouts/BaseLayout.astro'
         : Promise.resolve(confirm(`Confirmas guardar cambios en ${product.nombre}?`)))
       if (!ok) return
 
+      const editBtn = form.querySelector('button[type="submit"]')
       const formData = new FormData(form)
       openLoadingModal('Guardando cambios...')
-      const response = await fetch(backendUrl(`/api/admin/productos/${product.id}/editar/`), {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      })
-      closeLoadingModal()
+      window.setButtonLoading?.(editBtn, true)
+      try {
+        const response = await fetch(backendUrl(`/api/admin/productos/${product.id}/editar/`), {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        })
+        if (!response.ok) {
+          setMessage('No se pudo editar el producto.', true)
+          return
+        }
 
-      if (!response.ok) {
-        setMessage('No se pudo editar el producto.', true)
-        return
+        close()
+        await loadPublishedProducts()
+        setMessage('Producto actualizado correctamente.')
+      } finally {
+        closeLoadingModal()
+        window.setButtonLoading?.(editBtn, false)
       }
-
-      close()
-      await loadPublishedProducts()
-      setMessage('Producto actualizado correctamente.')
     })
   }
 
@@ -428,6 +434,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     formData.set('es_gratuito', esGratuito ? 'true' : 'false')
 
     openLoadingModal('Publicando producto...')
+    window.setButtonLoading?.(publicarBtn, true)
     let response, data
     try {
       response = await fetch(backendUrl('/api/publicar/producto/'), {
@@ -440,6 +447,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
       data = { ok: false, message: 'Error de conexión al publicar.' }
     }
     closeLoadingModal()
+    window.setButtonLoading?.(publicarBtn, false)
 
     if (!response?.ok || !data.ok) {
       const errorMessage = data.message || 'No se pudo publicar el producto.'
