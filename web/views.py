@@ -847,7 +847,7 @@ def api_admin_producto_editar(request, producto_id):
 
 @require_http_methods(['POST'])
 def api_admin_producto_eliminar(request, producto_id):
-    admin_error = _ensure_superadmin(request)
+    admin_error = _ensure_admin(request)
     if admin_error:
         return admin_error
 
@@ -943,7 +943,7 @@ def api_admin_catalogo_editar(request, tipo, item_id):
 
 @require_http_methods(['POST'])
 def api_admin_catalogo_eliminar(request, tipo, item_id):
-    admin_error = _ensure_superadmin(request)
+    admin_error = _ensure_admin(request)
     if admin_error:
         return admin_error
 
