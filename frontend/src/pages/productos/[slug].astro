@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro'
+import { Icon } from 'astro-icon/components'
 import { getApiOrigin } from '../../lib/api-origin'
 
 export const prerender = false
@@ -22,6 +23,7 @@ const formattedPrice = producto?.precio != null
 
 <BaseLayout title={pageTitle} page="productos">
   <main class="content">
+    <a href="javascript:history.back()" class="back-btn" aria-label="Volver atrás"><Icon name="lucide:arrow-big-left" /> Volver</a>
     {producto ? (
       <>
         <section class="products-hero text-block">
@@ -330,6 +332,25 @@ const formattedPrice = producto?.precio != null
     }
   }
 
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 1.5rem;
+    color: #6a5f55;
+    text-decoration: none;
+    transition: color 0.2s;
+    margin-left: 211px;
+  }
+  .back-btn svg {
+    width: 48px;
+    height: 48px;
+    opacity: 0.7;
+  }
+  .back-btn:hover {
+    color: #243233;
+  }
+
   @media (max-width: 700px) {
     .product-title-block h2 {
       font-size: 1.4rem;
@@ -351,6 +372,10 @@ const formattedPrice = producto?.precio != null
 
     .product-hero__content .lead img {
       max-width: 320px;
+    }
+
+    .back-btn {
+      margin-left: 0;
     }
   }
 </style>
