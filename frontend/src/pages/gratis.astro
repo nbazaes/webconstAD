@@ -41,6 +41,18 @@ const categoriasRender = [...categoriasCatalogo]
 <p class="lead">Recursos gratuitos para <em>imprimir</em> o <em>dibujar</em> digitalmente.</p>
     </section>
 
+    <div class="catalog-cta-wrapper" data-catalog-cta hidden>
+      <div class="catalog-cta">
+        <h3>Agregar categoría</h3>
+        <p>Crea una nueva categoría gratuita desde aquí.</p>
+        <div class="catalog-cta__actions">
+          <button class="btn" type="button" data-open-add-categoria>Crear categoría</button>
+          <a class="btn btn-secondary" href="/publicar/">Ir a publicar</a>
+        </div>
+        <div class="catalog-cta__helper">Disponible para admins y artistas.</div>
+      </div>
+    </div>
+
     <section class="products-grid" data-free-categories hidden={categoriasRender.length === 0}>
       {categoriasRender.length > 0 ? (
         <>
@@ -136,6 +148,9 @@ const categoriasRender = [...categoriasCatalogo]
     text-align: center;
     align-content: center;
     min-height: 210px;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 1rem;
   }
 
   .catalog-cta h3 {
@@ -155,12 +170,22 @@ const categoriasRender = [...categoriasCatalogo]
     flex-wrap: wrap;
   }
 
+  .catalog-cta__actions .btn {
+    white-space: nowrap;
+  }
+
   .catalog-cta__helper {
     font-size: 0.95rem;
     color: #6d6158;
   }
 
-  @media (max-width: 700px) {
+  .catalog-cta-wrapper {
+    max-width: 1100px;
+    margin: 0 auto 28px;
+    padding: 0 20px 80px;
+  }
+
+  @media (max-width: 720px) {
     .products-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 14px;
@@ -175,6 +200,19 @@ const categoriasRender = [...categoriasCatalogo]
     .product-title {
       font-size: 1rem;
       margin-top: 8px;
+    }
+
+    .catalog-cta-wrapper {
+      padding: 0 8px 64px;
+    }
+
+    .catalog-cta {
+      padding: 14px;
+      min-height: 160px;
+    }
+
+    .catalog-cta__actions {
+      gap: 16px;
     }
   }
 </style>
@@ -191,35 +229,13 @@ const categoriasRender = [...categoriasCatalogo]
         (data.user?.rol === 'admin' || data.user?.rol === 'artista' || data.user?.is_staff || data.user?.is_superuser)
     )
 
-  const insertAddCard = () => {
-    if (!grid || grid.querySelector('[data-add-categoria]')) return
-    const wrapper = document.createElement('article')
-    wrapper.className = 'product'
-    wrapper.setAttribute('data-add-categoria', '')
-    const cta = document.createElement('div')
-    cta.className = 'catalog-cta'
+  const ctaBlock = document.querySelector('[data-catalog-cta]')
 
-    const title = document.createElement('h3')
-    title.textContent = 'Agregar categoría'
-
-    const actions = document.createElement('div')
-    actions.className = 'catalog-cta__actions'
-
-    const createButton = document.createElement('button')
-    createButton.className = 'btn'
-    createButton.type = 'button'
-    createButton.setAttribute('data-open-add-categoria', '')
-    createButton.textContent = 'Crear categoría'
-
-    const publishLink = document.createElement('a')
-    publishLink.className = 'btn btn-secondary'
-    publishLink.href = '/publicar/'
-    publishLink.textContent = 'Ir a publicar'
-
-    actions.append(createButton, publishLink)
-    cta.append(title, actions)
-    wrapper.appendChild(cta)
-    grid.prepend(wrapper)
+  const showAdminCta = () => {
+    if (!ctaBlock || ctaBlock.hasAttribute('shown')) return
+    ctaBlock.removeAttribute('hidden')
+    ctaBlock.setAttribute('shown', '')
+    ctaBlock.querySelector('[data-open-add-categoria]')?.addEventListener('click', openCatalogModal)
   }
 
   const openCatalogModal = async () => {
@@ -504,8 +520,7 @@ const categoriasRender = [...categoriasCatalogo]
 
   const applyAdminCatalogUi = () => {
     if (!grid) return
-    insertAddCard()
-    grid.querySelector('[data-open-add-categoria]')?.addEventListener('click', openCatalogModal)
+    showAdminCta()
     wireCategoriaActions()
   }
 
@@ -515,27 +530,8 @@ const categoriasRender = [...categoriasCatalogo]
     const data = await response.json()
     if (!canManageCatalog(data)) return
 
-    if (grid) {
-      applyAdminCatalogUi()
-      return
-    }
-
-    if (!emptyBlock || emptyBlock.querySelector('[data-add-categoria]')) return
-    const emptyWrapper = document.createElement('div')
-    emptyWrapper.setAttribute('data-add-categoria', '')
-    emptyWrapper.innerHTML = `
-      <div class="catalog-cta" style="margin-top: 16px;">
-        <h3>Agregar categoría</h3>
-        <p>Crea una nueva categoría gratuita desde aquí.</p>
-        <div class="catalog-cta__actions">
-          <button class="btn" type="button" data-open-add-categoria>Crear categoría</button>
-          <a class="btn btn-secondary" href="/publicar/">Ir a publicar</a>
-        </div>
-        <div class="catalog-cta__helper">Disponible para admins y artistas.</div>
-      </div>
-    `
-    emptyBlock.appendChild(emptyWrapper)
-    emptyBlock.querySelector('[data-open-add-categoria]')?.addEventListener('click', openCatalogModal)
+    showAdminCta()
+    if (grid) wireCategoriaActions()
   }
 
   window.initAddCategoria = initAddCategoria

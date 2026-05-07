@@ -11,6 +11,16 @@ const products = []
       <p class="lead">Archivos para <em>imprimir</em> o trabajar <em>digitalmente</em></p>
     </section>
 
+    <div class="catalog-cta-wrapper" data-catalog-cta hidden>
+      <div class="catalog-cta">
+        <h3>Agregar colección</h3>
+        <div class="catalog-cta__actions">
+          <button class="btn" type="button" data-open-add-coleccion>Crear colección</button>
+          <a class="btn btn-secondary" href="/publicar/">Ir a publicar</a>
+        </div>
+      </div>
+    </div>
+
     <section class="products-grid" data-products-grid hidden></section>
     <section class="products-hero text-block" data-products-empty hidden>
       <p>Aún no hay productos de pago publicados.</p>
@@ -55,7 +65,7 @@ const products = []
   }
 
 
-  @media (max-width: 700px) {
+  @media (max-width: 720px) {
     .product-collection {
       font-size: 1.05rem;
     }
@@ -64,6 +74,18 @@ const products = []
       font-size: 1rem;
     }
 
+    .catalog-cta-wrapper {
+      padding: 0 8px 64px;
+    }
+
+    .catalog-cta {
+      padding: 14px;
+      min-height: 160px;
+    }
+
+    .catalog-cta__actions {
+      gap: 16px;
+    }
   }
 
   .catalog-cta {
@@ -76,6 +98,9 @@ const products = []
     text-align: center;
     align-content: center;
     min-height: 210px;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 1rem;
   }
 
   .catalog-cta h3 {
@@ -95,9 +120,19 @@ const products = []
     flex-wrap: wrap;
   }
 
+  .catalog-cta__actions .btn {
+    white-space: nowrap;
+  }
+
   .catalog-cta__helper {
     font-size: 0.95rem;
     color: #6d6158;
+  }
+
+  .catalog-cta-wrapper {
+    max-width: 1100px;
+    margin: 0 auto 28px;
+    padding: 0 20px 80px;
   }
 
 </style>
@@ -181,24 +216,13 @@ const products = []
     })
   }
 
-  const insertColeccionCard = (target) => {
-    if (!target || target.querySelector('[data-add-coleccion]')) return
-    const wrapper = document.createElement('article')
-    wrapper.className = 'product'
-    wrapper.setAttribute('data-add-coleccion', '')
-    wrapper.innerHTML = `
-      <div class="catalog-cta" ${target === emptyState ? 'style="margin-top: 16px;"' : ''}>
-        <h3>Agregar colección</h3>
-        <!--<p>Publica una nueva colección para tus productos de pago.</p>-->
-        <div class="catalog-cta__actions">
-          <button class="btn" type="button" data-open-add-coleccion>Crear colección</button>
-          <a class="btn btn-secondary" href="/publicar/">Ir a publicar</a>
-        </div>
-        <!--<div class="catalog-cta__helper">Disponible para admins y artistas.</div>-->
-      </div>
-    `
-    target.prepend(wrapper)
-    wrapper.querySelector('[data-open-add-coleccion]')?.addEventListener('click', openColeccionModal)
+  const ctaBlock = document.querySelector('[data-catalog-cta]')
+
+  const showAdminCta = () => {
+    if (!ctaBlock || ctaBlock.hasAttribute('shown')) return
+    ctaBlock.removeAttribute('hidden')
+    ctaBlock.setAttribute('shown', '')
+    ctaBlock.querySelector('[data-open-add-coleccion]')?.addEventListener('click', openColeccionModal)
   }
 
   const initColeccionCta = async () => {
@@ -207,15 +231,7 @@ const products = []
     if (!response.ok) return
     const data = await response.json()
     if (!canManageCatalog(data)) return
-    if (productsGrid && !productsGrid.hasAttribute('hidden')) {
-      insertColeccionCard(productsGrid)
-      return
-    }
-    if (emptyState && !emptyState.hasAttribute('hidden')) {
-      insertColeccionCard(emptyState)
-      return
-    }
-    insertColeccionCard(productsGrid || emptyState)
+    showAdminCta()
   }
 
   window.initColeccionCta = initColeccionCta

@@ -531,7 +531,7 @@ a:hover {
   }
 
   .site-title img {
-    max-width: 150px;
+    max-width: 130px;
   }
 
   .side-nav {
@@ -960,65 +960,12 @@ a:hover {
 }
 
 @media (min-width: 721px) and (max-width: 1366px) {
-  html {
-    font-size: 13px;
-  }
-
-  .site-header {
-    padding: 14px 16px 4px 20px;
-    gap: 10px;
-  }
-
-  .brand {
-    gap: 8px;
-  }
-
-  .logo {
-    width: 78px;
-    height: 78px;
-  }
-
-  .site-title img {
-    max-width: 110px;
+  body {
+    zoom: 0.67;
   }
 
   .decor-leaf-left {
     display: none;
-  }
-
-  .side-nav {
-    top: 96px;
-    width: 135px;
-    right: -14px;
-  }
-
-  .side-nav::before {
-    left: -58px;
-  }
-
-  .side-nav ul {
-    gap: 10px;
-  }
-
-  .side-nav li a {
-    height: 36px;
-    padding: 0 8px;
-  }
-
-  .content {
-    padding: 10px 20px 44px 24px;
-  }
-
-  .subtitle {
-    font-size: 24px;
-    margin: 22px 0 18px;
-  }
-
-  .showcase,
-  .products-hero,
-  .site-map-grid,
-  .products-grid {
-    max-width: 920px;
   }
 
   .site-footer__grid {
@@ -1031,49 +978,6 @@ a:hover {
     position: relative;
     z-index: 1;
     padding: 10px 0 8px;
-  }
-
-  .showcase {
-    gap: 20px;
-  }
-
-  .card {
-    padding: 10px;
-  }
-
-  .products-hero h2 {
-    font-size: 24px;
-  }
-
-  .products-hero .lead {
-    font-size: 17px;
-  }
-
-  .products-grid {
-    gap: 20px;
-    padding: 0 16px 64px;
-  }
-
-  .product {
-    font-size: 16px;
-  }
-
-  .product img {
-    width: 228px;
-  }
-
-  .auth-modal,
-  .confirm-modal {
-    padding: 14px;
-  }
-
-  .auth-modal__panel,
-  .confirm-modal__panel,
-  .edit-modal__panel,
-  .catalog-modal__panel,
-  .global-loading-modal__panel {
-    transform: scale(0.8);
-    transform-origin: center top;
   }
 }
 
