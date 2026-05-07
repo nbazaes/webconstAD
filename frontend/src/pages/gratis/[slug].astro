@@ -546,16 +546,7 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
       downloadBtn.setAttribute('data-product-name', producto.nombre || '')
       downloadBtn.textContent = 'Descargar'
 
-      article.append(imageWrapper, name)
-
-      if (producto.paginas) {
-        const meta = document.createElement('span')
-        meta.className = 'product-meta'
-        meta.textContent = `${producto.paginas} pág.`
-        article.appendChild(meta)
-      }
-
-      article.appendChild(downloadBtn)
+      article.append(imageWrapper, name, downloadBtn)
 
       const actions = document.createElement('div')
       actions.className = 'published-actions'
