@@ -65,6 +65,16 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     </div>
   </div>
 
+  <div class="zoom-modal" data-zoom-modal hidden>
+    <div class="zoom-modal__backdrop" data-close-zoom></div>
+    <div class="zoom-modal__panel" role="dialog" aria-modal="true" aria-label="Vista previa">
+      <button type="button" class="zoom-modal__close" data-close-zoom aria-label="Cerrar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <img data-zoom-image src="" alt="" />
+    </div>
+  </div>
+
   <div class="global-loading-modal" data-global-loading hidden>
     <div class="global-loading-modal__backdrop"></div>
     <div class="global-loading-modal__panel">
@@ -91,6 +101,8 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
   const newsletterStatus = document.querySelector('[data-newsletter-status]')
   const guestSubscription = document.querySelector('[data-guest-subscription]')
   const globalLoading = document.querySelector('[data-global-loading]')
+  const zoomModal = document.querySelector('[data-zoom-modal]')
+  const zoomImage = zoomModal?.querySelector('[data-zoom-image]')
 
   const backendOrigin = window.location.origin
   const backendUrl = (path) => `${backendOrigin}${path}`
@@ -143,18 +155,47 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
 
   })
 
-  const wireDownloadCards = () => {
+  const wireDownloadButtons = () => {
     if (!productsGrid) return
-    productsGrid.querySelectorAll('.free-product-card').forEach((card) => {
-      card.addEventListener('click', () => {
-        selectedSlug = card.getAttribute('data-product-slug') || ''
-        selectedName = card.getAttribute('data-product-name') || 'este archivo'
+    productsGrid.querySelectorAll('.free-download-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        selectedSlug = btn.getAttribute('data-product-slug') || ''
+        selectedName = btn.getAttribute('data-product-name') || 'este archivo'
         if (!message || !modal) return
         message.textContent = `Quieres descargar "${selectedName}"?`
         modal.removeAttribute('hidden')
       })
     })
   }
+
+  const wireZoomImages = () => {
+    if (!productsGrid) return
+    productsGrid.querySelectorAll('.free-product-image-wrapper').forEach((wrapper) => {
+      wrapper.addEventListener('click', () => {
+        const img = wrapper.querySelector('img')
+        if (!img || !zoomModal || !zoomImage) return
+        zoomImage.src = img.src
+        zoomImage.alt = img.alt
+        zoomModal.removeAttribute('hidden')
+        document.body.style.overflow = 'hidden'
+      })
+    })
+  }
+
+  const closeZoomModal = () => {
+    if (!zoomModal) return
+    zoomModal.setAttribute('hidden', '')
+    document.body.style.overflow = ''
+    if (zoomImage) zoomImage.src = ''
+  }
+
+  zoomModal?.querySelectorAll('[data-close-zoom]').forEach((el) => el.addEventListener('click', closeZoomModal))
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && zoomModal && !zoomModal.hasAttribute('hidden')) {
+      closeZoomModal()
+    }
+  })
 
   newsletterSave?.addEventListener('click', async () => {
     const email = String(newsletterInput?.value || '').trim()
@@ -475,12 +516,9 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
       article.dataset.productNombre = producto.nombre || ''
       article.dataset.productDescripcion = producto.descripcion || ''
 
-      const button = document.createElement('button')
-      button.type = 'button'
-      button.className = 'free-product-card'
-      button.setAttribute('data-product-slug', producto.slug || '')
-      button.setAttribute('data-product-name', producto.nombre || '')
-      button.title = producto.descripcion || producto.nombre || ''
+      const imageWrapper = document.createElement('div')
+      imageWrapper.className = 'free-product-image-wrapper'
+      imageWrapper.title = producto.descripcion || producto.nombre || ''
 
       const img = document.createElement('img')
       img.src = producto.imagen || '/static/web/assets/g345.webp'
@@ -490,19 +528,34 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
       img.height = 220
       if (producto.imagen) img.loading = 'lazy'
 
+      const overlay = document.createElement('div')
+      overlay.className = 'zoom-overlay'
+      overlay.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
+
+      imageWrapper.append(img, overlay)
+
       const name = document.createElement('span')
       name.className = 'product-name'
       name.title = producto.descripcion || producto.nombre || ''
       name.textContent = producto.nombre || ''
 
-      button.append(img, name)
+      const downloadBtn = document.createElement('button')
+      downloadBtn.type = 'button'
+      downloadBtn.className = 'btn free-download-btn'
+      downloadBtn.setAttribute('data-product-slug', producto.slug || '')
+      downloadBtn.setAttribute('data-product-name', producto.nombre || '')
+      downloadBtn.textContent = 'Descargar'
+
+      article.append(imageWrapper, name)
 
       if (producto.paginas) {
         const meta = document.createElement('span')
         meta.className = 'product-meta'
         meta.textContent = `${producto.paginas} pág.`
-        button.appendChild(meta)
+        article.appendChild(meta)
       }
+
+      article.appendChild(downloadBtn)
 
       const actions = document.createElement('div')
       actions.className = 'published-actions'
@@ -522,12 +575,13 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
       deleteButton.textContent = 'Eliminar'
 
       actions.append(editButton, deleteButton)
-      article.append(button, actions)
+      article.appendChild(actions)
       productsGrid.appendChild(article)
     })
 
     productsGrid.removeAttribute('hidden')
-    wireDownloadCards()
+    wireDownloadButtons()
+    wireZoomImages()
     ensureAdminUi().then((isAdmin) => {
       if (!isAdmin) return
       document.querySelectorAll('[data-admin-actions]').forEach((actions) => actions.removeAttribute('hidden'))
@@ -599,39 +653,63 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     object-fit: contain;
   }
 
-  .free-product-card {
-    appearance: none;
-    border: 0;
-    background: transparent;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding: 4px;
-    color: inherit;
-    text-align: center;
+  .free-product-image-wrapper {
+    position: relative;
+    cursor: zoom-in;
+    border-radius: 6px;
+    overflow: hidden;
+    line-height: 0;
   }
 
-  .free-product-card img {
+  .free-product-image-wrapper img {
     width: 220px;
     height: auto;
     object-fit: contain;
     border-radius: 6px;
     box-shadow: none;
     background: #fff;
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    transition: box-shadow 0.2s ease, transform 0.2s ease, filter 0.25s ease;
+    display: block;
   }
 
-  .free-product-card:hover img {
+  .free-product-image-wrapper:hover img {
     transform: translateY(-3px);
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+    filter: blur(3px);
   }
 
-  .free-product-card:focus-visible img,
-  .free-product-card:active img {
+  .free-product-image-wrapper:focus-visible img {
     transform: translateY(-3px);
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+    filter: blur(3px);
+  }
+
+  .zoom-overlay {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    background: rgba(0, 0, 0, 0.22);
+    pointer-events: none;
+    border-radius: 6px;
+  }
+
+  .free-product-image-wrapper:hover .zoom-overlay,
+  .free-product-image-wrapper:focus-visible .zoom-overlay {
+    opacity: 1;
+  }
+
+  .zoom-overlay svg {
+    width: 40px;
+    height: 40px;
+    color: #fff;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+  }
+
+  .free-download-btn {
+    margin-top: 8px;
   }
 
   .product-name {
@@ -707,6 +785,68 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     color: #243233;
   }
 
+  .zoom-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2100;
+    display: grid;
+    place-items: center;
+  }
+
+  .zoom-modal[hidden] {
+    display: none;
+  }
+
+  .zoom-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(9, 10, 10, 0.72);
+    backdrop-filter: blur(6px);
+  }
+
+  .zoom-modal__panel {
+    position: relative;
+    width: min(900px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+  }
+
+  .zoom-modal__panel img {
+    max-width: 100%;
+    max-height: calc(100vh - 64px);
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    background: #fff;
+  }
+
+  .zoom-modal__close {
+    position: absolute;
+    top: -14px;
+    right: -14px;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #243233;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: transform 0.18s ease, background 0.18s ease;
+    z-index: 1;
+  }
+
+  .zoom-modal__close:hover,
+  .zoom-modal__close:focus-visible {
+    transform: rotate(90deg) scale(1.06);
+    background: #fff;
+  }
+
   @media (max-width: 700px) {
     .category-hero {
       grid-template-columns: 1fr;
@@ -722,12 +862,7 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
       padding: 0 8px;
     }
 
-    .free-product-card {
-      padding: 4px;
-      gap: 8px;
-    }
-
-    .free-product-card img {
+    .free-product-image-wrapper img {
       width: 180px;
     }
 
