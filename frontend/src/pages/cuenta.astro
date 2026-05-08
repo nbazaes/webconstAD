@@ -179,9 +179,13 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     })
 
     if (!response.ok) {
+      const data = await window.safeFetchJson
+        ? window.safeFetchJson(response)
+        : response.json().catch(() => ({ message: 'No se pudo iniciar sesión.' }))
+      const msg = data?.message || 'No se pudo iniciar sesión.'
       await (window.showStyledAlert
-        ? window.showStyledAlert('No se pudo iniciar sesión.', 'Error', 'danger')
-        : Promise.resolve(alert('No se pudo iniciar sesión.')))
+        ? window.showStyledAlert(msg, 'Error', 'danger')
+        : Promise.resolve(alert(msg)))
       return
     }
     pageLoginForm.reset()
