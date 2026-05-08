@@ -43,6 +43,10 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     <section class="products-hero text-block" data-cat-empty hidden>
       <p>No hay productos en esta categoría todavía.</p>
     </section>
+
+    <div class="go-top-wrapper">
+      <a href="#" class="btn btn-secondary go-top">Ir arriba</a>
+    </div>
   </main>
 
   <div class="download-modal" data-download-modal hidden>
@@ -285,6 +289,12 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     imagenInput.type = 'file'
     imagenInput.accept = 'image/*'
 
+    const archivoLabel = document.createElement('label')
+    archivoLabel.textContent = 'Archivo de descarga' + (product.archivo ? ' (' + product.archivo.split('/').pop() + ')' : '')
+    const archivoInput = document.createElement('input')
+    archivoInput.name = 'archivo'
+    archivoInput.type = 'file'
+
     const gratisLabel = document.createElement('label')
     gratisLabel.textContent = 'Es gratuito?'
     const gratisSelectField = document.createElement('select')
@@ -395,6 +405,8 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
       descripcionTextarea,
       imagenLabel,
       imagenInput,
+      archivoLabel,
+      archivoInput,
       gratisLabel,
       gratisSelectField,
       categoriaWrapField,
@@ -656,7 +668,7 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
 
   .free-product-image-wrapper img {
     width: 220px;
-    height: auto;
+    aspect-ratio: 1 / 1;
     object-fit: contain;
     border-radius: 6px;
     box-shadow: none;
@@ -875,6 +887,7 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
 
     .free-product-image-wrapper img {
       width: 180px;
+      aspect-ratio: 1 / 1;
     }
 
     .product-name {

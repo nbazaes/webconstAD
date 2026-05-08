@@ -29,7 +29,9 @@ const products = []
       <p>Cargando productos...</p>
     </section>
 
-
+    <div class="go-top-wrapper">
+      <a href="#" class="btn btn-secondary go-top">Ir arriba</a>
+    </div>
 
     <div class="global-loading-modal" data-global-loading hidden>
       <div class="global-loading-modal__backdrop"></div>
@@ -286,6 +288,7 @@ const products = []
           <div style="width:100%">
             <label>Preview de paginas (opcional)</label><input name="preview_imagen" type="file" accept="image/*" style="width:100%" />
           </div>
+          <label>Archivo de descarga${product.archivo ? ` (${product.archivo.split('/').pop()})` : ''}</label><input name="archivo" type="file" />
           <label>¿Es gratuito?</label>
           <select name="es_gratuito" data-edit-gratis>
             <option value="true" ${product.es_gratuito ? 'selected' : ''}>Sí</option>

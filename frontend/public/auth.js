@@ -42,11 +42,11 @@ const backendUrl = (path) => `${backendOrigin}${path}`
 
 const readJsonResponse = async (response) => {
   try {
+    const data = await response.json()
     if (!response.ok) {
-      const text = await response.text().catch(() => '')
-      return { ok: false, message: `HTTP ${response.status}${text ? ': ' + text.slice(0, 200) : ''}` }
+      return { ok: false, message: data.message || `Error ${response.status}` }
     }
-    return await response.json()
+    return data
   } catch {
     const text = await response.text().catch(() => '')
     const message = text && text.includes('CSRF')

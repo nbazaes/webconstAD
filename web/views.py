@@ -677,7 +677,7 @@ def api_auth_login(request):
 
     user = authenticate(request, username=login_identifier, password=password)
     if not user:
-        return _bad_request('credenciales invalidas', status=401)
+        return _bad_request('credenciales inválidas', status=401)
 
     login(request, user)
     request.session.set_expiry(settings.SESSION_COOKIE_AGE)
