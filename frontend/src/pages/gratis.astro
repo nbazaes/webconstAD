@@ -131,7 +131,10 @@ const categoriasRender = [...categoriasCatalogo]
     transform: translateY(-3px);
   }
   .product-title {
-    display: block;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
     margin-top: 12px;
     color: #111;
     text-decoration: none;

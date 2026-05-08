@@ -680,8 +680,7 @@ a:hover {
 
 .product img {
   width: 286px;
-  max-height: none;
-  height: auto;
+  aspect-ratio: 1 / 1;
   object-fit: contain;
   border-radius: 6px;
   box-shadow: none;
@@ -1540,7 +1539,7 @@ body.nav-open {
 
   .product img {
     width: 260px;
-    height: 260px;
+    aspect-ratio: 1 / 1;
   }
 }
 
@@ -1593,7 +1592,7 @@ body.nav-open {
 
   .product img {
     width: 234px;
-    height: 220px;
+    aspect-ratio: 1 / 1;
   }
 
   .contact-grid {
