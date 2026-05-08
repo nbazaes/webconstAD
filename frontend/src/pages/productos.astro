@@ -286,6 +286,7 @@ const products = []
           <div style="width:100%">
             <label>Preview de paginas (opcional)</label><input name="preview_imagen" type="file" accept="image/*" style="width:100%" />
           </div>
+          <label>Archivo de descarga${product.archivo ? ` (${product.archivo.split('/').pop()})` : ''}</label><input name="archivo" type="file" />
           <label>¿Es gratuito?</label>
           <select name="es_gratuito" data-edit-gratis>
             <option value="true" ${product.es_gratuito ? 'selected' : ''}>Sí</option>

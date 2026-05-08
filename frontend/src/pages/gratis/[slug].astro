@@ -285,6 +285,12 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     imagenInput.type = 'file'
     imagenInput.accept = 'image/*'
 
+    const archivoLabel = document.createElement('label')
+    archivoLabel.textContent = 'Archivo de descarga' + (product.archivo ? ' (' + product.archivo.split('/').pop() + ')' : '')
+    const archivoInput = document.createElement('input')
+    archivoInput.name = 'archivo'
+    archivoInput.type = 'file'
+
     const gratisLabel = document.createElement('label')
     gratisLabel.textContent = 'Es gratuito?'
     const gratisSelectField = document.createElement('select')
@@ -395,6 +401,8 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
       descripcionTextarea,
       imagenLabel,
       imagenInput,
+      archivoLabel,
+      archivoInput,
       gratisLabel,
       gratisSelectField,
       categoriaWrapField,
