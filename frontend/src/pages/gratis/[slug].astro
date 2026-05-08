@@ -26,7 +26,7 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
 
 <BaseLayout title={pageTitle} page="gratis">
   <main class="content">
-    <a href="javascript:history.back()" class="back-btn" aria-label="Volver atrás"><Icon name="lucide:arrow-big-left" /> Volver</a>
+    <button type="button" class="back-btn" aria-label="Volver atrás" onclick="history.back()"><Icon name="lucide:arrow-big-left" /> Volver</button>
     <section class="products-hero text-block" data-cat-header hidden>
       <div class="category-hero">
         <div class="category-hero__image" hidden>
@@ -45,7 +45,7 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     </section>
 
     <div class="go-top-wrapper">
-      <a href="#" class="btn btn-secondary go-top">Ir arriba</a>
+      <a href="javascript:void(0)" class="btn btn-secondary go-top" onclick="window.scrollTo({top:0,behavior:'smooth'});return false">Ir arriba</a>
     </div>
   </main>
 
@@ -855,11 +855,16 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
   .back-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     font-size: 1rem;
+    font-family: 'PT Serif', serif;
     color: #6a5f55;
-    text-decoration: none;
-    transition: color 0.2s;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.18s ease;
   }
   .back-btn svg {
     width: 36px;
@@ -867,7 +872,9 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     opacity: 0.7;
   }
   .back-btn:hover {
-    color: #243233;
+    border-color: #d8e5dc;
+    background: rgba(216, 229, 220, 0.3);
+    transform: translateX(-2px);
   }
 
   @media (max-width: 700px) {
