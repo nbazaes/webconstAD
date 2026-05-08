@@ -10,6 +10,10 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 html,
 body {
   height: 100%;
@@ -696,6 +700,16 @@ a:hover {
 .product button:active img {
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
   transform: translateY(-3px);
+}
+
+.go-top-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 60px;
+}
+
+.go-top {
+  text-decoration: none;
 }
 
 .caption {
