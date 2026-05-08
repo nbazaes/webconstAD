@@ -86,13 +86,13 @@ class Producto(models.Model):
 	nombre = models.CharField(max_length=180)
 	descripcion = models.TextField(blank=True)
 	precio = models.PositiveIntegerField(null=True, blank=True)
-	es_gratuito = models.BooleanField(default=False)
+	es_gratuito = models.BooleanField(default=False, db_index=True)
 	archivo = models.FileField(upload_to='productos/', storage=r2_storage, blank=True, null=True)
 	imagen = models.ImageField(upload_to='productos/', storage=r2_storage, blank=True, null=True)
 	preview_imagen = models.ImageField(upload_to='productos/previews/', storage=r2_storage, blank=True, null=True)
 	slug = models.SlugField(max_length=200, unique=True)
 	paginas = models.PositiveIntegerField(null=True, blank=True)
-	activo = models.BooleanField(default=True)
+	activo = models.BooleanField(default=True, db_index=True)
 	categoria = models.ForeignKey(
 		Categoria,
 		on_delete=models.SET_NULL,

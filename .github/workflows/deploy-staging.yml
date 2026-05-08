@@ -61,3 +61,4 @@ jobs:
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u nbazaes --password-stdin
             docker compose -f docker-compose.staging.yml pull
             docker compose -f docker-compose.staging.yml up -d --force-recreate
+            docker image prune -af
