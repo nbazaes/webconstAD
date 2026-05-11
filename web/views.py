@@ -3,6 +3,7 @@ import secrets
 from datetime import timedelta
 from pathlib import Path
 from decimal import Decimal
+from urllib.parse import urlencode
 import base64
 import logging
 
@@ -1300,19 +1301,8 @@ def api_flow_confirmation(request):
 
 
 def api_flow_return(request):
-    flow_status = request.GET.get('flow_status', '')
-    token = request.GET.get('token', '')
-
-    frontend_url = settings.FLOW_URL_RETURN.split('?')[0]
-
-    status_map = {
-        '1': 'completada',
-        '2': 'rechazada',
-        '3': 'cancelada',
-    }
-    msg = status_map.get(flow_status, 'pendiente')
-
-    separator = '&' if '?' in frontend_url else '?'
-    redirect = f"{frontend_url}{separator}flow={msg}"
+    cuenta_url = '/cuenta/'
+    params = urlencode({'flow': 'procesando'})
+    redirect = f"{cuenta_url}?{params}"
 
     return HttpResponseRedirect(redirect)

@@ -38,6 +38,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
       completada: { text: 'Pago recibido exitosamente. Tus productos están listos para descargar.', type: 'success' },
       rechazada: { text: 'El pago fue rechazado. Intenta nuevamente o usa transferencia bancaria.', type: 'error' },
       cancelada: { text: 'El pago fue cancelado.', type: 'info' },
+      procesando: { text: 'Pago recibido. Estamos verificando la transacción, en unos momentos estarán disponibles tus productos.', type: 'info' },
       pendiente: { text: 'El pago está siendo procesado. Recibirás una confirmación pronto.', type: 'info' },
     }
     const info = messages[flowParam] || { text: 'Estado de pago: ' + flowParam, type: 'info' }
