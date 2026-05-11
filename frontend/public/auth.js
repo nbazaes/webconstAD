@@ -1,43 +1,10 @@
-const buildRibbonArc = (labelText) => {
-  const chars = Array.from(labelText)
-  const visibleCount = chars.reduce((count, ch) => (ch === ' ' ? count : count + 1), 0)
-  const midpoint = (visibleCount - 1) / 2
-  const maxLift = 3.4
-
-  const wrapper = document.createElement('span')
-  wrapper.className = 'ribbon-arc'
-
-  let visibleIndex = 0
-  chars.forEach((ch) => {
-    const chunk = document.createElement('span')
-    chunk.textContent = ch
-    if (ch !== ' ') {
-      const distance = Math.abs(visibleIndex - midpoint)
-      const normalized = midpoint === 0 ? 1 : distance / midpoint
-      const lift = maxLift * (1 - normalized ** 1.4)
-      const direction = midpoint === 0 ? 0 : (visibleIndex - midpoint) / midpoint
-      const tilt = 10 * direction
-      chunk.style.setProperty('--arc-lift', lift.toFixed(2))
-      chunk.style.setProperty('--arc-tilt', tilt.toFixed(2))
-      visibleIndex += 1
-    } else {
-      chunk.style.setProperty('--arc-lift', '0')
-      chunk.style.setProperty('--arc-tilt', '0')
-      chunk.style.width = '0.2em'
-    }
-    wrapper.append(chunk)
-  })
-
-  return wrapper
-}
-
 const refreshRibbonLabels = () => {
   const sideNavLinks = document.querySelectorAll('.side-nav li a')
   sideNavLinks.forEach((link) => {
     const rawLabel = (link.textContent || '').replace(/\s+/g, ' ').trim()
     if (!rawLabel) return
     link.dataset.ribbonLabel = rawLabel
-    link.replaceChildren(buildRibbonArc(rawLabel))
+    link.textContent = rawLabel
   })
 }
 
@@ -49,6 +16,8 @@ const authMessage = document.querySelector('[data-auth-message]')
 const authViews = document.querySelectorAll('[data-auth-view]')
 const loginForm = document.querySelector('[data-login-form]')
 const registerForm = document.querySelector('[data-register-form]')
+const loginBtn = loginForm?.querySelector('button[type="submit"]')
+const registerBtn = registerForm?.querySelector('button[type="submit"]')
 const authTabs = document.querySelectorAll('[data-auth-tab]')
 const navAccountLinks = document.querySelectorAll('[data-nav-id="cuenta"]')
 const publishNavItems = document.querySelectorAll('[data-publish-nav]')
@@ -57,6 +26,7 @@ const openRegisterButtons = document.querySelectorAll('[data-open-register]')
 const openLoginButtons = document.querySelectorAll('[data-open-login]')
 
 const confirmModal = document.querySelector('[data-confirm-modal]')
+const confirmPanel = document.querySelector('[data-confirm-panel]')
 const confirmTitle = document.querySelector('#confirm-modal-title')
 const confirmMessage = document.querySelector('[data-confirm-message]')
 const confirmAcceptButton = document.querySelector('[data-confirm-accept]')
@@ -65,15 +35,63 @@ const confirmCancelButtons = document.querySelectorAll('[data-confirm-cancel]')
 
 let authState = { authenticated: false, user: null }
 let confirmResolver = null
+let confirmMode = 'confirm'
 
 const backendOrigin = window.location.origin
 const backendUrl = (path) => `${backendOrigin}${path}`
+
+const readJsonResponse = async (response) => {
+  try {
+    const data = await response.json()
+    if (!response.ok) {
+      return { ok: false, message: data.message || `Error ${response.status}` }
+    }
+    return data
+  } catch {
+    const text = await response.text().catch(() => '')
+    const message = text && text.includes('CSRF')
+      ? 'Fallo la verificaci\u00f3n CSRF. Recarga la p\u00e1gina e intenta de nuevo.'
+      : text
+        ? 'El servidor devolvi\u00f3 una respuesta inesperada.'
+        : 'No se pudo procesar la respuesta del servidor.'
+    return { ok: false, message }
+  }
+}
+
+window.safeFetchJson = readJsonResponse
+
+const ensureCsrfToken = async () => {
+  if (window.getCsrfToken) {
+    await window.getCsrfToken()
+  }
+}
 
 const setAuthMessage = (text = '', isError = false) => {
   if (!authMessage) return
   authMessage.textContent = text
   authMessage.classList.toggle('error', isError)
 }
+
+const setButtonLoading = (button, isLoading) => {
+  if (!button || !button.dataset.loadingText) return
+  if (isLoading) {
+    button.dataset.originalText = button.textContent
+    button.classList.add('btn--loading')
+    button.disabled = true
+    let count = 0
+    button._ellipsisTimer = setInterval(() => {
+      count = (count + 1) % 4
+      button.textContent = button.dataset.loadingText + '.'.repeat(count)
+    }, 400)
+  } else {
+    clearInterval(button._ellipsisTimer)
+    button.textContent = button.dataset.originalText || button.textContent
+    button.disabled = false
+    button.classList.remove('btn--loading')
+  }
+}
+
+window.setButtonLoading = setButtonLoading
 
 const setVisibleAuthView = (view) => {
   authViews.forEach((section) => {
@@ -97,6 +115,8 @@ const closeAuthModal = () => {
 const closeConfirmModal = (accepted = false) => {
   if (!confirmModal) return
   confirmModal.setAttribute('hidden', '')
+  confirmModal.dataset.variant = 'confirm'
+  confirmMode = 'confirm'
   if (confirmResolver) {
     confirmResolver(accepted)
     confirmResolver = null
@@ -108,6 +128,9 @@ const showStyledConfirm = (message) => {
     return Promise.resolve(window.confirm(message))
   }
 
+  confirmMode = 'confirm'
+  confirmModal.dataset.variant = 'confirm'
+  confirmPanel?.classList.remove('confirm-modal__panel--alert', 'confirm-modal__panel--success', 'confirm-modal__panel--danger')
   if (confirmTitle) confirmTitle.textContent = 'Confirmación'
   if (confirmCancelButton) confirmCancelButton.hidden = false
   if (confirmAcceptButton) confirmAcceptButton.textContent = 'Aceptar'
@@ -118,20 +141,20 @@ const showStyledConfirm = (message) => {
   })
 }
 
-const showStyledAlert = (message, title = 'Aviso') => {
+const showStyledAlert = (message, title = 'Aviso', variant = 'alert') => {
   if (!confirmModal || !confirmMessage) {
     window.alert(message)
     return Promise.resolve(true)
   }
 
+  confirmMode = 'alert'
+  confirmModal.dataset.variant = variant
+  confirmPanel?.classList.remove('confirm-modal__panel--alert', 'confirm-modal__panel--success', 'confirm-modal__panel--danger')
+  confirmPanel?.classList.add(`confirm-modal__panel--${variant}`)
   if (confirmTitle) confirmTitle.textContent = title
   if (confirmCancelButton) confirmCancelButton.hidden = true
   if (confirmAcceptButton) confirmAcceptButton.textContent = 'Entendido'
-  if (/<[a-z][\s\S]*>/i.test(message)) {
-    confirmMessage.innerHTML = message
-  } else {
-    confirmMessage.textContent = message
-  }
+  confirmMessage.textContent = message
   confirmModal.removeAttribute('hidden')
 
   return new Promise((resolve) => {
@@ -150,6 +173,16 @@ document.addEventListener('keydown', (event) => {
 confirmAcceptButton?.addEventListener('click', () => closeConfirmModal(true))
 confirmCancelButtons.forEach((button) => {
   button.addEventListener('click', () => closeConfirmModal(false))
+})
+
+confirmModal?.addEventListener('click', (event) => {
+  if (event.target === confirmModal || event.target.matches('[data-confirm-cancel]')) {
+    if (confirmMode === 'alert') {
+      closeConfirmModal(true)
+      return
+    }
+    closeConfirmModal(false)
+  }
 })
 
 const renderAuthTabs = () => {
@@ -218,10 +251,15 @@ authTabs.forEach((tab) => {
       return
     }
 
-    await fetch(backendUrl('/api/auth/logout/'), {
+    await ensureCsrfToken()
+    const logoutResponse = await fetch(backendUrl('/api/auth/logout/'), {
       method: 'POST',
       credentials: 'include',
     })
+    if (!logoutResponse.ok) {
+      const errorData = await readJsonResponse(logoutResponse)
+      console.warn('Logout backend rejected request', errorData)
+    }
     authState = { authenticated: false, user: null }
     renderAuthTabs()
     window.location.href = '/'
@@ -263,30 +301,33 @@ loginForm?.addEventListener('submit', async (event) => {
   payload.append('username', identifier)
   payload.append('password', password)
 
-  const response = await fetch(backendUrl('/api/auth/login/'), {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: payload,
-  })
-
-  let data = null
+  setButtonLoading(loginBtn, true)
   try {
-    data = await response.json()
-  } catch {
-    setAuthMessage('No se pudo procesar la respuesta del servidor.', true)
-    return
-  }
-  if (!response.ok || !data.ok) {
-    setAuthMessage(data.message || 'No se pudo iniciar sesión.', true)
-    return
-  }
+    await ensureCsrfToken()
+    const response = await fetch(backendUrl('/api/auth/login/'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: payload,
+    })
 
-  await refreshSession()
-  loginForm.reset()
-  closeAuthModal()
+    const data = await readJsonResponse(response)
+    if (!response.ok || !data.ok) {
+      const errorMessage = data.message || 'No se pudo iniciar sesión.'
+      setAuthMessage(errorMessage, true)
+      await showStyledAlert(`Error al iniciar sesión\n${errorMessage}`, 'Error', 'danger')
+      return
+    }
+
+    await refreshSession()
+    loginForm.reset()
+    closeAuthModal()
+    await showStyledAlert('Sesión iniciada\nBienvenido de vuelta.', 'Éxito', 'success')
+  } finally {
+    setButtonLoading(loginBtn, false)
+  }
 })
 
 registerForm?.addEventListener('submit', async (event) => {
@@ -326,25 +367,36 @@ registerForm?.addEventListener('submit', async (event) => {
   payload.append('pais', pais)
   payload.append('password', password)
 
-  const response = await fetch(backendUrl('/api/auth/register/'), {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: payload,
-  })
+  setButtonLoading(registerBtn, true)
+  try {
+    await ensureCsrfToken()
+    const response = await fetch(backendUrl('/api/auth/register/'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: payload,
+    })
 
-  const data = await response.json()
-  if (!response.ok || !data.ok) {
-    setAuthMessage(data.message || 'No se pudo crear la cuenta.', true)
-    return
+    const data = await readJsonResponse(response)
+    if (!response.ok || !data.ok) {
+      const errorMessage = data.message || 'No se pudo crear la cuenta.'
+      setAuthMessage(errorMessage, true)
+      await showStyledAlert(`Error al registrarse\n${errorMessage}`, 'Error', 'danger')
+      return
+    }
+
+    registerForm.reset()
+    closeAuthModal()
+    await showStyledAlert(
+      'Registro exitoso\nRevisa tu correo para verificar tu cuenta. Luego podrás iniciar sesión automáticamente al abrir el enlace.',
+      'Éxito',
+      'success'
+    )
+  } finally {
+    setButtonLoading(registerBtn, false)
   }
-
-  authState = { authenticated: true, user: data.user }
-  renderAuthTabs()
-  registerForm.reset()
-  closeAuthModal()
 })
 
 refreshRibbonLabels()

@@ -21,6 +21,11 @@ import BaseLayout from '../layouts/BaseLayout.astro'
         <label for="pub-descripcion">Descripción</label>
         <textarea id="pub-descripcion" name="descripcion" rows="4"></textarea>
 
+        <div data-descripcion-imagen-block style="width:100%">
+          <label for="pub-descripcion-imagen">Descripción imagen (opcional)</label>
+          <input id="pub-descripcion-imagen" name="descripcion_imagen" type="file" accept="image/*" style="width:100%" />
+        </div>
+
         <label for="pub-es-gratuito">¿Es gratuito?</label>
         <select id="pub-es-gratuito" name="es_gratuito" required>
           <option value="false" selected>No (de pago)</option>
@@ -56,15 +61,15 @@ import BaseLayout from '../layouts/BaseLayout.astro'
         <label for="pub-imagen">Imagen (preview)</label>
         <input id="pub-imagen" name="imagen" type="file" accept="image/*" />
 
-        <div data-preview-block>
+        <div data-preview-block style="width:100%">
           <label for="pub-preview">Preview de paginas</label>
-          <input id="pub-preview" name="preview_imagen" type="file" accept="image/*" />
+          <input id="pub-preview" name="preview_imagen" type="file" accept="image/*" style="width:100%" />
         </div>
 
         <label for="pub-archivo">Archivo (producto)</label>
         <input id="pub-archivo" name="archivo" type="file" />
 
-        <button class="btn" type="submit">Publicar producto</button>
+        <button class="btn" type="submit" data-loading-text="Publicando...">Publicar producto</button>
       </form>
 
       <div class="publicar-list" data-publicar-list hidden>
@@ -87,6 +92,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 
 <script>
   const publicarForm = document.querySelector('[data-publicar-form]')
+  const publicarBtn = publicarForm?.querySelector('button[type="submit"]')
   const publicarMessage = document.querySelector('[data-publicar-message]')
   const publicarLoading = document.querySelector('[data-publicar-loading]')
   const categoriaSelect = document.querySelector('#pub-categoria')
@@ -97,6 +103,8 @@ import BaseLayout from '../layouts/BaseLayout.astro'
   const precioInput = document.querySelector('#pub-precio')
   const previewBlock = document.querySelector('[data-preview-block]')
   const previewInput = document.querySelector('#pub-preview')
+  const descripcionImagenBlock = document.querySelector('[data-descripcion-imagen-block]')
+  const descripcionImagenInput = document.querySelector('#pub-descripcion-imagen')
   const nombreInput = document.querySelector('#pub-nombre')
   const slugInput = document.querySelector('#pub-slug')
   const publicarList = document.querySelector('[data-publicar-list]')
@@ -161,8 +169,11 @@ import BaseLayout from '../layouts/BaseLayout.astro'
       fetch(backendUrl('/api/catalog/colecciones/'), { credentials: 'include' }),
     ])
 
-    const categoriasData = await catRes.json()
-    const coleccionesData = await colRes.json()
+    if (!catRes.ok || !colRes.ok) {
+      throw new Error('No se pudieron cargar los catalogos')
+    }
+
+    const [categoriasData, coleccionesData] = await Promise.all([catRes.json(), colRes.json()])
     allCategorias = categoriasData.results || []
     allColecciones = coleccionesData.results || []
 
@@ -182,12 +193,17 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     if (categoriaBlock) categoriaBlock.hidden = !isFree
     if (coleccionBlock) coleccionBlock.hidden = isFree
     if (previewBlock) previewBlock.hidden = isFree
+    if (descripcionImagenBlock) descripcionImagenBlock.hidden = isFree
 
     if (categoriaSelect) categoriaSelect.disabled = !isFree
     if (coleccionSelect) coleccionSelect.disabled = isFree
     if (previewInput) {
       previewInput.disabled = isFree
       if (isFree) previewInput.value = ''
+    }
+    if (descripcionImagenInput) {
+      descripcionImagenInput.disabled = isFree
+      if (isFree) descripcionImagenInput.value = ''
     }
     if (isFree) {
       if (coleccionSelect) coleccionSelect.value = ''
@@ -245,8 +261,15 @@ import BaseLayout from '../layouts/BaseLayout.astro'
           <label>Imagen preview (opcional)</label>
           <input name="imagen" type="file" accept="image/*" />
 
-          <label>Preview de paginas (opcional)</label>
-          <input name="preview_imagen" type="file" accept="image/*" />
+          <div style="width:100%">
+            <label>Preview de paginas (opcional)</label>
+            <input name="preview_imagen" type="file" accept="image/*" style="width:100%" />
+          </div>
+
+          <div data-edit-descripcion-imagen-wrap ${product.es_gratuito ? 'hidden' : ''} style="width:100%">
+            <label>Descripción imagen (opcional)</label>
+            <input name="descripcion_imagen" type="file" accept="image/*" style="width:100%" />
+          </div>
 
           <label>Es gratuito?</label>
           <select name="es_gratuito" data-edit-gratis>
@@ -285,7 +308,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
           </select>
 
           <div class="published-actions">
-            <button class="btn" type="submit">Guardar</button>
+            <button class="btn" type="submit" data-loading-text="Guardando...">Guardar</button>
             <button class="btn btn-secondary" type="button" data-close-edit>Cancelar</button>
           </div>
         </form>
@@ -300,6 +323,8 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     const categoriaWrap = modal.querySelector('[data-edit-categoria-wrap]')
     const coleccionWrap = modal.querySelector('[data-edit-coleccion-wrap]')
     const precioWrap = modal.querySelector('[data-edit-precio-wrap]')
+    const descripcionImagenWrap = modal.querySelector('[data-edit-descripcion-imagen-wrap]')
+    const descripcionImagenField = modal.querySelector('input[name="descripcion_imagen"]')
     const categoriaField = modal.querySelector('select[name="categoria_id"]')
     const coleccionField = modal.querySelector('select[name="coleccion_id"]')
     const precioField = modal.querySelector('input[name="precio"]')
@@ -309,12 +334,15 @@ import BaseLayout from '../layouts/BaseLayout.astro'
       if (categoriaWrap) categoriaWrap.hidden = !isFree
       if (coleccionWrap) coleccionWrap.hidden = isFree
       if (precioWrap) precioWrap.hidden = isFree
+      if (descripcionImagenWrap) descripcionImagenWrap.hidden = isFree
       if (categoriaField) categoriaField.disabled = !isFree
       if (coleccionField) coleccionField.disabled = isFree
       if (precioField) precioField.disabled = isFree
+      if (descripcionImagenField) descripcionImagenField.disabled = isFree
       if (isFree) {
         if (coleccionField) coleccionField.value = ''
         if (precioField) precioField.value = ''
+        if (descripcionImagenField) descripcionImagenField.value = ''
       } else if (categoriaField) {
         categoriaField.value = ''
       }
@@ -331,23 +359,28 @@ import BaseLayout from '../layouts/BaseLayout.astro'
         : Promise.resolve(confirm(`Confirmas guardar cambios en ${product.nombre}?`)))
       if (!ok) return
 
+      const editBtn = form.querySelector('button[type="submit"]')
       const formData = new FormData(form)
       openLoadingModal('Guardando cambios...')
-      const response = await fetch(backendUrl(`/api/admin/productos/${product.id}/editar/`), {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      })
-      closeLoadingModal()
+      window.setButtonLoading?.(editBtn, true)
+      try {
+        const response = await fetch(backendUrl(`/api/admin/productos/${product.id}/editar/`), {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        })
+        if (!response.ok) {
+          setMessage('No se pudo editar el producto.', true)
+          return
+        }
 
-      if (!response.ok) {
-        setMessage('No se pudo editar el producto.', true)
-        return
+        close()
+        await loadPublishedProducts()
+        setMessage('Producto actualizado correctamente.')
+      } finally {
+        closeLoadingModal()
+        window.setButtonLoading?.(editBtn, false)
       }
-
-      close()
-      await loadPublishedProducts()
-      setMessage('Producto actualizado correctamente.')
     })
   }
 
@@ -394,23 +427,34 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     }
 
     const wantsPublish = await (window.showStyledConfirm
-      ? window.showStyledConfirm(`Confirmas publicar este producto?\n\nNombre: ${nombre}\nTipo: ${esGratuito ? 'Gratis' : 'Pago'}`)
+      ? window.showStyledConfirm(`Confirmas publicar este producto?\n\nNombre: ${nombre}\nTipo: ${esGratuito ? 'Gratis' : 'Pago'}\nPrecio: ${esGratuito ? 'N/A' : precio || 'Sin definir'}\nActivo: ${String(formData.get('activo') || 'true') === 'true' ? 'Sí' : 'No'}\nSlug: ${String(formData.get('slug') || '').trim() || 'Autogenerado'}`)
       : Promise.resolve(confirm(`Confirmas publicar este producto?\n\nNombre: ${nombre}\nTipo: ${esGratuito ? 'Gratis' : 'Pago'}`)))
     if (!wantsPublish) return
 
     formData.set('es_gratuito', esGratuito ? 'true' : 'false')
 
     openLoadingModal('Publicando producto...')
-    const response = await fetch(backendUrl('/api/publicar/producto/'), {
-      method: 'POST',
-      credentials: 'include',
-      body: formData,
-    })
-    const data = await response.json()
+    window.setButtonLoading?.(publicarBtn, true)
+    let response, data
+    try {
+      response = await fetch(backendUrl('/api/publicar/producto/'), {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      })
+      data = await (window.safeFetchJson?.(response) ?? response.json())
+    } catch {
+      data = { ok: false, message: 'Error de conexión al publicar.' }
+    }
     closeLoadingModal()
+    window.setButtonLoading?.(publicarBtn, false)
 
-    if (!response.ok || !data.ok) {
-      setMessage(data.message || 'No se pudo publicar el producto.', true)
+    if (!response?.ok || !data.ok) {
+      const errorMessage = data.message || 'No se pudo publicar el producto.'
+      setMessage(errorMessage, true)
+      await (window.showStyledAlert
+        ? window.showStyledAlert(`Error al publicar\n${errorMessage}`, 'Error', 'danger')
+        : Promise.resolve(alert(`Error al publicar\n${errorMessage}`)))
       return
     }
 
@@ -420,7 +464,11 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     setMessage('')
 
     await (window.showStyledAlert
-      ? window.showStyledAlert(`Publicacion ${data.producto?.nombre || ''} exitosa!`, 'Publicacion')
+      ? window.showStyledAlert(
+          `Publicación exitosa\n\nNombre: ${data.producto?.nombre || nombre}\nTipo: ${esGratuito ? 'Gratis' : 'Pago'}\nPrecio: ${esGratuito ? 'N/A' : precio || 'Sin definir'}\nSlug: ${String(formData.get('slug') || '').trim() || 'Autogenerado'}`,
+          'Éxito',
+          'success'
+        )
       : Promise.resolve(alert(`Publicacion ${data.producto?.nombre || ''} exitosa!`)))
 
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -468,15 +516,20 @@ import BaseLayout from '../layouts/BaseLayout.astro'
   })
 
   const init = async () => {
-    const isAdmin = await ensureAdmin()
-    if (!isAdmin) return
+    try {
+      const isAdmin = await ensureAdmin()
+      if (!isAdmin) return
 
-    await loadCatalogs()
-    applyPricingRules()
-    await loadPublishedProducts()
+      await loadCatalogs()
+      applyPricingRules()
+      await loadPublishedProducts()
 
-    publicarLoading?.setAttribute('hidden', '')
-    publicarForm?.removeAttribute('hidden')
+      publicarLoading?.setAttribute('hidden', '')
+      publicarForm?.removeAttribute('hidden')
+    } catch {
+      setMessage('No se pudieron cargar los catalogos.', true)
+      publicarLoading?.setAttribute('hidden', '')
+    }
   }
 
   init()

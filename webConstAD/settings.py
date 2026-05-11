@@ -33,6 +33,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY')
 BANK_ACCOUNT = os.getenv('BANK_ACCOUNT', '')
 BANK_ACCOUNT_JSON = os.getenv('BANK_ACCOUNT_JSON', '')
+CONTACT_MAIL_CONTACTO = os.getenv('CONTACT_MAIL_CONTACTO', 'contacto@constantdigitales.com')
+CONTACT_MAIL_SOPORTE = os.getenv('CONTACT_MAIL_SOPORTE', 'admin@constantdigitales.com')
+EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '10'))
+RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
+RESEND_FROM_EMAIL = os.getenv('RESEND_FROM_EMAIL', 'no-reply@constantdigitales.com')
 
 def _parse_json_env(raw_value: str):
     if not raw_value:
@@ -182,7 +187,7 @@ if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 7
-SESSION_SAVE_EVERY_REQUEST = True
+SESSION_SAVE_EVERY_REQUEST = False
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 REST_FRAMEWORK = {
@@ -242,6 +247,7 @@ AWS_ACCESS_KEY_ID = os.environ.get('R2_ACCESS_KEY')
 AWS_SECRET_ACCESS_KEY = os.environ.get('R2_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.environ.get('R2_BUCKET_NAME')
 _r2_account_id = os.environ.get('R2_ACCOUNT_ID')
+R2_PUBLIC_DOMAIN = os.environ.get('R2_PUBLIC_DOMAIN', 'pub-9d4134ed1b5c4103860ffc5f4bf17da8.r2.dev')
 AWS_S3_ENDPOINT_URL = f"https://{_r2_account_id}.r2.cloudflarestorage.com" if _r2_account_id else None
 AWS_S3_REGION_NAME = 'auto'
 AWS_S3_FILE_OVERWRITE = False
@@ -255,7 +261,6 @@ USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True

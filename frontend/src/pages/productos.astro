@@ -11,6 +11,16 @@ const products = []
       <p class="lead">Archivos para <em>imprimir</em> o trabajar <em>digitalmente</em></p>
     </section>
 
+    <div class="catalog-cta-wrapper" data-catalog-cta hidden>
+      <div class="catalog-cta">
+        <h3>Agregar colección</h3>
+        <div class="catalog-cta__actions">
+          <button class="btn" type="button" data-open-add-coleccion>Crear colección</button>
+          <a class="btn btn-secondary" href="/publicar/">Ir a publicar</a>
+        </div>
+      </div>
+    </div>
+
     <section class="products-grid" data-products-grid hidden></section>
     <section class="products-hero text-block" data-products-empty hidden>
       <p>Aún no hay productos de pago publicados.</p>
@@ -19,7 +29,9 @@ const products = []
       <p>Cargando productos...</p>
     </section>
 
-
+    <div class="go-top-wrapper">
+      <a href="javascript:void(0)" class="btn btn-secondary go-top" onclick="window.scrollTo({top:0,behavior:'smooth'});return false">Ir arriba</a>
+    </div>
 
     <div class="global-loading-modal" data-global-loading hidden>
       <div class="global-loading-modal__backdrop"></div>
@@ -55,7 +67,7 @@ const products = []
   }
 
 
-  @media (max-width: 700px) {
+  @media (max-width: 720px) {
     .product-collection {
       font-size: 1.05rem;
     }
@@ -64,6 +76,18 @@ const products = []
       font-size: 1rem;
     }
 
+    .catalog-cta-wrapper {
+      padding: 0 8px 64px;
+    }
+
+    .catalog-cta {
+      padding: 14px;
+      min-height: 160px;
+    }
+
+    .catalog-cta__actions {
+      gap: 16px;
+    }
   }
 
   .catalog-cta {
@@ -76,6 +100,9 @@ const products = []
     text-align: center;
     align-content: center;
     min-height: 210px;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 1rem;
   }
 
   .catalog-cta h3 {
@@ -95,9 +122,19 @@ const products = []
     flex-wrap: wrap;
   }
 
+  .catalog-cta__actions .btn {
+    white-space: nowrap;
+  }
+
   .catalog-cta__helper {
     font-size: 0.95rem;
     color: #6d6158;
+  }
+
+  .catalog-cta-wrapper {
+    max-width: 1100px;
+    margin: 0 auto 28px;
+    padding: 0 20px 80px;
   }
 
 </style>
@@ -105,6 +142,13 @@ const products = []
 <script>
   const catalogBackendOrigin = window.location.origin
   const catalogBackendUrl = (path) => `${catalogBackendOrigin}${path}`
+  const escapeHtml = (value) =>
+    String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;')
   const productsGrid = document.querySelector('[data-products-grid]')
   const emptyState = document.querySelector('[data-products-empty]')
   const loadingState = document.querySelector('[data-products-loading]')
@@ -127,7 +171,6 @@ const products = []
           <input type="hidden" name="tipo" value="coleccion" />
           <label>Nombre</label><input name="nombre" type="text" required />
           <label>Imagen (opcional)</label><input name="imagen" type="file" accept="image/*" />
-          <label>Descripción (imagen opcional)</label><input name="descripcion" type="file" accept="image/*" />
           <div class="published-actions">
             <button class="btn" type="submit">Crear</button>
             <button class="btn btn-secondary" type="button" data-close-catalog>Cancelar</button>
@@ -159,40 +202,34 @@ const products = []
         : Promise.resolve(confirm(`¿Crear la colección "${nombre}"?`)))
       if (!ok) return
 
-      const response = await fetch(catalogBackendUrl('/api/admin/catalogo/crear/'), {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      })
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok || !data.ok) {
-        if (message) message.textContent = data.message || 'No se pudo crear la colección.'
-        return
-      }
+      openLoadingModal('Creando colección...')
+      try {
+        const response = await fetch(catalogBackendUrl('/api/admin/catalogo/crear/'), {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        })
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok || !data.ok) {
+          if (message) message.textContent = data.message || 'No se pudo crear la colección.'
+          return
+        }
 
-      close()
-      window.location.reload()
+        close()
+        window.location.reload()
+      } finally {
+        closeLoadingModal()
+      }
     })
   }
 
-  const insertColeccionCard = (target) => {
-    if (!target || target.querySelector('[data-add-coleccion]')) return
-    const wrapper = document.createElement('article')
-    wrapper.className = 'product'
-    wrapper.setAttribute('data-add-coleccion', '')
-    wrapper.innerHTML = `
-      <div class="catalog-cta" ${target === emptyState ? 'style="margin-top: 16px;"' : ''}>
-        <h3>Agregar colección</h3>
-        <!--<p>Publica una nueva colección para tus productos de pago.</p>-->
-        <div class="catalog-cta__actions">
-          <button class="btn" type="button" data-open-add-coleccion>Crear colección</button>
-          <a class="btn btn-secondary" href="/publicar/">Ir a publicar</a>
-        </div>
-        <!--<div class="catalog-cta__helper">Disponible para admins y artistas.</div>-->
-      </div>
-    `
-    target.prepend(wrapper)
-    wrapper.querySelector('[data-open-add-coleccion]')?.addEventListener('click', openColeccionModal)
+  const ctaBlock = document.querySelector('[data-catalog-cta]')
+
+  const showAdminCta = () => {
+    if (!ctaBlock || ctaBlock.hasAttribute('shown')) return
+    ctaBlock.removeAttribute('hidden')
+    ctaBlock.setAttribute('shown', '')
+    ctaBlock.querySelector('[data-open-add-coleccion]')?.addEventListener('click', openColeccionModal)
   }
 
   const initColeccionCta = async () => {
@@ -201,15 +238,7 @@ const products = []
     if (!response.ok) return
     const data = await response.json()
     if (!canManageCatalog(data)) return
-    if (productsGrid && !productsGrid.hasAttribute('hidden')) {
-      insertColeccionCard(productsGrid)
-      return
-    }
-    if (emptyState && !emptyState.hasAttribute('hidden')) {
-      insertColeccionCard(emptyState)
-      return
-    }
-    insertColeccionCard(productsGrid || emptyState)
+    showAdminCta()
   }
 
   window.initColeccionCta = initColeccionCta
@@ -237,6 +266,7 @@ const products = []
       fetch(catalogBackendUrl('/api/catalog/categorias/'), { credentials: 'include' }),
       fetch(catalogBackendUrl('/api/catalog/colecciones/'), { credentials: 'include' }),
     ])
+    if (!catRes.ok || !colRes.ok) return
     const catData = await catRes.json()
     const colData = await colRes.json()
     const categorias = (catData.results || []).filter((c) => c.es_gratuita)
@@ -249,10 +279,16 @@ const products = []
       <div class="edit-modal__panel" role="dialog" aria-modal="true">
         <h3>Editar producto</h3>
         <form class="auth-form" data-edit-form>
-          <label>Nombre</label><input name="nombre" type="text" value="${product.nombre || ''}" required />
-          <label>Descripción</label><textarea name="descripcion" rows="3">${product.descripcion || ''}</textarea>
+          <label>Nombre</label><input name="nombre" type="text" value="${escapeHtml(product.nombre || '')}" required />
+          <label>Descripción</label><textarea name="descripcion" rows="3">${escapeHtml(product.descripcion || '')}</textarea>
+          <div data-edit-descripcion-imagen-wrap ${product.es_gratuito ? 'hidden' : ''} style="width:100%">
+            <label>Descripción imagen (opcional)</label><input name="descripcion_imagen" type="file" accept="image/*" style="width:100%" />
+          </div>
           <label>Imagen preview (opcional)</label><input name="imagen" type="file" accept="image/*" />
-          <label>Preview de paginas (opcional)</label><input name="preview_imagen" type="file" accept="image/*" />
+          <div style="width:100%">
+            <label>Preview de paginas (opcional)</label><input name="preview_imagen" type="file" accept="image/*" style="width:100%" />
+          </div>
+          <label>Archivo de descarga${product.archivo ? ` (${product.archivo.split('/').pop()})` : ''}</label><input name="archivo" type="file" />
           <label>¿Es gratuito?</label>
           <select name="es_gratuito" data-edit-gratis>
             <option value="true" ${product.es_gratuito ? 'selected' : ''}>Sí</option>
@@ -262,14 +298,14 @@ const products = []
             <label>Categoria</label>
             <select name="categoria_id">
               <option value="">Sin categoria</option>
-              ${categorias.map((c) => `<option value="${c.id}" ${product.categoria_id === c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+              ${categorias.map((c) => `<option value="${c.id}" ${product.categoria_id === c.id ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`).join('')}
             </select>
           </div>
           <div data-edit-coleccion-wrap ${product.es_gratuito ? 'hidden' : ''}>
             <label>Coleccion</label>
             <select name="coleccion_id">
               <option value="">Sin coleccion</option>
-              ${colecciones.map((c) => `<option value="${c.id}" ${product.coleccion_id === c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+              ${colecciones.map((c) => `<option value="${c.id}" ${product.coleccion_id === c.id ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`).join('')}
             </select>
           </div>
           <label>Paginas</label><input name="paginas" type="number" min="1" step="1" value="${product.paginas || ''}" />
@@ -294,6 +330,8 @@ const products = []
     const categoriaWrap = modal.querySelector('[data-edit-categoria-wrap]')
     const coleccionWrap = modal.querySelector('[data-edit-coleccion-wrap]')
     const precioWrap = modal.querySelector('[data-edit-precio-wrap]')
+    const descripcionImagenWrap = modal.querySelector('[data-edit-descripcion-imagen-wrap]')
+    const descripcionImagenField = modal.querySelector('input[name="descripcion_imagen"]')
     const categoriaField = modal.querySelector('select[name="categoria_id"]')
     const coleccionField = modal.querySelector('select[name="coleccion_id"]')
     const precioField = modal.querySelector('input[name="precio"]')
@@ -303,12 +341,15 @@ const products = []
       if (categoriaWrap) categoriaWrap.hidden = !isFree
       if (coleccionWrap) coleccionWrap.hidden = isFree
       if (precioWrap) precioWrap.hidden = isFree
+      if (descripcionImagenWrap) descripcionImagenWrap.hidden = isFree
       if (categoriaField) categoriaField.disabled = !isFree
       if (coleccionField) coleccionField.disabled = isFree
       if (precioField) precioField.disabled = isFree
+      if (descripcionImagenField) descripcionImagenField.disabled = isFree
       if (isFree) {
         if (coleccionField) coleccionField.value = ''
         if (precioField) precioField.value = ''
+        if (descripcionImagenField) descripcionImagenField.value = ''
       } else if (categoriaField) {
         categoriaField.value = ''
       }
@@ -381,12 +422,12 @@ const products = []
       .map(
         (product) => `
           <article class="product" data-admin-product data-product-id="${product.id}" data-product-json='${JSON.stringify(product).replace(/'/g, '&apos;')}'>
-            <a href="/productos/${product.slug}/" class="product-card" title="${product.descripcion || product.nombre}">
-              <img src="${product.imagen || '/static/web/assets/hero1.webp'}" alt="${product.descripcion || product.nombre}" width="286" height="286" loading="lazy" />
+            <a href="/productos/${encodeURIComponent(product.slug)}/" class="product-card" title="${escapeHtml(product.descripcion || product.nombre)}">
+              <img src="${product.imagen || '/static/web/assets/hero1.webp'}" alt="${escapeHtml(product.descripcion || product.nombre)}" width="286" height="286" loading="lazy" />
               <br />
-              <span class="product-collection"><em>${product.coleccion || 'Coleccion'}</em></span>
+              <span class="product-collection"><em>${escapeHtml(product.coleccion || 'Coleccion')}</em></span>
               <br />
-              <span class="product-title">${product.nombre}</span>
+              <span class="product-title">${escapeHtml(product.nombre)}</span>
             </a>
             <div class="published-actions" data-admin-actions hidden>
               <button class="btn" type="button" data-edit-product>Editar</button>
@@ -423,5 +464,3 @@ const products = []
   loadProducts()
   initColeccionCta()
 </script>
-
-

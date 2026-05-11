@@ -1,25 +1,32 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro'
+import { Icon } from 'astro-icon/components'
+import { getApiOrigin } from '../../lib/api-origin'
 
-export async function getStaticPaths() {
-  const buildApiOrigin = import.meta.env.BUILD_API_ORIGIN || 'http://127.0.0.1:8000'
-  const res = await fetch(`${buildApiOrigin}/api/catalog/categorias/`)
-  const data = await res.json()
-  const categorias = (data.results || []).filter((c) => c.es_gratuita)
+export const prerender = false
 
-  return categorias.map((categoria) => ({
-    params: { slug: categoria.slug },
-    props: { categoriaNombre: categoria.nombre },
-  }))
+const { slug = '' } = Astro.params
+const apiOrigin = getApiOrigin(Astro)
+const apiBase = new URL('/api/', apiOrigin)
+let categoriaNombre = 'Categoria'
+
+try {
+  const res = await fetch(new URL(`categorias/${slug}/productos/`, apiBase))
+  if (res.ok) {
+    const data = await res.json()
+    categoriaNombre = data.categoria?.nombre || categoriaNombre
+  }
+} catch (e) {
+  // fallback to the default title when the API is unavailable
 }
 
-const { categoriaNombre = 'Categoria' } = Astro.props
 const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
 
 ---
 
 <BaseLayout title={pageTitle} page="gratis">
   <main class="content">
+    <button type="button" class="back-btn" aria-label="Volver atrás" onclick="history.back()"><Icon name="lucide:arrow-big-left" /> Volver</button>
     <section class="products-hero text-block" data-cat-header hidden>
       <div class="category-hero">
         <div class="category-hero__image" hidden>
@@ -36,6 +43,10 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     <section class="products-hero text-block" data-cat-empty hidden>
       <p>No hay productos en esta categoría todavía.</p>
     </section>
+
+    <div class="go-top-wrapper">
+      <a href="javascript:void(0)" class="btn btn-secondary go-top" onclick="window.scrollTo({top:0,behavior:'smooth'});return false">Ir arriba</a>
+    </div>
   </main>
 
   <div class="download-modal" data-download-modal hidden>
@@ -57,6 +68,16 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
         </div>
         <p class="auth-message" data-newsletter-status style="margin-top: 8px;"></p>
       </div>
+    </div>
+  </div>
+
+  <div class="zoom-modal" data-zoom-modal hidden>
+    <div class="zoom-modal__backdrop" data-close-zoom></div>
+    <div class="zoom-modal__panel" role="dialog" aria-modal="true" aria-label="Vista previa">
+      <button type="button" class="zoom-modal__close" data-close-zoom aria-label="Cerrar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <img data-zoom-image src="" alt="" />
     </div>
   </div>
 
@@ -86,6 +107,8 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
   const newsletterStatus = document.querySelector('[data-newsletter-status]')
   const guestSubscription = document.querySelector('[data-guest-subscription]')
   const globalLoading = document.querySelector('[data-global-loading]')
+  const zoomModal = document.querySelector('[data-zoom-modal]')
+  const zoomImage = zoomModal?.querySelector('[data-zoom-image]')
 
   const backendOrigin = window.location.origin
   const backendUrl = (path) => `${backendOrigin}${path}`
@@ -138,18 +161,47 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
 
   })
 
-  const wireDownloadCards = () => {
+  const wireDownloadButtons = () => {
     if (!productsGrid) return
-    productsGrid.querySelectorAll('.free-product-card').forEach((card) => {
-      card.addEventListener('click', () => {
-        selectedSlug = card.getAttribute('data-product-slug') || ''
-        selectedName = card.getAttribute('data-product-name') || 'este archivo'
+    productsGrid.querySelectorAll('.free-download-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        selectedSlug = btn.getAttribute('data-product-slug') || ''
+        selectedName = btn.getAttribute('data-product-name') || 'este archivo'
         if (!message || !modal) return
         message.textContent = `Quieres descargar "${selectedName}"?`
         modal.removeAttribute('hidden')
       })
     })
   }
+
+  const wireZoomImages = () => {
+    if (!productsGrid) return
+    productsGrid.querySelectorAll('.free-product-image-wrapper').forEach((wrapper) => {
+      wrapper.addEventListener('click', () => {
+        const img = wrapper.querySelector('img')
+        if (!img || !zoomModal || !zoomImage) return
+        zoomImage.src = img.src
+        zoomImage.alt = img.alt
+        zoomModal.removeAttribute('hidden')
+        document.body.style.overflow = 'hidden'
+      })
+    })
+  }
+
+  const closeZoomModal = () => {
+    if (!zoomModal) return
+    zoomModal.setAttribute('hidden', '')
+    document.body.style.overflow = ''
+    if (zoomImage) zoomImage.src = ''
+  }
+
+  zoomModal?.querySelectorAll('[data-close-zoom]').forEach((el) => el.addEventListener('click', closeZoomModal))
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && zoomModal && !zoomModal.hasAttribute('hidden')) {
+      closeZoomModal()
+    }
+  })
 
   newsletterSave?.addEventListener('click', async () => {
     const email = String(newsletterInput?.value || '').trim()
@@ -191,6 +243,7 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
       fetch(backendUrl('/api/catalog/categorias/'), { credentials: 'include' }),
       fetch(backendUrl('/api/catalog/colecciones/'), { credentials: 'include' }),
     ])
+    if (!catRes.ok || !colRes.ok) return
     const catData = await catRes.json()
     const colData = await colRes.json()
     const categorias = (catData.results || []).filter((c) => c.es_gratuita)
@@ -198,46 +251,176 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
 
     const modalEdit = document.createElement('div')
     modalEdit.className = 'edit-modal'
-    modalEdit.innerHTML = `
-      <div class="edit-modal__backdrop" data-close-edit></div>
-      <div class="edit-modal__panel" role="dialog" aria-modal="true">
-        <h3>Editar producto</h3>
-        <form class="auth-form" data-edit-form>
-          <label>Nombre</label><input name="nombre" type="text" value="${product.nombre || ''}" required />
-          <label>Descripcion</label><textarea name="descripcion" rows="3">${product.descripcion || ''}</textarea>
-          <label>Imagen preview (opcional)</label><input name="imagen" type="file" accept="image/*" />
-          <label>Es gratuito?</label>
-          <select name="es_gratuito" data-edit-gratis>
-            <option value="true" ${product.es_gratuito ? 'selected' : ''}>Si</option>
-            <option value="false" ${!product.es_gratuito ? 'selected' : ''}>No</option>
-          </select>
-          <div data-edit-categoria-wrap ${product.es_gratuito ? '' : 'hidden'}>
-            <label>Categoria</label>
-            <select name="categoria_id">
-              <option value="">Sin categoria</option>
-              ${categorias.map((c) => `<option value="${c.id}" ${product.categoria_id === c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}
-            </select>
-          </div>
-          <div data-edit-coleccion-wrap ${product.es_gratuito ? 'hidden' : ''}>
-            <label>Coleccion</label>
-            <select name="coleccion_id">
-              <option value="">Sin coleccion</option>
-              ${colecciones.map((c) => `<option value="${c.id}" ${product.coleccion_id === c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}
-            </select>
-          </div>
-          <label>Paginas</label><input name="paginas" type="number" min="1" step="1" value="${product.paginas || ''}" />
-          <div data-edit-precio-wrap ${product.es_gratuito ? 'hidden' : ''}>
-            <label>Precio</label><input name="precio" type="number" min="0" step="1" value="${parseInt(product.precio) || ''}" />
-          </div>
-          <label>Activo?</label>
-          <select name="activo"><option value="true" ${product.activo ? 'selected' : ''}>Si</option><option value="false" ${!product.activo ? 'selected' : ''}>No</option></select>
-          <div class="published-actions">
-            <button class="btn" type="submit">Guardar</button>
-            <button class="btn btn-secondary" type="button" data-close-edit>Cancelar</button>
-          </div>
-        </form>
-      </div>
-    `
+    const backdrop = document.createElement('div')
+    backdrop.className = 'edit-modal__backdrop'
+    backdrop.setAttribute('data-close-edit', '')
+
+    const panel = document.createElement('div')
+    panel.className = 'edit-modal__panel'
+    panel.setAttribute('role', 'dialog')
+    panel.setAttribute('aria-modal', 'true')
+
+    const heading = document.createElement('h3')
+    heading.textContent = 'Editar producto'
+
+    const editFormNode = document.createElement('form')
+    editFormNode.className = 'auth-form'
+    editFormNode.setAttribute('data-edit-form', '')
+
+    const nombreLabel = document.createElement('label')
+    nombreLabel.textContent = 'Nombre'
+    const nombreInput = document.createElement('input')
+    nombreInput.name = 'nombre'
+    nombreInput.type = 'text'
+    nombreInput.required = true
+    nombreInput.value = product.nombre || ''
+
+    const descripcionLabel = document.createElement('label')
+    descripcionLabel.textContent = 'Descripcion'
+    const descripcionTextarea = document.createElement('textarea')
+    descripcionTextarea.name = 'descripcion'
+    descripcionTextarea.rows = 3
+    descripcionTextarea.value = product.descripcion || ''
+
+    const imagenLabel = document.createElement('label')
+    imagenLabel.textContent = 'Imagen preview (opcional)'
+    const imagenInput = document.createElement('input')
+    imagenInput.name = 'imagen'
+    imagenInput.type = 'file'
+    imagenInput.accept = 'image/*'
+
+    const archivoLabel = document.createElement('label')
+    archivoLabel.textContent = 'Archivo de descarga' + (product.archivo ? ' (' + product.archivo.split('/').pop() + ')' : '')
+    const archivoInput = document.createElement('input')
+    archivoInput.name = 'archivo'
+    archivoInput.type = 'file'
+
+    const gratisLabel = document.createElement('label')
+    gratisLabel.textContent = 'Es gratuito?'
+    const gratisSelectField = document.createElement('select')
+    gratisSelectField.name = 'es_gratuito'
+    gratisSelectField.setAttribute('data-edit-gratis', '')
+    ;['true', 'false'].forEach((value) => {
+      const option = document.createElement('option')
+      option.value = value
+      option.textContent = value === 'true' ? 'Si' : 'No'
+      if ((value === 'true') === Boolean(product.es_gratuito)) option.selected = true
+      gratisSelectField.appendChild(option)
+    })
+
+    const categoriaWrapField = document.createElement('div')
+    categoriaWrapField.setAttribute('data-edit-categoria-wrap', '')
+    if (!product.es_gratuito) categoriaWrapField.hidden = true
+    const categoriaLabel = document.createElement('label')
+    categoriaLabel.textContent = 'Categoria'
+    const categoriaFieldNew = document.createElement('select')
+    categoriaFieldNew.name = 'categoria_id'
+    const categoriaEmpty = document.createElement('option')
+    categoriaEmpty.value = ''
+    categoriaEmpty.textContent = 'Sin categoria'
+    categoriaFieldNew.appendChild(categoriaEmpty)
+    categorias.forEach((c) => {
+      const option = document.createElement('option')
+      option.value = String(c.id)
+      option.textContent = c.nombre
+      if (product.categoria_id === c.id) option.selected = true
+      categoriaFieldNew.appendChild(option)
+    })
+    categoriaWrapField.append(categoriaLabel, categoriaFieldNew)
+
+    const coleccionWrapField = document.createElement('div')
+    coleccionWrapField.setAttribute('data-edit-coleccion-wrap', '')
+    if (product.es_gratuito) coleccionWrapField.hidden = true
+    const coleccionLabel = document.createElement('label')
+    coleccionLabel.textContent = 'Coleccion'
+    const coleccionFieldNew = document.createElement('select')
+    coleccionFieldNew.name = 'coleccion_id'
+    const coleccionEmpty = document.createElement('option')
+    coleccionEmpty.value = ''
+    coleccionEmpty.textContent = 'Sin coleccion'
+    coleccionFieldNew.appendChild(coleccionEmpty)
+    colecciones.forEach((c) => {
+      const option = document.createElement('option')
+      option.value = String(c.id)
+      option.textContent = c.nombre
+      if (product.coleccion_id === c.id) option.selected = true
+      coleccionFieldNew.appendChild(option)
+    })
+    coleccionWrapField.append(coleccionLabel, coleccionFieldNew)
+
+    const paginasLabel = document.createElement('label')
+    paginasLabel.textContent = 'Paginas'
+    const paginasInput = document.createElement('input')
+    paginasInput.name = 'paginas'
+    paginasInput.type = 'number'
+    paginasInput.min = '1'
+    paginasInput.step = '1'
+    paginasInput.value = product.paginas || ''
+
+    const precioWrapField = document.createElement('div')
+    precioWrapField.setAttribute('data-edit-precio-wrap', '')
+    if (product.es_gratuito) precioWrapField.hidden = true
+    const precioLabel = document.createElement('label')
+    precioLabel.textContent = 'Precio'
+    const precioInputField = document.createElement('input')
+    precioInputField.name = 'precio'
+    precioInputField.type = 'number'
+    precioInputField.min = '0'
+    precioInputField.step = '1'
+    precioInputField.value = parseInt(product.precio) || ''
+    precioWrapField.append(precioLabel, precioInputField)
+
+    const activoLabel = document.createElement('label')
+    activoLabel.textContent = 'Activo?'
+    const activoSelectField = document.createElement('select')
+    activoSelectField.name = 'activo'
+    ;['true', 'false'].forEach((value) => {
+      const option = document.createElement('option')
+      option.value = value
+      option.textContent = value === 'true' ? 'Si' : 'No'
+      if ((value === 'true') === Boolean(product.activo)) option.selected = true
+      activoSelectField.appendChild(option)
+    })
+
+    const actions = document.createElement('div')
+    actions.className = 'published-actions'
+
+    const submitButton = document.createElement('button')
+    submitButton.className = 'btn'
+    submitButton.type = 'submit'
+    submitButton.textContent = 'Guardar'
+
+    const cancelButton = document.createElement('button')
+    cancelButton.className = 'btn btn-secondary'
+    cancelButton.type = 'button'
+    cancelButton.setAttribute('data-close-edit', '')
+    cancelButton.textContent = 'Cancelar'
+
+    actions.append(submitButton, cancelButton)
+
+    editFormNode.append(
+      nombreLabel,
+      nombreInput,
+      descripcionLabel,
+      descripcionTextarea,
+      imagenLabel,
+      imagenInput,
+      archivoLabel,
+      archivoInput,
+      gratisLabel,
+      gratisSelectField,
+      categoriaWrapField,
+      coleccionWrapField,
+      paginasLabel,
+      paginasInput,
+      precioWrapField,
+      activoLabel,
+      activoSelectField,
+      actions
+    )
+
+    panel.append(heading, editFormNode)
+    modalEdit.append(backdrop, panel)
     document.body.appendChild(modalEdit)
     modalEdit.querySelectorAll('[data-close-edit]').forEach((el) => el.addEventListener('click', () => modalEdit.remove()))
 
@@ -267,15 +450,15 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     gratisSelect?.addEventListener('change', applyEditRules)
     applyEditRules()
 
-    const form = modalEdit.querySelector('[data-edit-form]')
-    form?.addEventListener('submit', async (event) => {
+    const editForm = modalEdit.querySelector('[data-edit-form]')
+    editForm?.addEventListener('submit', async (event) => {
       event.preventDefault()
       const ok = await (window.showStyledConfirm
         ? window.showStyledConfirm(`¿Confirmas guardar cambios en ${product.nombre}?`)
         : Promise.resolve(confirm(`¿Confirmas guardar cambios en ${product.nombre}?`)))
       if (!ok) return
 
-      const formData = new FormData(form)
+      const formData = new FormData(editForm)
       openLoadingModal('Guardando cambios...')
       const response = await fetch(backendUrl(`/api/admin/productos/${product.id}/editar/`), {
         method: 'POST',
@@ -297,7 +480,11 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     document.querySelectorAll('[data-admin-actions]').forEach((actions) => actions.removeAttribute('hidden'))
 
     wrappers().forEach((wrapper) => {
-      const product = JSON.parse(wrapper.getAttribute('data-product-json') || '{}')
+      const product = {
+        id: Number(wrapper.getAttribute('data-product-id') || 0),
+        nombre: wrapper.dataset.productNombre || '',
+        descripcion: wrapper.dataset.productDescripcion || '',
+      }
 
       wrapper.querySelector('[data-delete-product]')?.addEventListener('click', async () => {
         const ok = await (window.showStyledConfirm
@@ -333,30 +520,73 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
       return
     }
 
-    productsGrid.innerHTML = products
-      .map(
-        (producto) => `
-          <article class="free-product-wrap" data-admin-product data-product-id="${producto.id}" data-product-json='${JSON.stringify(producto).replace(/'/g, '&apos;')}'>
-            <button type="button" class="free-product-card" data-product-slug="${producto.slug}" data-product-name="${producto.nombre}" title="${producto.descripcion || producto.nombre}">
-              ${
-                producto.imagen
-                  ? `<img src="${producto.imagen}" alt="${producto.descripcion || producto.nombre}" title="${producto.descripcion || producto.nombre}" width="220" height="220" />`
-                  : `<img src="/static/web/assets/g345.webp" alt="${producto.descripcion || producto.nombre}" width="220" height="220" />`
-              }
-              <span class="product-name" title="${producto.descripcion || producto.nombre}">${producto.nombre}</span>
-              ${producto.paginas ? `<span class="product-meta">${producto.paginas} pág.</span>` : ''}
-            </button>
-            <div class="published-actions" data-admin-actions hidden>
-              <button class="btn" type="button" data-edit-product>Editar</button>
-              <button class="btn btn-secondary" type="button" data-delete-product>Eliminar</button>
-            </div>
-          </article>
-        `
-      )
-      .join('')
+    productsGrid.replaceChildren()
+
+    products.forEach((producto) => {
+      const article = document.createElement('article')
+      article.className = 'free-product-wrap'
+      article.setAttribute('data-admin-product', '')
+      article.setAttribute('data-product-id', String(producto.id))
+      article.dataset.productNombre = producto.nombre || ''
+      article.dataset.productDescripcion = producto.descripcion || ''
+
+      const imageWrapper = document.createElement('div')
+      imageWrapper.className = 'free-product-image-wrapper'
+      imageWrapper.title = producto.descripcion || producto.nombre || ''
+
+      const img = document.createElement('img')
+      img.src = producto.imagen || '/static/web/assets/g345.webp'
+      img.alt = producto.descripcion || producto.nombre || ''
+      img.title = producto.descripcion || producto.nombre || ''
+      img.width = 220
+      img.height = 220
+      if (producto.imagen) img.loading = 'lazy'
+
+      const overlay = document.createElement('div')
+      overlay.className = 'zoom-overlay'
+      overlay.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
+
+      imageWrapper.append(img, overlay)
+
+      const name = document.createElement('span')
+      name.className = 'product-name'
+      name.title = producto.descripcion || producto.nombre || ''
+      name.textContent = producto.nombre || ''
+
+      const downloadBtn = document.createElement('button')
+      downloadBtn.type = 'button'
+      downloadBtn.className = 'btn free-download-btn'
+      downloadBtn.setAttribute('data-product-slug', producto.slug || '')
+      downloadBtn.setAttribute('data-product-name', producto.nombre || '')
+      downloadBtn.textContent = 'Descargar'
+
+      article.append(imageWrapper, name, downloadBtn)
+
+      const actions = document.createElement('div')
+      actions.className = 'published-actions'
+      actions.setAttribute('data-admin-actions', '')
+      actions.hidden = true
+
+      const editButton = document.createElement('button')
+      editButton.className = 'btn'
+      editButton.type = 'button'
+      editButton.setAttribute('data-edit-product', '')
+      editButton.textContent = 'Editar'
+
+      const deleteButton = document.createElement('button')
+      deleteButton.className = 'btn btn-secondary'
+      deleteButton.type = 'button'
+      deleteButton.setAttribute('data-delete-product', '')
+      deleteButton.textContent = 'Eliminar'
+
+      actions.append(editButton, deleteButton)
+      article.appendChild(actions)
+      productsGrid.appendChild(article)
+    })
 
     productsGrid.removeAttribute('hidden')
-    wireDownloadCards()
+    wireDownloadButtons()
+    wireZoomImages()
     ensureAdminUi().then((isAdmin) => {
       if (!isAdmin) return
       document.querySelectorAll('[data-admin-actions]').forEach((actions) => actions.removeAttribute('hidden'))
@@ -428,39 +658,63 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     object-fit: contain;
   }
 
-  .free-product-card {
-    appearance: none;
-    border: 0;
-    background: transparent;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding: 4px;
-    color: inherit;
-    text-align: center;
+  .free-product-image-wrapper {
+    position: relative;
+    cursor: zoom-in;
+    border-radius: 6px;
+    overflow: hidden;
+    line-height: 0;
   }
 
-  .free-product-card img {
+  .free-product-image-wrapper img {
     width: 220px;
-    height: auto;
+    aspect-ratio: 1 / 1;
     object-fit: contain;
     border-radius: 6px;
     box-shadow: none;
     background: #fff;
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    transition: box-shadow 0.2s ease, transform 0.2s ease, filter 0.25s ease;
+    display: block;
   }
 
-  .free-product-card:hover img {
+  .free-product-image-wrapper:hover img {
     transform: translateY(-3px);
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+    filter: blur(3px);
   }
 
-  .free-product-card:focus-visible img,
-  .free-product-card:active img {
+  .free-product-image-wrapper:focus-visible img {
     transform: translateY(-3px);
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+    filter: blur(3px);
+  }
+
+  .zoom-overlay {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    background: rgba(0, 0, 0, 0.22);
+    pointer-events: none;
+    border-radius: 6px;
+  }
+
+  .free-product-image-wrapper:hover .zoom-overlay,
+  .free-product-image-wrapper:focus-visible .zoom-overlay {
+    opacity: 1;
+  }
+
+  .zoom-overlay svg {
+    width: 40px;
+    height: 40px;
+    color: #fff;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+  }
+
+  .free-download-btn {
+    margin-top: 8px;
   }
 
   .product-name {
@@ -536,6 +790,93 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     color: #243233;
   }
 
+  .zoom-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2100;
+    display: grid;
+    place-items: center;
+  }
+
+  .zoom-modal[hidden] {
+    display: none;
+  }
+
+  .zoom-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(9, 10, 10, 0.72);
+    backdrop-filter: blur(6px);
+  }
+
+  .zoom-modal__panel {
+    position: relative;
+    width: min(900px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+  }
+
+  .zoom-modal__panel img {
+    max-width: 100%;
+    max-height: calc(100vh - 64px);
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    background: #fff;
+  }
+
+  .zoom-modal__close {
+    position: absolute;
+    top: -14px;
+    right: -14px;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #243233;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: transform 0.18s ease, background 0.18s ease;
+    z-index: 1;
+  }
+
+  .zoom-modal__close:hover,
+  .zoom-modal__close:focus-visible {
+    transform: rotate(90deg) scale(1.06);
+    background: #fff;
+  }
+
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-family: 'PT Serif', serif;
+    color: #6a5f55;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.18s ease;
+  }
+  .back-btn svg {
+    width: 36px;
+    height: 36px;
+    opacity: 0.7;
+  }
+  .back-btn:hover {
+    border-color: #d8e5dc;
+    background: rgba(216, 229, 220, 0.3);
+    transform: translateX(-2px);
+  }
+
   @media (max-width: 700px) {
     .category-hero {
       grid-template-columns: 1fr;
@@ -551,13 +892,9 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
       padding: 0 8px;
     }
 
-    .free-product-card {
-      padding: 4px;
-      gap: 8px;
-    }
-
-    .free-product-card img {
+    .free-product-image-wrapper img {
       width: 180px;
+      aspect-ratio: 1 / 1;
     }
 
     .product-name {

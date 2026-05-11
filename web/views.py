@@ -3,21 +3,51 @@ import secrets
 from datetime import timedelta
 from pathlib import Path
 from decimal import Decimal
+import base64
+import logging
+
+import requests
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model, login, logout
+from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.text import slugify
+from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods
+from rest_framework import status
+from rest_framework.decorators import authentication_classes
+from rest_framework.decorators import parser_classes
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 
-from .models import Carrito, CarritoItem, Categoria, Coleccion, Descarga, Orden, OrdenItem, Producto, SuscriptorAnonimo
+from .models import (
+    Carrito,
+    CarritoItem,
+    Categoria,
+    Coleccion,
+    Descarga,
+    MensajeContacto,
+    Orden,
+    OrdenItem,
+    Producto,
+    SuscriptorAnonimo,
+    get_r2_storage,
+)
+from .serializers import MensajeContactoSerializer
 from .services.flow import FlowClient, FlowError
+
+
+logger = logging.getLogger(__name__)
 
 
 FRONTEND_BUILD_DIR = settings.BASE_DIR / 'web' / 'static' / 'frontend'
@@ -132,6 +162,132 @@ def _build_unique_simple_slug(model_cls, nombre, explicit_slug=None):
     return candidate
 
 
+def _media_redirect_url(request, file_field):
+    if not file_field:
+        return None
+    return reverse('api-public-media', kwargs={'file_path': file_field.name})
+
+
+def _is_allowed_public_media(file_path: str) -> bool:
+    if not file_path or file_path.startswith('/') or '..' in file_path or '\\' in file_path:
+        return False
+    return file_path.startswith(('categorias/', 'colecciones/', 'productos/'))
+
+
+@require_GET
+def api_public_media(request, file_path):
+    if not _is_allowed_public_media(file_path):
+        raise Http404('archivo no disponible')
+
+    storage = get_r2_storage()
+    try:
+        f = storage.open(file_path, 'rb')
+        content = f.read()
+        f.close()
+    except Exception:
+        raise Http404('archivo no disponible')
+
+    content_type = {
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+        '.svg': 'image/svg+xml',
+    }.get(Path(file_path).suffix.lower(), 'application/octet-stream')
+
+    response = HttpResponse(content, content_type=content_type)
+    response['Cache-Control'] = 'public, max-age=86400, immutable'
+    return response
+
+
+def _send_resend_email(*, subject, text, recipients, reply_to=None, html=None, attachments=None):
+    if not settings.RESEND_API_KEY:
+        return JsonResponse(
+            {'ok': False, 'message': 'Falta RESEND_API_KEY en la configuracion'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    payload = {
+        'from': settings.RESEND_FROM_EMAIL,
+        'to': recipients,
+        'subject': subject,
+        'text': text,
+    }
+    if html:
+        payload['html'] = html
+    if attachments:
+        payload['attachments'] = attachments
+    if reply_to:
+        payload['reply_to'] = reply_to
+
+    response = requests.post(
+        'https://api.resend.com/emails',
+        headers={
+            'Authorization': f'Bearer {settings.RESEND_API_KEY}',
+            'Content-Type': 'application/json',
+        },
+        json=payload,
+        timeout=settings.EMAIL_TIMEOUT,
+    )
+    response.raise_for_status()
+    return None
+
+
+def _build_verification_email_html(request, user, verify_url):
+    site_url = request.build_absolute_uri('/')[:-1]
+    support_email = settings.CONTACT_MAIL_SOPORTE
+    return f'''
+    <div style="margin:0;padding:0;background:#f0dbdb;">
+      <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+        Verifica tu correo para activar tu cuenta en Constant Archivos Digitales.
+      </div>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f0dbdb;border-collapse:collapse;">
+        <tr>
+          <td align="center" style="padding:32px 16px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:100%;border-collapse:collapse;background:#fffaf5;border:1px solid #e8dfd7;border-radius:24px;overflow:hidden;box-shadow:0 18px 48px rgba(36,50,51,.14);">
+              <tr>
+                <td style="background:linear-gradient(135deg,#243233 0%,#35494a 100%);padding:28px 24px;text-align:center;">
+                  <img src="cid:logo-email" alt="Constant Archivos Digitales" width="160" style="display:block;margin:0 auto;max-width:160px;height:auto;" />
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:34px 28px 30px;font-family:Georgia,'Times New Roman',serif;color:#243233;">
+                  <div style="display:inline-block;padding:6px 12px;margin-bottom:18px;border-radius:999px;background:#d8e5dc;color:#243233;font-size:12px;letter-spacing:.08em;text-transform:uppercase;">Verificación de cuenta</div>
+                  <h1 style="margin:0 0 14px;font-size:30px;line-height:1.15;font-weight:700;">Hola {user.first_name or user.username}</h1>
+                  <p style="margin:0 0 22px;font-size:16px;line-height:1.7;color:#2f3f40;">Gracias por registrarte. Para activar tu cuenta y completar el acceso a tu perfil, haz clic en el botón de abajo.</p>
+                  <div style="text-align:center;margin:28px 0 26px;">
+                    <a href="{verify_url}" style="display:inline-block;background:#243233;color:#fff;text-decoration:none;font-size:16px;font-weight:700;padding:14px 24px;border-radius:999px;box-shadow:0 10px 24px rgba(36,50,51,.22);">Verificar correo</a>
+                  </div>
+                  <p style="margin:0 0 8px;font-size:14px;line-height:1.6;color:#536162;">Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+                  <p style="margin:0;word-break:break-all;font-size:13px;line-height:1.6;color:#243233;">{verify_url}</p>
+                  <hr style="border:0;border-top:1px solid #e8dfd7;margin:28px 0;" />
+                  <p style="margin:0;font-size:13px;line-height:1.7;color:#6b5f58;">Si no solicitaste esta cuenta, puedes ignorar este mensaje.</p>
+                  <div style="margin-top:28px;padding:18px 18px 16px;background:linear-gradient(180deg,#f7f1ea 0%,#fbf7f2 100%);border:1px solid #e8dfd7;border-radius:18px;box-shadow:inset 0 1px 0 rgba(255,255,255,.7);">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+                      <tr>
+                        <td valign="top" width="62" style="padding-right:14px;">
+                          <div style="width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#243233 0%,#3b5152 100%);color:#fff;font-family:Arial,sans-serif;font-size:18px;font-weight:700;line-height:52px;text-align:center;letter-spacing:.08em;box-shadow:0 10px 18px rgba(36,50,51,.18);">CAD</div>
+                        </td>
+                        <td valign="top" style="font-family:Georgia,'Times New Roman',serif;color:#243233;">
+                          <p style="margin:0 0 6px;font-size:14px;line-height:1.5;font-weight:700;">Saludos,</p>
+                          <p style="margin:0 0 10px;font-size:15px;line-height:1.5;">Equipo de Constant Archivos Digitales</p>
+                          <p style="margin:0;font-size:13px;line-height:1.6;color:#6b5f58;">Soporte: <a href="mailto:{support_email}" style="color:#243233;text-decoration:underline;">{support_email}</a></p>
+                          <p style="margin:0;font-size:13px;line-height:1.6;color:#6b5f58;">Web: <a href="{site_url}" style="color:#243233;text-decoration:underline;">{site_url}</a></p>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </div>
+    '''
+
+
 @require_GET
 def api_root(request):
     return JsonResponse(
@@ -146,10 +302,61 @@ def api_root(request):
                 'auth_login': '/api/auth/login/',
                 'auth_logout': '/api/auth/logout/',
                 'auth_session': '/api/auth/session/',
+                'auth_verify_email': '/api/auth/verify-email/<uidb64>/<token>/',
                 'publicar_producto': '/api/publicar/producto/',
+                'contacto': '/api/contacto/',
                 'descargar_producto': '/api/productos/<slug>/download/',
             },
         }
+    )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@authentication_classes([])
+@parser_classes([MultiPartParser, FormParser, JSONParser])
+def api_contacto(request):
+    serializer = MensajeContactoSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    mensaje = serializer.save()
+
+    destinatario = (
+        settings.CONTACT_MAIL_CONTACTO
+        if mensaje.motivo == MensajeContacto.MOTIVO_CONTACTO
+        else settings.CONTACT_MAIL_SOPORTE
+    )
+    asunto = f'Nuevo mensaje de {mensaje.get_motivo_display()}: {mensaje.nombre}'
+    cuerpo = (
+        f'Nombre: {mensaje.nombre}\n'
+        f'Email: {mensaje.email}\n'
+        f'Motivo: {mensaje.get_motivo_display()}\n\n'
+        f'{mensaje.mensaje}'
+    )
+
+    try:
+        error = _send_resend_email(
+            subject=asunto,
+            text=cuerpo,
+            recipients=[destinatario],
+            reply_to=mensaje.email,
+        )
+        if error:
+            return error
+        logger.info('Correo de contacto enviado con Resend a %s', destinatario)
+    except Exception:
+        logger.exception('Error al enviar correo de contacto')
+        return JsonResponse(
+            {'ok': False, 'message': 'No se pudo enviar el mensaje'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    return JsonResponse(
+        {
+            'ok': True,
+            'message': 'Mensaje enviado correctamente',
+            'destinatario': destinatario,
+        },
+        status=status.HTTP_201_CREATED,
     )
 
 
@@ -180,12 +387,13 @@ def api_products(request):
             'nombre': p.nombre,
             'slug': p.slug,
             'descripcion': p.descripcion,
+            'descripcion_imagen': _media_redirect_url(request, p.descripcion_imagen),
             'precio': p.precio if p.precio is not None else None,
             'es_gratuito': p.es_gratuito,
             'paginas': p.paginas,
             'activo': p.activo,
-            'imagen': p.imagen.url if p.imagen else None,
-            'preview_imagen': p.preview_imagen.url if p.preview_imagen else None,
+            'imagen': _media_redirect_url(request, p.imagen),
+            'preview_imagen': _media_redirect_url(request, p.preview_imagen),
             'categoria_id': p.categoria_id,
             'coleccion': p.coleccion.nombre if p.coleccion else None,
             'coleccion_id': p.coleccion_id,
@@ -213,16 +421,16 @@ def api_producto_detalle(request, slug):
             'nombre': producto.nombre,
             'slug': producto.slug,
             'descripcion': producto.descripcion,
+            'descripcion_imagen': _media_redirect_url(request, producto.descripcion_imagen),
             'precio': producto.precio if producto.precio is not None else None,
             'es_gratuito': producto.es_gratuito,
             'paginas': producto.paginas,
             'activo': producto.activo,
-            'imagen': producto.imagen.url if producto.imagen else None,
-            'preview_imagen': producto.preview_imagen.url if producto.preview_imagen else None,
+            'imagen': _media_redirect_url(request, producto.imagen),
+            'preview_imagen': _media_redirect_url(request, producto.preview_imagen),
             'categoria_id': producto.categoria_id,
             'coleccion': producto.coleccion.nombre if producto.coleccion else None,
             'coleccion_id': producto.coleccion_id,
-            'coleccion_descripcion': producto.coleccion.descripcion.url if producto.coleccion and producto.coleccion.descripcion else None,
         }
     )
 
@@ -236,7 +444,7 @@ def api_categorias(request):
             'nombre': c.nombre,
             'slug': c.slug,
             'descripcion': c.descripcion,
-            'imagen': c.imagen.url if c.imagen else None,
+            'imagen': _media_redirect_url(request, c.imagen),
         }
         for c in categorias
     ]
@@ -266,8 +474,7 @@ def api_catalog_colecciones(request):
             'id': c.id,
             'nombre': c.nombre,
             'slug': c.slug,
-            'descripcion': c.descripcion.url if c.descripcion else None,
-            'imagen': c.imagen.url if c.imagen else None,
+            'imagen': _media_redirect_url(request, c.imagen),
         }
         for c in colecciones
     ]
@@ -278,7 +485,7 @@ def api_catalog_colecciones(request):
 def api_categoria_productos(request, slug):
     categoria = get_object_or_404(Categoria, slug=slug, es_gratuita=True)
     productos = (
-        Producto.objects.filter(categoria=categoria, activo=True, es_gratuito=True)
+        Producto.objects.filter(categoria=categoria, activo=True)
         .order_by('nombre')
     )
 
@@ -288,7 +495,7 @@ def api_categoria_productos(request, slug):
             'nombre': categoria.nombre,
             'slug': categoria.slug,
             'descripcion': categoria.descripcion,
-            'imagen': categoria.imagen.url if categoria.imagen else None,
+            'imagen': _media_redirect_url(request, categoria.imagen),
         },
         'count': productos.count(),
         'results': [
@@ -297,12 +504,13 @@ def api_categoria_productos(request, slug):
                 'nombre': p.nombre,
                 'slug': p.slug,
                 'descripcion': p.descripcion,
+                'descripcion_imagen': _media_redirect_url(request, p.descripcion_imagen),
                 'precio': p.precio if p.precio is not None else None,
                 'es_gratuito': p.es_gratuito,
                 'paginas': p.paginas,
                 'activo': p.activo,
-                'imagen': p.imagen.url if p.imagen else None,
-                'preview_imagen': p.preview_imagen.url if p.preview_imagen else None,
+                'imagen': _media_redirect_url(request, p.imagen),
+                'preview_imagen': _media_redirect_url(request, p.preview_imagen),
                 'categoria_id': p.categoria_id,
                 'coleccion_id': p.coleccion_id,
             }
@@ -337,6 +545,8 @@ def api_auth_register(request):
     User = get_user_model()
     if User.objects.filter(username=username).exists():
         return _bad_request('username ya existe')
+    if User.objects.filter(email__iexact=email).exists():
+        return _bad_request('email ya existe')
 
     user = User.objects.create_user(
         username=username,
@@ -344,6 +554,7 @@ def api_auth_register(request):
         password=password,
         first_name=first_name,
         last_name=last_name,
+        is_active=False,
     )
 
     cliente_group = Group.objects.filter(name__iexact='Cliente').first()
@@ -356,16 +567,88 @@ def api_auth_register(request):
     perfil.pais = pais
     perfil.save(update_fields=['nombre', 'apellido', 'pais'])
 
+    token = default_token_generator.make_token(user)
+    uidb64 = urlsafe_base64_encode(str(user.pk).encode())
+    verify_url = request.build_absolute_uri(f'/verificar-cuenta/{uidb64}/{token}/')
+    asunto = 'Verifica tu correo'
+    cuerpo = (
+        f'Hola {first_name},\n\n'
+        'Gracias por registrarte. Para activar tu cuenta y completar el alta, abre este enlace:\n\n'
+        f'{verify_url}\n\n'
+        'Si no creaste esta cuenta, puedes ignorar este mensaje.'
+    )
+    html = _build_verification_email_html(request, user, verify_url)
+    logo_path = settings.BASE_DIR / 'web' / 'static' / 'web' / 'assets' / 'logo-email.png'
+    attachments = []
+    if logo_path.exists():
+        attachments.append({
+            'filename': 'logo-email.png',
+            'content': base64.b64encode(logo_path.read_bytes()).decode('ascii'),
+            'content_type': 'image/png',
+            'content_id': 'logo-email',
+        })
+
+    try:
+        error = _send_resend_email(
+            subject=asunto,
+            text=cuerpo,
+            recipients=[user.email],
+            html=html,
+            attachments=attachments,
+        )
+        if error:
+            user.delete()
+            return error
+        logger.info('Correo de verificacion enviado con Resend a %s', user.email)
+    except Exception:
+        logger.exception('Error al enviar correo de verificacion')
+        user.delete()
+        return JsonResponse(
+            {'ok': False, 'message': 'No se pudo enviar el correo de verificacion'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    return JsonResponse(
+        {
+            'ok': True,
+            'message': 'Cuenta creada. Revisa tu correo para verificarla.',
+        },
+        status=201,
+    )
+
+
+@require_GET
+def api_auth_verify_email(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = get_user_model().objects.get(pk=uid)
+    except (ValueError, TypeError, OverflowError, get_user_model().DoesNotExist):
+        return _bad_request('enlace de verificacion invalido', status=400)
+
+    if not default_token_generator.check_token(user, token):
+        return _bad_request('enlace de verificacion invalido o expirado', status=400)
+
+    if not user.is_active:
+        user.is_active = True
+        user.save(update_fields=['is_active'])
+
     login(request, user)
     request.session.set_expiry(settings.SESSION_COOKIE_AGE)
 
     return JsonResponse(
         {
             'ok': True,
+            'message': 'Correo verificado correctamente',
             'user': _serialize_user(user),
-        },
-        status=201,
+        }
     )
+
+
+@require_GET
+def api_auth_verify_page(request, uidb64, token):
+    if not request.user.is_authenticated:
+        return HttpResponseRedirect(f'/verificar-cuenta/{uidb64}/{token}/?status=success')
+    return HttpResponseRedirect('/')
 
 
 @require_http_methods(['POST'])
@@ -387,15 +670,22 @@ def api_auth_login(request):
         return _bad_request('username y password son obligatorios')
 
     login_identifier = username
+    matched_user = None
     if '@' in username:
         User = get_user_model()
-        matched = User.objects.filter(email__iexact=username).first()
-        if matched:
-            login_identifier = matched.username
+        matched_user = User.objects.filter(email__iexact=username).first()
+        if matched_user:
+            login_identifier = matched_user.username
+    else:
+        User = get_user_model()
+        matched_user = User.objects.filter(username=username).first()
+
+    if matched_user and not matched_user.is_active:
+        return _bad_request('debes verificar tu correo antes de iniciar sesion', status=403)
 
     user = authenticate(request, username=login_identifier, password=password)
     if not user:
-        return _bad_request('credenciales invalidas', status=401)
+        return _bad_request('credenciales inválidas', status=401)
 
     login(request, user)
     request.session.set_expiry(settings.SESSION_COOKIE_AGE)
@@ -474,12 +764,13 @@ def api_admin_productos(request):
             'nombre': p.nombre,
             'slug': p.slug,
             'descripcion': p.descripcion,
+            'descripcion_imagen': _media_redirect_url(request, p.descripcion_imagen),
             'precio': p.precio if p.precio is not None else '',
             'es_gratuito': p.es_gratuito,
             'paginas': p.paginas,
             'activo': p.activo,
-            'imagen': p.imagen.url if p.imagen else None,
-            'preview_imagen': p.preview_imagen.url if p.preview_imagen else None,
+            'imagen': _media_redirect_url(request, p.imagen),
+            'preview_imagen': _media_redirect_url(request, p.preview_imagen),
             'archivo': p.archivo.url if p.archivo else None,
             'categoria_id': p.categoria_id,
             'categoria_nombre': p.categoria.nombre if p.categoria else None,
@@ -549,6 +840,8 @@ def api_admin_producto_editar(request, producto_id):
 
     if 'imagen' in request.FILES:
         producto.imagen = request.FILES['imagen']
+    if 'descripcion_imagen' in request.FILES:
+        producto.descripcion_imagen = request.FILES['descripcion_imagen']
     if 'preview_imagen' in request.FILES:
         producto.preview_imagen = request.FILES['preview_imagen']
     if 'archivo' in request.FILES:
@@ -562,7 +855,7 @@ def api_admin_producto_editar(request, producto_id):
 
 @require_http_methods(['POST'])
 def api_admin_producto_eliminar(request, producto_id):
-    admin_error = _ensure_superadmin(request)
+    admin_error = _ensure_admin(request)
     if admin_error:
         return admin_error
 
@@ -608,8 +901,6 @@ def api_admin_catalogo_crear(request):
     )
     if 'imagen' in request.FILES:
         item.imagen = request.FILES['imagen']
-    if 'descripcion' in request.FILES:
-        item.descripcion = request.FILES['descripcion']
     err = _save_model(item)
     if err:
         return err
@@ -660,7 +951,7 @@ def api_admin_catalogo_editar(request, tipo, item_id):
 
 @require_http_methods(['POST'])
 def api_admin_catalogo_eliminar(request, tipo, item_id):
-    admin_error = _ensure_superadmin(request)
+    admin_error = _ensure_admin(request)
     if admin_error:
         return admin_error
 
@@ -730,6 +1021,8 @@ def api_publicar_producto(request):
 
     if 'imagen' in request.FILES:
         producto.imagen = request.FILES['imagen']
+    if 'descripcion_imagen' in request.FILES:
+        producto.descripcion_imagen = request.FILES['descripcion_imagen']
     if 'preview_imagen' in request.FILES:
         producto.preview_imagen = request.FILES['preview_imagen']
     if 'archivo' in request.FILES:
@@ -748,7 +1041,7 @@ def api_publicar_producto(request):
                 'slug': producto.slug,
                 'es_gratuito': producto.es_gratuito,
             'precio': producto.precio if producto.precio is not None else None,
-                'imagen': producto.imagen.url if producto.imagen else None,
+                'imagen': _media_redirect_url(request, producto.imagen),
                 'archivo': producto.archivo.url if producto.archivo else None,
             },
         },
@@ -789,7 +1082,7 @@ def api_cart(request):
                 'nombre': item.producto.nombre,
                 'slug': item.producto.slug,
                 'precio': precio,
-                'imagen': item.producto.imagen.url if item.producto.imagen else None,
+                'imagen': _media_redirect_url(request, item.producto.imagen),
             },
             'subtotal': precio,
         })
@@ -839,16 +1132,40 @@ def api_cart_item_delete(request, item_id):
     return JsonResponse({'ok': True})
 
 
-@csrf_exempt
-@require_http_methods(['POST'])
+@require_GET
 def api_cart_checkout(request):
     if not request.user.is_authenticated:
         return _bad_request('autenticacion requerida', status=401)
 
-    details = getattr(settings, 'BANK_ACCOUNT_DETAILS', None) or {}
-    bank_account = getattr(settings, 'BANK_ACCOUNT', '') or ''
+    carrito, _ = Carrito.objects.get_or_create(usuario=request.user)
+    items = carrito.items.select_related('producto').all()
 
-    return JsonResponse({'bank_account': bank_account, 'details': details})
+    items_data = []
+    total = 0
+    for item in items:
+        precio = item.producto.precio or 0
+        items_data.append({
+            'id': item.id,
+            'producto_id': item.producto_id,
+            'producto': {
+                'id': item.producto.id,
+                'nombre': item.producto.nombre,
+                'slug': item.producto.slug,
+                'precio': precio,
+                'imagen': _media_redirect_url(request, item.producto.imagen),
+            },
+            'subtotal': precio,
+        })
+        total += precio
+
+    details = getattr(settings, 'BANK_ACCOUNT_DETAILS', None) or {}
+
+    return JsonResponse({
+        'items': items_data,
+        'total': total,
+        'count': len(items_data),
+        'details': details,
+    })
 
 
 # ─── FLOW PAYMENT GATEWAY ────────────────────────────────────────────────────

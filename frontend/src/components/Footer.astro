@@ -1,0 +1,44 @@
+---
+import { Icon } from 'astro-icon/components'
+
+const { currentYear, appVersion } = Astro.props
+---
+
+<footer class="site-footer">
+  <img src="/static/web/assets/g40.svg" alt="" class="decor decor-bottom-left" aria-hidden="true" width="380" height="299" loading="lazy" />
+
+  <div class="site-footer__grid">
+    <section class="site-footer__column site-footer__column--brand">
+      <p class="site-footer__title">Constant Archivos Digitales</p>
+      <p>© {currentYear} · {appVersion}</p>
+      <div class="site-footer__contact">
+        <p class="site-footer__title">Contacto</p>
+        <a href="mailto:contacto@constantdigitales.com">
+          <Icon name="lucide:at-sign" class="w-5 h-5" />
+          <span>contacto@constantdigitales.com</span>
+        </a>
+        <a href="https://instagram.com/constantdesigns" rel="noreferrer" target="_blank">
+          <Icon name="lucide:instagram" class="w-5 h-5" />
+          <span>@constantdesigns</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="site-footer__column site-footer__column--links" aria-labelledby="footer-links-title">
+      <p id="footer-links-title" class="site-footer__title">Mapa del sitio</p>
+      <ul class="site-footer__list">
+        <li><a href="/productos/">Productos</a></li>
+        <li><a href="/gratis/">Gratis</a></li>
+        <li><a href="/uso/">Uso</a></li>
+        <li><a href="/contacto/">Contacto</a></li>
+        <li><a href="/politica-privacidad/">Política de privacidad</a></li>
+        <li><a href="/terminos-de-uso/">Términos de uso</a></li>
+        <li><a href="/mapa-del-sitio/">Mapa del sitio</a></li>
+      </ul>
+    </section>
+  </div>
+
+  <p class="footer-credit">
+    Web construida por <Icon name="lucide:github" class="w-6 h-6 hover:text-pink-600" /> <a href="https://github.com/nbazaes">nbazaes</a>
+  </p>
+</footer>

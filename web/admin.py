@@ -5,6 +5,7 @@ from .models import (
 	Categoria,
 	Coleccion,
 	Descarga,
+	MensajeContacto,
 	Orden,
 	OrdenItem,
 	PerfilCliente,
@@ -77,3 +78,16 @@ class CarritoAdmin(admin.ModelAdmin):
 class SuscriptorAnonimoAdmin(admin.ModelAdmin):
 	list_display = ("id", "email", "created_at")
 	search_fields = ("email",)
+
+
+@admin.register(MensajeContacto)
+class MensajeContactoAdmin(admin.ModelAdmin):
+	list_display = ("id", "nombre", "email", "motivo", "leido", "creado_en")
+	list_filter = ("motivo", "leido", "creado_en")
+	search_fields = ("nombre", "email", "mensaje")
+	readonly_fields = ("nombre", "email", "motivo", "mensaje", "creado_en")
+	actions = ["marcar_como_leido"]
+
+	@admin.action(description="Marcar mensajes como leidos")
+	def marcar_como_leido(self, request, queryset):
+		queryset.update(leido=True)
