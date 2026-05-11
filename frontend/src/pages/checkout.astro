@@ -436,10 +436,62 @@ import BaseLayout from '../layouts/BaseLayout.astro'
       margin-top: 0;
     }
 
-    .co-header h1 {
-      font-size: 2rem;
-    }
+  .co-header h1 {
+    font-size: 2rem;
   }
+}
+
+.co-flow-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 16px 20px;
+  font-size: 1.15rem;
+  background: #243233;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.co-flow-btn:hover {
+  background: #3a5a4a;
+}
+.co-flow-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.co-flow-info {
+  margin: 14px 0 0;
+  text-align: center;
+  color: #6a5f55;
+  font-size: 0.9rem;
+}
+
+.co-bank-details {
+  margin-top: 20px;
+  border: 1px solid #e2d7ce;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.co-bank-summary {
+  padding: 14px 20px;
+  font-weight: 700;
+  color: #4a423d;
+  cursor: pointer;
+  background: #faf8f5;
+  user-select: none;
+}
+.co-bank-summary:hover {
+  background: #f5f0eb;
+}
+.co-bank-content {
+  padding: 20px;
+  border-top: 1px solid #e2d7ce;
+}
 </style>
 
 <script>
@@ -506,7 +558,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
         <div class="co-header">
           <p class="co-eyebrow">Checkout</p>
           <h1>Resumen de compra</h1>
-          <p>Revisa tus productos y los datos bancarios para realizar tu transferencia de forma segura.</p>
+          <p>Revisa tus productos y elige cómo pagar.</p>
         </div>
 
         <div class="co-layout">
@@ -526,41 +578,69 @@ import BaseLayout from '../layouts/BaseLayout.astro'
             </div>
           </div>
 
-          <div>
+          <div class="co-payment-card">
             <div class="co-card">
               <div class="co-card__header">
-                <h3 class="co-card__title">Datos para transferencia</h3>
-                <span class="co-payment__badge">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  Seguro
-                </span>
+                <h3 class="co-card__title">Método de pago</h3>
               </div>
-              
-              <p class="co-lead">Transfiere el monto exacto a la siguiente cuenta bancaria:</p>
 
-              <dl class="co-payment__grid">${paymentHtml}</dl>
+              <button class="btn co-flow-btn" type="button" data-checkout-flow-btn>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                Pagar con Flow
+              </button>
+
+              <p class="co-flow-info">Tarjeta de crédito, débito o transferencia. Pago seguro vía Flow.</p>
 
               <label class="co-terms">
                 <input type="checkbox" aria-label="Acepto los términos y condiciones" />
                 <span>Acepto los <a href="/terminos-de-uso/" target="_blank" rel="noreferrer">términos y condiciones</a> de la compra.</span>
               </label>
 
-              <div class="co-payment__note">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8a7f75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                <span>Envía tu comprobante por Instagram a <a href="https://www.instagram.com/constantdesigns" target="_blank" rel="noreferrer">@constantdesigns</a> y te enviaremos tus archivos a la brevedad.</span>
-              </div>
-            </div>
-
-            <div class="co-actions-card">
-              <p>Cuando hayas transferido, puedes seguir explorando o cerrar sesión.</p>
-              <div class="co-actions">
-                <a href="/productos/" class="btn btn-secondary">Seguir comprando</a>
-              </div>
+              <details class="co-bank-details">
+                <summary class="co-bank-summary">Transferencia bancaria (manual)</summary>
+                <div class="co-bank-content">
+                  <p class="co-lead">Transfiere el monto exacto a la siguiente cuenta bancaria:</p>
+                  <dl class="co-payment__grid">${paymentHtml}</dl>
+                  <div class="co-payment__note">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8a7f75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    <span>Envía tu comprobante por Instagram a <a href="https://www.instagram.com/constantdesigns" target="_blank" rel="noreferrer">@constantdesigns</a> y te enviaremos tus archivos a la brevedad.</span>
+                  </div>
+                </div>
+              </details>
             </div>
           </div>
         </div>
       </div>
     `
+
+    document.querySelector('[data-checkout-flow-btn]')?.addEventListener('click', startFlowPayment)
+  }
+
+  const startFlowPayment = async () => {
+    const flowBtn = document.querySelector('[data-checkout-flow-btn]')
+    if (!flowBtn) return
+    flowBtn.disabled = true
+    flowBtn.textContent = 'Conectando con Flow…'
+
+    try {
+      const res = await fetch(backendUrl('/api/pagos/flow/create-payment/'), {
+        method: 'POST',
+        credentials: 'include',
+      })
+      const data = await res.json()
+      if (data.ok && data.redirect_url) {
+        flowBtn.textContent = 'Redirigiendo…'
+        window.location.href = data.redirect_url
+      } else {
+        window.showStyledAlert?.(data.message || 'Error al crear el pago.', 'Error')
+        flowBtn.disabled = false
+        flowBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> Pagar con Flow'
+      }
+    } catch {
+      window.showStyledAlert?.('Error al conectar con Flow.', 'Error')
+      flowBtn.disabled = false
+      flowBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> Pagar con Flow'
+    }
   }
 
   const loadCheckout = async () => {
