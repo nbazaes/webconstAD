@@ -53,8 +53,11 @@ BANK_ACCOUNT_DETAILS = _parse_json_env(BANK_ACCOUNT_JSON)
 FLOW_API_KEY = os.getenv('FLOW_API_KEY', '')
 FLOW_SECRET_KEY = os.getenv('FLOW_SECRET_KEY', '')
 FLOW_ENVIRONMENT = os.getenv('FLOW_ENVIRONMENT', 'sandbox')
-FLOW_URL_CONFIRMATION = os.getenv('FLOW_URL_CONFIRMATION', 'http://localhost:8000/api/pagos/flow/confirmacion/')
-FLOW_URL_RETURN = os.getenv('FLOW_URL_RETURN', 'http://localhost:8000/api/pagos/flow/retorno/')
+# IMPORTANTE: Estas URLs deben ser accesibles públicamente.
+# urlConfirmation recibe POST de Flow (cloud) — NUNCA localhost.
+# urlReturn recibe redirect del browser del pagador tras el pago.
+FLOW_URL_CONFIRMATION = os.getenv('FLOW_URL_CONFIRMATION', '')
+FLOW_URL_RETURN = os.getenv('FLOW_URL_RETURN', '')
 FLOW_REQUEST_TIMEOUT = int(os.getenv('FLOW_REQUEST_TIMEOUT', '30'))
 
 # SECURITY WARNING: don't run with debug turned on in production!
