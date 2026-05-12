@@ -1314,8 +1314,22 @@ def api_flow_confirmation(request):
     return JsonResponse({'ok': True})
 
 
+def _parse_flow_token(request):
+    token = request.GET.get('token', '') or request.POST.get('token', '')
+    if not token:
+        try:
+            raw = request.body.decode('utf-8', errors='replace')
+            for part in raw.split('&'):
+                if part.startswith('token='):
+                    token = part.split('=', 1)[1]
+                    break
+        except Exception:
+            pass
+    return token
+
+
 def api_flow_return(request):
-    token = request.POST.get('token', '') or request.GET.get('token', '')
+    token = _parse_flow_token(request)
     orden_get = request.GET.get('orden', '')
     order_id = None
 
@@ -1324,8 +1338,10 @@ def api_flow_return(request):
             orden_db = Orden.objects.get(pk=orden_get, pasarela='flow')
             if orden_db.pasarela_orden_id:
                 token = orden_db.pasarela_orden_id
+            else:
+                logger.warning('Flow return: orden=%s con pasarela_orden_id vacio', orden_get)
         except (Orden.DoesNotExist, ValueError):
-            pass
+            logger.warning('Flow return: orden=%s no encontrada', orden_get)
 
     if not token and request.user.is_authenticated:
         ultima = Orden.objects.filter(
@@ -1333,6 +1349,10 @@ def api_flow_return(request):
         ).order_by('-created_at').first()
         if ultima and ultima.pasarela_orden_id:
             token = ultima.pasarela_orden_id
+
+    if not token:
+        logger.warning('Flow return: no se pudo obtener token (orden_get=%s, auth=%s)',
+                       orden_get, request.user.is_authenticated)
 
     if token:
         try:
