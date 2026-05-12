@@ -1261,6 +1261,23 @@ def api_flow_create_payment(request):
 FLOW_ORIGINS = ['sandbox.flow.cl', 'www.flow.cl']
 
 
+def _completar_orden(orden):
+    """Marca la orden como completada y crea los tokens de descarga."""
+    if orden.estado != 'completada':
+        orden.estado = 'completada'
+        orden.save()
+    for item in orden.items.select_related('producto').all():
+        Descarga.objects.get_or_create(
+            user=orden.user,
+            producto=item.producto,
+            defaults={
+                'token': secrets.token_urlsafe(48),
+                'expira_en': timezone.now() + timedelta(days=365),
+            },
+        )
+    logger.info('Flow payment completed: orden=%s', orden.pk)
+
+
 @csrf_exempt
 @require_http_methods(['POST'])
 def api_flow_confirmation(request):
@@ -1291,16 +1308,7 @@ def api_flow_confirmation(request):
         return JsonResponse({'ok': True})
 
     if flow_status == 1:
-        orden.estado = 'completada'
-        orden.save()
-        for item in orden.items.select_related('producto').all():
-            Descarga.objects.create(
-                user=orden.user,
-                producto=item.producto,
-                token=secrets.token_urlsafe(48),
-                expira_en=timezone.now() + timedelta(days=365),
-            )
-        logger.info('Flow payment completed: orden=%s flowOrder=%s', orden.pk, status_data.get('flowOrder'))
+        _completar_orden(orden)
     elif flow_status == 2:
         orden.estado = 'rechazada'
         orden.save()
@@ -1315,44 +1323,38 @@ def api_flow_confirmation(request):
     return JsonResponse({'ok': True})
 
 
-def _parse_flow_token(request):
-    raw = ''
-    try:
-        raw = request.body.decode('utf-8', errors='replace')
-    except Exception:
-        pass
-    logger.info('Flow return raw body: %s', raw[:200])
-
-    token = request.GET.get('token', '') or request.POST.get('token', '')
-    if not token and raw:
-        for part in raw.split('&'):
-            if '=' in part:
-                k, v = part.split('=', 1)
-                if k == 'token':
-                    token = v
-                    break
-    return token
-
-
 def api_flow_return(request):
-    token = _parse_flow_token(request)
+    """
+    No intenta parsear el body POST que Flow envía a urlReturn
+    (no sabemos qué contiene ni si siquiera es un POST).
+    Solo usa ?orden=<id> que nosotros pusimos en la URL
+    y la orden guardada en base de datos.
+    """
     orden_get = request.GET.get('orden', '')
     order_id = None
 
-    if not token and orden_get:
+    if orden_get:
         try:
-            orden_db = Orden.objects.get(pk=orden_get, pasarela='flow')
-            if orden_db.pasarela_orden_id:
-                token = orden_db.pasarela_orden_id
-            else:
-                logger.warning('Flow return: orden=%s con pasarela_orden_id vacio', orden_get)
-            if orden_db.estado == 'completada':
-                order_id = orden_db.pk
-                logger.info('Flow return: orden=%s ya completada por webhook', orden_get)
+            orden = Orden.objects.get(pk=orden_get, pasarela='flow')
         except (Orden.DoesNotExist, ValueError):
-            logger.warning('Flow return: orden=%s no encontrada', orden_get)
+            orden = None
 
-    if not token and not order_id and request.user.is_authenticated:
+        if orden:
+            if orden.estado == 'completada':
+                order_id = orden.pk
+                logger.info('Flow return: orden=%s ya completada por webhook', orden_get)
+            elif orden.pasarela_orden_id:
+                try:
+                    client = FlowClient()
+                    status = client.get_status(token=orden.pasarela_orden_id)
+                    logger.info('Flow return: getStatus orden=%s status=%s', orden_get, status.get('status'))
+                    if status.get('status') == 1:
+                        _completar_orden(orden)
+                        order_id = orden.pk
+                except FlowError as e:
+                    logger.error('Flow return: getStatus fallo orden=%s: %s', orden_get, e)
+
+    if not order_id and request.user.is_authenticated:
         ultima = Orden.objects.filter(
             user=request.user, pasarela='flow', estado='completada'
         ).order_by('-created_at').first()
@@ -1360,49 +1362,12 @@ def api_flow_return(request):
             order_id = ultima.pk
             logger.info('Flow return: ultima orden completada=%s', order_id)
 
-    if not order_id and token:
-        try:
-            client = FlowClient()
-            status_data = client.get_status(token=token)
-        except FlowError as e:
-            logger.error('Flow return getStatus error token=%s: %s', token[:12], e)
-            status_data = {}
-
-        flow_status = status_data.get('status')
-        logger.info('Flow return: getStatus token=%s status=%s', token[:12], flow_status)
-
-        if flow_status == 1:
-            try:
-                orden = Orden.objects.get(pasarela_orden_id=token, pasarela='flow')
-            except Orden.DoesNotExist:
-                orden = None
-
-            if orden:
-                if orden.estado != 'completada':
-                    orden.estado = 'completada'
-                    orden.save()
-                    for item in orden.items.select_related('producto').all():
-                        Descarga.objects.get_or_create(
-                            user=orden.user,
-                            producto=item.producto,
-                            defaults={
-                                'token': secrets.token_urlsafe(48),
-                                'expira_en': timezone.now() + timedelta(days=365),
-                            },
-                        )
-                    logger.info('Flow return completed: orden=%s', orden.pk)
-                order_id = orden.pk
-
     if not order_id:
-        logger.warning('Flow return: redirecting to /cuenta (token=%s orden_get=%s)',
-                       token[:12] if token else '', orden_get)
+        logger.warning('Flow return: redirecting to /cuenta (orden_get=%s)', orden_get)
 
     if order_id:
-        redirect = f'/pago-exitoso/?orden={order_id}'
-    else:
-        redirect = '/cuenta/?flow=procesando'
-
-    return HttpResponseRedirect(redirect)
+        return HttpResponseRedirect(f'/pago-exitoso/?orden={order_id}')
+    return HttpResponseRedirect('/cuenta/?flow=procesando')
 
 
 @require_GET
