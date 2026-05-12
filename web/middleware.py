@@ -1,24 +1,30 @@
 import ipaddress
+import logging
 from django.conf import settings
 from django.http import HttpResponseNotFound
 
-# Vistas exentas de CSRF (webhooks de pasarelas de pago)
-_WEBHOOK_CSRF_EXEMPT_PATHS = [
+logger = logging.getLogger(__name__)
+
+_WEBHOOK_CSRF_EXEMPT_PATHS = {
     '/api/pagos/flow/confirmacion/',
-]
+}
 
 
 class FlowWebhookCsrfExemptMiddleware:
-    """Exime de CSRF los endpoints de webhook de Flow.
-    Debe ejecutarse *antes* de CsrfViewMiddleware en MIDDLEWARE."""
+    """Marca csrf_exempt = True en el callback ANTES que CsrfViewMiddleware
+    lo inspeccione en process_view. Más fiable que setear atributos en el request."""
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.path_info in _WEBHOOK_CSRF_EXEMPT_PATHS:
-            request._dont_enforce_csrf_checks = True
         return self.get_response(request)
+
+    def process_view(self, request, callback, callback_args, callback_kwargs):
+        if request.path_info in _WEBHOOK_CSRF_EXEMPT_PATHS:
+            callback.csrf_exempt = True
+            logger.info('CSRF exempt aplicado a %s', request.path_info)
+        return None
 
 
 class AdminTailscaleMiddleware:

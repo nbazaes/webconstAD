@@ -1,5 +1,4 @@
 from django.urls import path
-from django.views.decorators.csrf import csrf_exempt
 from . import views
 
 urlpatterns = [
@@ -35,6 +34,6 @@ urlpatterns = [
     path('api/cart/items/<int:item_id>/', views.api_cart_item_delete, name='api-cart-item-delete'),
     path('api/cart/checkout/', views.api_cart_checkout, name='api-cart-checkout'),
     path('api/pagos/flow/create-payment/', views.api_flow_create_payment, name='api-flow-create-payment'),
-    path('api/pagos/flow/confirmacion/', csrf_exempt(views.api_flow_confirmation), name='api-flow-confirmation'),
+    path('api/pagos/flow/confirmacion/', views.api_flow_confirmation, name='api-flow-confirmation'),
     path('api/pagos/flow/retorno/', views.api_flow_return, name='api-flow-return'),
 ]
