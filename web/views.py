@@ -1316,11 +1316,12 @@ def api_flow_confirmation(request):
 
 def api_flow_return(request):
     token = request.POST.get('token', '') or request.GET.get('token', '')
-    order_id = request.GET.get('orden', '')
+    orden_get = request.GET.get('orden', '')
+    order_id = None
 
-    if not token and order_id:
+    if not token and orden_get:
         try:
-            orden_db = Orden.objects.get(pk=order_id, pasarela='flow')
+            orden_db = Orden.objects.get(pk=orden_get, pasarela='flow')
             if orden_db.pasarela_orden_id:
                 token = orden_db.pasarela_orden_id
         except (Orden.DoesNotExist, ValueError):
