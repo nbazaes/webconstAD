@@ -1404,7 +1404,7 @@ def api_flow_success(request, order_id):
     return JsonResponse({
         'ok': True,
         'orden_id': orden.pk,
-        'total': str(orden.total),
+        'total': str(int(orden.total)),
         'moneda': orden.moneda,
         'creada': orden.created_at.isoformat(),
         'items': items,
@@ -1449,12 +1449,12 @@ def api_mis_compras(request):
                 'slug': item.producto.slug,
                 'descarga_token': descarga.token if descarga else None,
                 'imagen': item.producto.imagen.url if item.producto.imagen else None,
-                'precio': str(item.precio_al_momento),
+                'precio': str(int(item.precio_al_momento)),
             })
         data.append({
             'id': orden.pk,
             'estado': orden.estado,
-            'total': str(orden.total),
+            'total': str(int(orden.total)),
             'moneda': orden.moneda,
             'pasarela': orden.pasarela,
             'creada': orden.created_at.isoformat(),
