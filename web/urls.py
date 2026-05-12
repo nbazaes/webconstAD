@@ -38,4 +38,5 @@ urlpatterns = [
     path('api/pagos/flow/retorno/', views.api_flow_return, name='api-flow-return'),
     path('api/pagos/flow/success/<int:order_id>/', views.api_flow_success, name='api-flow-success'),
     path('api/descargas/<str:token>/', views.api_descarga_producto, name='api-descarga-producto'),
+    path('api/compras/', views.api_mis_compras, name='api-mis-compras'),
 ]

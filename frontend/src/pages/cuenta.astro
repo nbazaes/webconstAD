@@ -6,13 +6,35 @@ import BaseLayout from '../layouts/BaseLayout.astro'
   <main class="content">
     <section class="products-hero text-block">
       <h2>CUENTA</h2>
-      <p class="lead">Revisa y actualiza tus datos personales.</p>
+      <p class="lead">Administra tus datos y revisa tus compras.</p>
     </section>
 
     <div class="flow-result-banner" data-flow-result hidden></div>
 
-    <section class="products-hero text-block account-page-card" data-account-page>
-      <p>Cargando información de tu cuenta...</p>
+    <section class="products-hero text-block">
+      <div class="cuenta-layout" data-cuenta-layout hidden>
+        <aside class="cuenta-sidebar" data-cuenta-sidebar>
+          <button class="cuenta-tab cuenta-tab--active" type="button" data-tab-perfil>Perfil</button>
+          <button class="cuenta-tab" type="button" data-tab-compras>Mis Compras</button>
+        </aside>
+
+        <div class="cuenta-content">
+          <section class="cuenta-panel" data-panel-perfil>
+            <div class="account-page-card" data-account-page>
+              <p>Cargando información de tu cuenta...</p>
+            </div>
+          </section>
+
+          <section class="cuenta-panel" data-panel-compras hidden>
+            <div class="compras-page-card" data-compras-page>
+              <div class="co-loading" data-compras-loading>
+                <div class="loading-spinner"></div>
+                <p>Cargando tus compras...</p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
     </section>
 
     <section class="products-hero text-block account-page-card" data-login-page hidden>
@@ -29,6 +51,254 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     </section>
   </main>
 </BaseLayout>
+
+<style is:global>
+  .cuenta-layout {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+
+  .cuenta-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: sticky;
+    top: 24px;
+  }
+
+  .cuenta-tab {
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    font: inherit;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #4a423d;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .cuenta-tab:hover {
+    background: #f0ece7;
+  }
+
+  .cuenta-tab--active {
+    background: #dfd3c8;
+    color: #243233;
+  }
+
+  .cuenta-content {
+    min-height: 300px;
+  }
+
+  .cuenta-panel {
+    animation: co-fade-up 0.25s ease both;
+  }
+
+  .compras-page-card {
+    background: #fffaf5;
+    border: 1px solid #e8dfd7;
+    border-radius: 14px;
+    padding: 28px;
+  }
+
+  .co-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 60px 20px;
+    text-align: center;
+    color: #6a5f55;
+  }
+
+  .co-loading p {
+    margin: 0;
+    font-family: 'PT Serif', serif;
+    font-style: italic;
+  }
+
+  .compras-empty {
+    text-align: center;
+    padding: 60px 20px;
+  }
+
+  .compras-empty__icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 16px;
+    color: #c4b8ae;
+  }
+
+  .compras-empty p {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #6a5f55;
+  }
+
+  .compras-lista {
+    display: grid;
+    gap: 20px;
+  }
+
+  .compra-card {
+    background: #ffffff;
+    border: 1px solid #ece3dc;
+    border-radius: 14px;
+    padding: 20px;
+    transition: box-shadow 0.2s ease;
+  }
+
+  .compra-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+  }
+
+  .compra-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f2ece7;
+    flex-wrap: wrap;
+  }
+
+  .compra-header__meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .compra-header__id {
+    font-weight: 700;
+    color: #243233;
+    font-size: 1rem;
+  }
+
+  .compra-header__fecha {
+    font-size: 0.85rem;
+    color: #8a7f75;
+  }
+
+  .compra-header__total {
+    font-weight: 700;
+    color: #243233;
+    font-size: 1.1rem;
+  }
+
+  .compra-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .compra-badge--completada {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  .compra-badge--pendiente {
+    background: #fff3cd;
+    color: #856404;
+  }
+
+  .compra-badge--rechazada {
+    background: #f8d7da;
+    color: #721c24;
+  }
+
+  .compra-badge--cancelada {
+    background: #e2e3e5;
+    color: #383d41;
+  }
+
+  .compra-items {
+    display: grid;
+    gap: 8px;
+  }
+
+  .compra-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: #fffdfb;
+    border: 1px solid #f2ece7;
+    border-radius: 10px;
+  }
+
+  .compra-item__thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #f0ece7;
+    flex-shrink: 0;
+  }
+
+  .compra-item__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .compra-item__info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .compra-item__name {
+    font-weight: 700;
+    color: #243233;
+    font-size: 0.95rem;
+  }
+
+  .compra-item__price {
+    font-size: 0.85rem;
+    color: #6a5f55;
+  }
+
+  .compra-item__download .btn {
+    padding: 6px 14px;
+    font-size: 0.85rem;
+  }
+
+  @media (max-width: 700px) {
+    .cuenta-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .cuenta-sidebar {
+      flex-direction: row;
+      position: static;
+    }
+
+    .cuenta-tab {
+      text-align: center;
+      font-size: 0.95rem;
+      padding: 10px 12px;
+    }
+
+    .compra-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>
 
 <script>
   const flowResultBanner = document.querySelector('[data-flow-result]')
@@ -49,12 +319,59 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     window.history.replaceState({}, '', newUrl)
   }
 
+  const cuentaLayout = document.querySelector('[data-cuenta-layout]')
   const accountContainer = document.querySelector('[data-account-page]')
   const loginContainer = document.querySelector('[data-login-page]')
   const pageLoginForm = document.querySelector('[data-page-login-form]')
+  const comprasPage = document.querySelector('[data-compras-page]')
+  const comprasLoading = document.querySelector('[data-compras-loading]')
+
+  const tabPerfil = document.querySelector('[data-tab-perfil]')
+  const tabCompras = document.querySelector('[data-tab-compras]')
+  const panelPerfil = document.querySelector('[data-panel-perfil]')
+  const panelCompras = document.querySelector('[data-panel-compras]')
 
   const backendOrigin = window.location.origin
   const backendUrl = (path) => `${backendOrigin}${path}`
+
+  const formatPrice = (price) => {
+    if (price == null) return '$0'
+    return '$' + String(price).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  }
+
+  const formatDate = (iso) => {
+    if (!iso) return ''
+    const d = new Date(iso)
+    return d.toLocaleDateString('es-CL', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }
+
+  const estadoLabels = {
+    completada: 'Completada',
+    pendiente: 'Pendiente',
+    rechazada: 'Rechazada',
+    cancelada: 'Cancelada',
+  }
+
+  // ── TAB SWITCHING ──
+
+  const switchTab = (tab) => {
+    [tabPerfil, tabCompras].forEach(t => t?.classList.remove('cuenta-tab--active'))
+    tab?.classList.add('cuenta-tab--active')
+
+    panelPerfil?.setAttribute('hidden', '')
+    panelCompras?.setAttribute('hidden', '')
+
+    if (tab === tabPerfil) panelPerfil?.removeAttribute('hidden')
+    if (tab === tabCompras) {
+      panelCompras?.removeAttribute('hidden')
+      loadCompras()
+    }
+  }
+
+  tabPerfil?.addEventListener('click', () => switchTab(tabPerfil))
+  tabCompras?.addEventListener('click', () => switchTab(tabCompras))
+
+  // ── PROFILE ──
 
   const renderAccount = (user) => {
     if (!accountContainer) return
@@ -76,203 +393,9 @@ import BaseLayout from '../layouts/BaseLayout.astro'
         <label for="page-account-pais">País</label>
         <select id="page-account-pais" name="pais" required>
           <option value="">Selecciona un país</option>
-          <option value="Chile"${user.pais === 'Chile' ? ' selected' : ''}>Chile</option>
-          <option value="Afganistán"${user.pais === 'Afganistán' ? ' selected' : ''}>Afganistán</option>
-          <option value="Albania"${user.pais === 'Albania' ? ' selected' : ''}>Albania</option>
-          <option value="Alemania"${user.pais === 'Alemania' ? ' selected' : ''}>Alemania</option>
-          <option value="Andorra"${user.pais === 'Andorra' ? ' selected' : ''}>Andorra</option>
-          <option value="Angola"${user.pais === 'Angola' ? ' selected' : ''}>Angola</option>
-          <option value="Antigua y Barbuda"${user.pais === 'Antigua y Barbuda' ? ' selected' : ''}>Antigua y Barbuda</option>
-          <option value="Arabia Saudita"${user.pais === 'Arabia Saudita' ? ' selected' : ''}>Arabia Saudita</option>
-          <option value="Argelia"${user.pais === 'Argelia' ? ' selected' : ''}>Argelia</option>
-          <option value="Argentina"${user.pais === 'Argentina' ? ' selected' : ''}>Argentina</option>
-          <option value="Armenia"${user.pais === 'Armenia' ? ' selected' : ''}>Armenia</option>
-          <option value="Australia"${user.pais === 'Australia' ? ' selected' : ''}>Australia</option>
-          <option value="Austria"${user.pais === 'Austria' ? ' selected' : ''}>Austria</option>
-          <option value="Azerbaiyán"${user.pais === 'Azerbaiyán' ? ' selected' : ''}>Azerbaiyán</option>
-          <option value="Bahamas"${user.pais === 'Bahamas' ? ' selected' : ''}>Bahamas</option>
-          <option value="Bangladés"${user.pais === 'Bangladés' ? ' selected' : ''}>Bangladés</option>
-          <option value="Barbados"${user.pais === 'Barbados' ? ' selected' : ''}>Barbados</option>
-          <option value="Baréin"${user.pais === 'Baréin' ? ' selected' : ''}>Baréin</option>
-          <option value="Belice"${user.pais === 'Belice' ? ' selected' : ''}>Belice</option>
-          <option value="Benín"${user.pais === 'Benín' ? ' selected' : ''}>Benín</option>
-          <option value="Bielorrusia"${user.pais === 'Bielorrusia' ? ' selected' : ''}>Bielorrusia</option>
-          <option value="Birmania"${user.pais === 'Birmania' ? ' selected' : ''}>Birmania</option>
-          <option value="Bolivia"${user.pais === 'Bolivia' ? ' selected' : ''}>Bolivia</option>
-          <option value="Bosnia y Herzegovina"${user.pais === 'Bosnia y Herzegovina' ? ' selected' : ''}>Bosnia y Herzegovina</option>
-          <option value="Botsuana"${user.pais === 'Botsuana' ? ' selected' : ''}>Botsuana</option>
-          <option value="Brasil"${user.pais === 'Brasil' ? ' selected' : ''}>Brasil</option>
-          <option value="Brunéi"${user.pais === 'Brunéi' ? ' selected' : ''}>Brunéi</option>
-          <option value="Bulgaria"${user.pais === 'Bulgaria' ? ' selected' : ''}>Bulgaria</option>
-          <option value="Burkina Faso"${user.pais === 'Burkina Faso' ? ' selected' : ''}>Burkina Faso</option>
-          <option value="Burundi"${user.pais === 'Burundi' ? ' selected' : ''}>Burundi</option>
-          <option value="Bután"${user.pais === 'Bután' ? ' selected' : ''}>Bután</option>
-          <option value="Bélgica"${user.pais === 'Bélgica' ? ' selected' : ''}>Bélgica</option>
-          <option value="Cabo Verde"${user.pais === 'Cabo Verde' ? ' selected' : ''}>Cabo Verde</option>
-          <option value="Camboya"${user.pais === 'Camboya' ? ' selected' : ''}>Camboya</option>
-          <option value="Camerún"${user.pais === 'Camerún' ? ' selected' : ''}>Camerún</option>
-          <option value="Canadá"${user.pais === 'Canadá' ? ' selected' : ''}>Canadá</option>
-          <option value="Catar"${user.pais === 'Catar' ? ' selected' : ''}>Catar</option>
-          <option value="Chad"${user.pais === 'Chad' ? ' selected' : ''}>Chad</option>
-          <option value="China"${user.pais === 'China' ? ' selected' : ''}>China</option>
-          <option value="Chipre"${user.pais === 'Chipre' ? ' selected' : ''}>Chipre</option>
-          <option value="Colombia"${user.pais === 'Colombia' ? ' selected' : ''}>Colombia</option>
-          <option value="Comoras"${user.pais === 'Comoras' ? ' selected' : ''}>Comoras</option>
-          <option value="Corea del Norte"${user.pais === 'Corea del Norte' ? ' selected' : ''}>Corea del Norte</option>
-          <option value="Corea del Sur"${user.pais === 'Corea del Sur' ? ' selected' : ''}>Corea del Sur</option>
-          <option value="Costa de Marfil"${user.pais === 'Costa de Marfil' ? ' selected' : ''}>Costa de Marfil</option>
-          <option value="Costa Rica"${user.pais === 'Costa Rica' ? ' selected' : ''}>Costa Rica</option>
-          <option value="Croacia"${user.pais === 'Croacia' ? ' selected' : ''}>Croacia</option>
-          <option value="Cuba"${user.pais === 'Cuba' ? ' selected' : ''}>Cuba</option>
-          <option value="Dinamarca"${user.pais === 'Dinamarca' ? ' selected' : ''}>Dinamarca</option>
-          <option value="Dominica"${user.pais === 'Dominica' ? ' selected' : ''}>Dominica</option>
-          <option value="Ecuador"${user.pais === 'Ecuador' ? ' selected' : ''}>Ecuador</option>
-          <option value="Egipto"${user.pais === 'Egipto' ? ' selected' : ''}>Egipto</option>
-          <option value="El Salvador"${user.pais === 'El Salvador' ? ' selected' : ''}>El Salvador</option>
-          <option value="Emiratos Árabes Unidos"${user.pais === 'Emiratos Árabes Unidos' ? ' selected' : ''}>Emiratos Árabes Unidos</option>
-          <option value="Eritrea"${user.pais === 'Eritrea' ? ' selected' : ''}>Eritrea</option>
-          <option value="Eslovaquia"${user.pais === 'Eslovaquia' ? ' selected' : ''}>Eslovaquia</option>
-          <option value="Eslovenia"${user.pais === 'Eslovenia' ? ' selected' : ''}>Eslovenia</option>
-          <option value="España"${user.pais === 'España' ? ' selected' : ''}>España</option>
-          <option value="Estados Unidos"${user.pais === 'Estados Unidos' ? ' selected' : ''}>Estados Unidos</option>
-          <option value="Estonia"${user.pais === 'Estonia' ? ' selected' : ''}>Estonia</option>
-          <option value="Esuatini"${user.pais === 'Esuatini' ? ' selected' : ''}>Esuatini</option>
-          <option value="Etiopía"${user.pais === 'Etiopía' ? ' selected' : ''}>Etiopía</option>
-          <option value="Filipinas"${user.pais === 'Filipinas' ? ' selected' : ''}>Filipinas</option>
-          <option value="Finlandia"${user.pais === 'Finlandia' ? ' selected' : ''}>Finlandia</option>
-          <option value="Fiyi"${user.pais === 'Fiyi' ? ' selected' : ''}>Fiyi</option>
-          <option value="Francia"${user.pais === 'Francia' ? ' selected' : ''}>Francia</option>
-          <option value="Gabón"${user.pais === 'Gabón' ? ' selected' : ''}>Gabón</option>
-          <option value="Gambia"${user.pais === 'Gambia' ? ' selected' : ''}>Gambia</option>
-          <option value="Georgia"${user.pais === 'Georgia' ? ' selected' : ''}>Georgia</option>
-          <option value="Ghana"${user.pais === 'Ghana' ? ' selected' : ''}>Ghana</option>
-          <option value="Granada"${user.pais === 'Granada' ? ' selected' : ''}>Granada</option>
-          <option value="Grecia"${user.pais === 'Grecia' ? ' selected' : ''}>Grecia</option>
-          <option value="Guatemala"${user.pais === 'Guatemala' ? ' selected' : ''}>Guatemala</option>
-          <option value="Guinea"${user.pais === 'Guinea' ? ' selected' : ''}>Guinea</option>
-          <option value="Guinea Ecuatorial"${user.pais === 'Guinea Ecuatorial' ? ' selected' : ''}>Guinea Ecuatorial</option>
-          <option value="Guinea-Bisáu"${user.pais === 'Guinea-Bisáu' ? ' selected' : ''}>Guinea-Bisáu</option>
-          <option value="Guyana"${user.pais === 'Guyana' ? ' selected' : ''}>Guyana</option>
-          <option value="Haití"${user.pais === 'Haití' ? ' selected' : ''}>Haití</option>
-          <option value="Honduras"${user.pais === 'Honduras' ? ' selected' : ''}>Honduras</option>
-          <option value="Hungría"${user.pais === 'Hungría' ? ' selected' : ''}>Hungría</option>
-          <option value="India"${user.pais === 'India' ? ' selected' : ''}>India</option>
-          <option value="Indonesia"${user.pais === 'Indonesia' ? ' selected' : ''}>Indonesia</option>
-          <option value="Irak"${user.pais === 'Irak' ? ' selected' : ''}>Irak</option>
-          <option value="Irlanda"${user.pais === 'Irlanda' ? ' selected' : ''}>Irlanda</option>
-          <option value="Irán"${user.pais === 'Irán' ? ' selected' : ''}>Irán</option>
-          <option value="Islandia"${user.pais === 'Islandia' ? ' selected' : ''}>Islandia</option>
-          <option value="Islas Marshall"${user.pais === 'Islas Marshall' ? ' selected' : ''}>Islas Marshall</option>
-          <option value="Islas Salomón"${user.pais === 'Islas Salomón' ? ' selected' : ''}>Islas Salomón</option>
-          <option value="Israel"${user.pais === 'Israel' ? ' selected' : ''}>Israel</option>
-          <option value="Italia"${user.pais === 'Italia' ? ' selected' : ''}>Italia</option>
-          <option value="Jamaica"${user.pais === 'Jamaica' ? ' selected' : ''}>Jamaica</option>
-          <option value="Japón"${user.pais === 'Japón' ? ' selected' : ''}>Japón</option>
-          <option value="Jordania"${user.pais === 'Jordania' ? ' selected' : ''}>Jordania</option>
-          <option value="Kazajistán"${user.pais === 'Kazajistán' ? ' selected' : ''}>Kazajistán</option>
-          <option value="Kenia"${user.pais === 'Kenia' ? ' selected' : ''}>Kenia</option>
-          <option value="Kirguistán"${user.pais === 'Kirguistán' ? ' selected' : ''}>Kirguistán</option>
-          <option value="Kiribati"${user.pais === 'Kiribati' ? ' selected' : ''}>Kiribati</option>
-          <option value="Kuwait"${user.pais === 'Kuwait' ? ' selected' : ''}>Kuwait</option>
-          <option value="Laos"${user.pais === 'Laos' ? ' selected' : ''}>Laos</option>
-          <option value="Lesoto"${user.pais === 'Lesoto' ? ' selected' : ''}>Lesoto</option>
-          <option value="Letonia"${user.pais === 'Letonia' ? ' selected' : ''}>Letonia</option>
-          <option value="Liberia"${user.pais === 'Liberia' ? ' selected' : ''}>Liberia</option>
-          <option value="Libia"${user.pais === 'Libia' ? ' selected' : ''}>Libia</option>
-          <option value="Liechtenstein"${user.pais === 'Liechtenstein' ? ' selected' : ''}>Liechtenstein</option>
-          <option value="Lituania"${user.pais === 'Lituania' ? ' selected' : ''}>Lituania</option>
-          <option value="Luxemburgo"${user.pais === 'Luxemburgo' ? ' selected' : ''}>Luxemburgo</option>
-          <option value="Líbano"${user.pais === 'Líbano' ? ' selected' : ''}>Líbano</option>
-          <option value="Madagascar"${user.pais === 'Madagascar' ? ' selected' : ''}>Madagascar</option>
-          <option value="Malasia"${user.pais === 'Malasia' ? ' selected' : ''}>Malasia</option>
-          <option value="Malaui"${user.pais === 'Malaui' ? ' selected' : ''}>Malaui</option>
-          <option value="Maldivas"${user.pais === 'Maldivas' ? ' selected' : ''}>Maldivas</option>
-          <option value="Malta"${user.pais === 'Malta' ? ' selected' : ''}>Malta</option>
-          <option value="Malí"${user.pais === 'Malí' ? ' selected' : ''}>Malí</option>
-          <option value="Marruecos"${user.pais === 'Marruecos' ? ' selected' : ''}>Marruecos</option>
-          <option value="Mauricio"${user.pais === 'Mauricio' ? ' selected' : ''}>Mauricio</option>
-          <option value="Mauritania"${user.pais === 'Mauritania' ? ' selected' : ''}>Mauritania</option>
-          <option value="Micronesia"${user.pais === 'Micronesia' ? ' selected' : ''}>Micronesia</option>
-          <option value="Moldavia"${user.pais === 'Moldavia' ? ' selected' : ''}>Moldavia</option>
-          <option value="Mongolia"${user.pais === 'Mongolia' ? ' selected' : ''}>Mongolia</option>
-          <option value="Montenegro"${user.pais === 'Montenegro' ? ' selected' : ''}>Montenegro</option>
-          <option value="Mozambique"${user.pais === 'Mozambique' ? ' selected' : ''}>Mozambique</option>
-          <option value="México"${user.pais === 'México' ? ' selected' : ''}>México</option>
-          <option value="Mónaco"${user.pais === 'Mónaco' ? ' selected' : ''}>Mónaco</option>
-          <option value="Namibia"${user.pais === 'Namibia' ? ' selected' : ''}>Namibia</option>
-          <option value="Nauru"${user.pais === 'Nauru' ? ' selected' : ''}>Nauru</option>
-          <option value="Nepal"${user.pais === 'Nepal' ? ' selected' : ''}>Nepal</option>
-          <option value="Nicaragua"${user.pais === 'Nicaragua' ? ' selected' : ''}>Nicaragua</option>
-          <option value="Nigeria"${user.pais === 'Nigeria' ? ' selected' : ''}>Nigeria</option>
-          <option value="Noruega"${user.pais === 'Noruega' ? ' selected' : ''}>Noruega</option>
-          <option value="Nueva Zelanda"${user.pais === 'Nueva Zelanda' ? ' selected' : ''}>Nueva Zelanda</option>
-          <option value="Níger"${user.pais === 'Níger' ? ' selected' : ''}>Níger</option>
-          <option value="Omán"${user.pais === 'Omán' ? ' selected' : ''}>Omán</option>
-          <option value="Pakistán"${user.pais === 'Pakistán' ? ' selected' : ''}>Pakistán</option>
-          <option value="Palestina"${user.pais === 'Palestina' ? ' selected' : ''}>Palestina</option>
-          <option value="Palaos"${user.pais === 'Palaos' ? ' selected' : ''}>Palaos</option>
-          <option value="Panamá"${user.pais === 'Panamá' ? ' selected' : ''}>Panamá</option>
-          <option value="Papúa Nueva Guinea"${user.pais === 'Papúa Nueva Guinea' ? ' selected' : ''}>Papúa Nueva Guinea</option>
-          <option value="Paraguay"${user.pais === 'Paraguay' ? ' selected' : ''}>Paraguay</option>
-          <option value="Países Bajos"${user.pais === 'Países Bajos' ? ' selected' : ''}>Países Bajos</option>
-          <option value="Perú"${user.pais === 'Perú' ? ' selected' : ''}>Perú</option>
-          <option value="Polonia"${user.pais === 'Polonia' ? ' selected' : ''}>Polonia</option>
-          <option value="Kosovo"${user.pais === 'Kosovo' ? ' selected' : ''}>Kosovo</option>
-          <option value="Portugal"${user.pais === 'Portugal' ? ' selected' : ''}>Portugal</option>
-          <option value="Reino Unido"${user.pais === 'Reino Unido' ? ' selected' : ''}>Reino Unido</option>
-          <option value="República Centroafricana"${user.pais === 'República Centroafricana' ? ' selected' : ''}>República Centroafricana</option>
-          <option value="República Checa"${user.pais === 'República Checa' ? ' selected' : ''}>República Checa</option>
-          <option value="República del Congo"${user.pais === 'República del Congo' ? ' selected' : ''}>República del Congo</option>
-          <option value="República Democrática del Congo"${user.pais === 'República Democrática del Congo' ? ' selected' : ''}>República Democrática del Congo</option>
-          <option value="República Dominicana"${user.pais === 'República Dominicana' ? ' selected' : ''}>República Dominicana</option>
-          <option value="Ruanda"${user.pais === 'Ruanda' ? ' selected' : ''}>Ruanda</option>
-          <option value="Rumanía"${user.pais === 'Rumanía' ? ' selected' : ''}>Rumanía</option>
-          <option value="Rusia"${user.pais === 'Rusia' ? ' selected' : ''}>Rusia</option>
-          <option value="Samoa"${user.pais === 'Samoa' ? ' selected' : ''}>Samoa</option>
-          <option value="San Cristóbal y Nieves"${user.pais === 'San Cristóbal y Nieves' ? ' selected' : ''}>San Cristóbal y Nieves</option>
-          <option value="San Marino"${user.pais === 'San Marino' ? ' selected' : ''}>San Marino</option>
-          <option value="San Vicente y las Granadinas"${user.pais === 'San Vicente y las Granadinas' ? ' selected' : ''}>San Vicente y las Granadinas</option>
-          <option value="Santa Lucía"${user.pais === 'Santa Lucía' ? ' selected' : ''}>Santa Lucía</option>
-          <option value="Santo Tomé y Príncipe"${user.pais === 'Santo Tomé y Príncipe' ? ' selected' : ''}>Santo Tomé y Príncipe</option>
-          <option value="Senegal"${user.pais === 'Senegal' ? ' selected' : ''}>Senegal</option>
-          <option value="Serbia"${user.pais === 'Serbia' ? ' selected' : ''}>Serbia</option>
-          <option value="Seychelles"${user.pais === 'Seychelles' ? ' selected' : ''}>Seychelles</option>
-          <option value="Sierra Leona"${user.pais === 'Sierra Leona' ? ' selected' : ''}>Sierra Leona</option>
-          <option value="Singapur"${user.pais === 'Singapur' ? ' selected' : ''}>Singapur</option>
-          <option value="Siria"${user.pais === 'Siria' ? ' selected' : ''}>Siria</option>
-          <option value="Somalia"${user.pais === 'Somalia' ? ' selected' : ''}>Somalia</option>
-          <option value="Sri Lanka"${user.pais === 'Sri Lanka' ? ' selected' : ''}>Sri Lanka</option>
-          <option value="Suazilandia"${user.pais === 'Suazilandia' ? ' selected' : ''}>Suazilandia</option>
-          <option value="Sudáfrica"${user.pais === 'Sudáfrica' ? ' selected' : ''}>Sudáfrica</option>
-          <option value="Taiwán"${user.pais === 'Taiwán' ? ' selected' : ''}>Taiwán</option>
-          <option value="Sudán"${user.pais === 'Sudán' ? ' selected' : ''}>Sudán</option>
-          <option value="Sudán del Sur"${user.pais === 'Sudán del Sur' ? ' selected' : ''}>Sudán del Sur</option>
-          <option value="Suecia"${user.pais === 'Suecia' ? ' selected' : ''}>Suecia</option>
-          <option value="Suiza"${user.pais === 'Suiza' ? ' selected' : ''}>Suiza</option>
-          <option value="Surinam"${user.pais === 'Surinam' ? ' selected' : ''}>Surinam</option>
-          <option value="Tailandia"${user.pais === 'Tailandia' ? ' selected' : ''}>Tailandia</option>
-          <option value="Tanzania"${user.pais === 'Tanzania' ? ' selected' : ''}>Tanzania</option>
-          <option value="Tayikistán"${user.pais === 'Tayikistán' ? ' selected' : ''}>Tayikistán</option>
-          <option value="Timor Oriental"${user.pais === 'Timor Oriental' ? ' selected' : ''}>Timor Oriental</option>
-          <option value="Togo"${user.pais === 'Togo' ? ' selected' : ''}>Togo</option>
-          <option value="Tonga"${user.pais === 'Tonga' ? ' selected' : ''}>Tonga</option>
-          <option value="Trinidad y Tobago"${user.pais === 'Trinidad y Tobago' ? ' selected' : ''}>Trinidad y Tobago</option>
-          <option value="Turkmenistán"${user.pais === 'Turkmenistán' ? ' selected' : ''}>Turkmenistán</option>
-          <option value="Turquía"${user.pais === 'Turquía' ? ' selected' : ''}>Turquía</option>
-          <option value="Tuvalu"${user.pais === 'Tuvalu' ? ' selected' : ''}>Tuvalu</option>
-          <option value="Túnez"${user.pais === 'Túnez' ? ' selected' : ''}>Túnez</option>
-          <option value="Ucrania"${user.pais === 'Ucrania' ? ' selected' : ''}>Ucrania</option>
-          <option value="Uganda"${user.pais === 'Uganda' ? ' selected' : ''}>Uganda</option>
-          <option value="Uruguay"${user.pais === 'Uruguay' ? ' selected' : ''}>Uruguay</option>
-          <option value="Uzbekistán"${user.pais === 'Uzbekistán' ? ' selected' : ''}>Uzbekistán</option>
-          <option value="Vanuatu"${user.pais === 'Vanuatu' ? ' selected' : ''}>Vanuatu</option>
-          <option value="Vaticano"${user.pais === 'Vaticano' ? ' selected' : ''}>Vaticano</option>
-          <option value="Venezuela"${user.pais === 'Venezuela' ? ' selected' : ''}>Venezuela</option>
-          <option value="Vietnam"${user.pais === 'Vietnam' ? ' selected' : ''}>Vietnam</option>
-          <option value="Yemen"${user.pais === 'Yemen' ? ' selected' : ''}>Yemen</option>
-          <option value="Yibuti"${user.pais === 'Yibuti' ? ' selected' : ''}>Yibuti</option>
-          <option value="Zambia"${user.pais === 'Zambia' ? ' selected' : ''}>Zambia</option>
-          <option value="Zimbabue"${user.pais === 'Zimbabue' ? ' selected' : ''}>Zimbabue</option>
+          ${countries.map(c =>
+            `<option value="${c}"${user.pais === c ? ' selected' : ''}>${c}</option>`
+          ).join('')}
         </select>
 
         <label for="page-account-password">Nueva contraseña (opcional)</label>
@@ -303,8 +426,8 @@ import BaseLayout from '../layouts/BaseLayout.astro'
         message.textContent = errorMessage
         message.classList.add('error')
         await (window.showStyledAlert
-          ? window.showStyledAlert(`Error al actualizar cuenta\n${errorMessage}`, 'Error', 'danger')
-          : Promise.resolve(alert(`Error al actualizar cuenta\n${errorMessage}`)))
+          ? window.showStyledAlert('Error al actualizar cuenta\n' + errorMessage, 'Error', 'danger')
+          : Promise.resolve(alert('Error al actualizar cuenta\n' + errorMessage)))
         return
       }
 
@@ -313,18 +436,16 @@ import BaseLayout from '../layouts/BaseLayout.astro'
         message.textContent = errorMessage
         message.classList.add('error')
         await (window.showStyledAlert
-          ? window.showStyledAlert(`Error al actualizar cuenta\n${errorMessage}`, 'Error', 'danger')
-          : Promise.resolve(alert(`Error al actualizar cuenta\n${errorMessage}`)))
+          ? window.showStyledAlert('Error al actualizar cuenta\n' + errorMessage, 'Error', 'danger')
+          : Promise.resolve(alert('Error al actualizar cuenta\n' + errorMessage)))
         return
       }
 
       const wantsSave = await (window.showStyledConfirm
-        ? window.showStyledConfirm(`¿Confirmas actualizar tu cuenta?\n\nNombre: ${nombre}\nApellido: ${apellido}\nPaís: ${pais}${password ? '\nContraseña: (se actualizará)' : ''}`)
-        : Promise.resolve(confirm(`¿Confirmas actualizar tu cuenta?\n\nNombre: ${nombre}\nApellido: ${apellido}\nPaís: ${pais}${password ? '\nContraseña: (se actualizará)' : ''}`)))
+        ? window.showStyledConfirm('¿Confirmas actualizar tu cuenta?\n\nNombre: ' + nombre + '\nApellido: ' + apellido + '\nPaís: ' + pais + (password ? '\nContraseña: (se actualizará)' : ''))
+        : Promise.resolve(confirm('¿Confirmas actualizar tu cuenta?\n\nNombre: ' + nombre + '\nApellido: ' + apellido + '\nPaís: ' + pais + (password ? '\nContraseña: (se actualizará)' : ''))))
 
-      if (!wantsSave) {
-        return
-      }
+      if (!wantsSave) return
 
       const payload = new URLSearchParams()
       payload.append('nombre', nombre)
@@ -336,9 +457,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
       const response = await fetch(backendUrl('/api/auth/account/update/'), {
         method: 'POST',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: payload,
       })
 
@@ -348,8 +467,8 @@ import BaseLayout from '../layouts/BaseLayout.astro'
         message.textContent = errorMessage
         message.classList.add('error')
         await (window.showStyledAlert
-          ? window.showStyledAlert(`Error al actualizar cuenta\n${errorMessage}`, 'Error', 'danger')
-          : Promise.resolve(alert(`Error al actualizar cuenta\n${errorMessage}`)))
+          ? window.showStyledAlert('Error al actualizar cuenta\n' + errorMessage, 'Error', 'danger')
+          : Promise.resolve(alert('Error al actualizar cuenta\n' + errorMessage)))
         return
       }
 
@@ -357,10 +476,85 @@ import BaseLayout from '../layouts/BaseLayout.astro'
       message.classList.remove('error')
       renderAccount(data.user)
       await (window.showStyledAlert
-        ? window.showStyledAlert(`Cuenta actualizada\nNombre: ${nombre}\nApellido: ${apellido}\nPaís: ${pais}`, 'Éxito', 'success')
-        : Promise.resolve(alert(`Cuenta actualizada\nNombre: ${nombre}\nApellido: ${apellido}\nPaís: ${pais}`)))
+        ? window.showStyledAlert('Cuenta actualizada\nNombre: ' + nombre + '\nApellido: ' + apellido + '\nPaís: ' + pais, 'Éxito', 'success')
+        : Promise.resolve(alert('Cuenta actualizada\nNombre: ' + nombre + '\nApellido: ' + apellido + '\nPaís: ' + pais)))
     })
   }
+
+  // ── PURCHASES ──
+
+  const renderCompras = (data) => {
+    if (!comprasPage) return
+
+    if (!data.ordenes || data.ordenes.length === 0) {
+      comprasPage.innerHTML = `
+        <div class="compras-empty">
+          <svg class="compras-empty__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+          <p>No has realizado compras aún.</p>
+        </div>
+      `
+      return
+    }
+
+    const ordenesHtml = data.ordenes.map((orden) => {
+      const itemsHtml = (orden.items || []).map((item) => {
+        const imgHtml = item.imagen
+          ? `<img src="${item.imagen}" alt="${item.nombre}" width="48" height="48" loading="lazy" />`
+          : `<div class="compra-item__thumb-placeholder"></div>`
+        const downloadHtml = orden.estado === 'completada' && item.descarga_token
+          ? `<a href="${backendUrl('/api/descargas/' + item.descarga_token + '/')}" class="btn btn-secondary compra-item__download">Descargar</a>`
+          : ''
+        return `
+          <div class="compra-item">
+            <div class="compra-item__thumb">${imgHtml}</div>
+            <div class="compra-item__info">
+              <span class="compra-item__name">${item.nombre}</span>
+              <span class="compra-item__price">${formatPrice(item.precio)}</span>
+            </div>
+            ${downloadHtml}
+          </div>
+        `
+      }).join('')
+
+      return `
+        <div class="compra-card">
+          <div class="compra-header">
+            <div class="compra-header__meta">
+              <span class="compra-header__id">Orden #${orden.id}</span>
+              <span class="compra-header__fecha">${formatDate(orden.creada)}</span>
+              <span class="compra-badge compra-badge--${orden.estado}">${estadoLabels[orden.estado] || orden.estado}</span>
+            </div>
+            <span class="compra-header__total">${formatPrice(orden.total)}</span>
+          </div>
+          <div class="compra-items">${itemsHtml}</div>
+        </div>
+      `
+    }).join('')
+
+    comprasPage.innerHTML = `<div class="compras-lista">${ordenesHtml}</div>`
+  }
+
+  const loadCompras = async () => {
+    if (!comprasPage || !comprasLoading) return
+    comprasLoading?.removeAttribute('hidden')
+
+    try {
+      const res = await fetch(backendUrl('/api/compras/'), { credentials: 'include' })
+      if (!res.ok) {
+        comprasPage.innerHTML = `<div class="compras-empty"><p>Error al cargar tus compras.</p></div>`
+        return
+      }
+      const data = await res.json()
+      if (data.ok) {
+        comprasLoading?.setAttribute('hidden', '')
+        renderCompras(data)
+      }
+    } catch {
+      comprasPage.innerHTML = `<div class="compras-empty"><p>Error de conexión.</p></div>`
+    }
+  }
+
+  // ── AUTH SESSION ──
 
   const loadSession = async () => {
     const response = await fetch(backendUrl('/api/auth/session/'), { credentials: 'include' })
@@ -368,13 +562,13 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     const data = await response.json()
 
     if (!data.authenticated) {
-      accountContainer?.setAttribute('hidden', '')
+      cuentaLayout?.setAttribute('hidden', '')
       loginContainer?.removeAttribute('hidden')
       return
     }
 
     loginContainer?.setAttribute('hidden', '')
-    accountContainer?.removeAttribute('hidden')
+    cuentaLayout?.removeAttribute('hidden')
     renderAccount(data.user)
   }
 
@@ -391,9 +585,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     const response = await fetch(backendUrl('/api/auth/login/'), {
       method: 'POST',
       credentials: 'include',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: payload,
     })
 
@@ -415,4 +607,9 @@ import BaseLayout from '../layouts/BaseLayout.astro'
   })
 
   loadSession()
+
+  // ── COUNTRIES LIST (for profile form) ──
+  const countries = [
+    "Chile","Afganistán","Albania","Alemania","Andorra","Angola","Antigua y Barbuda","Arabia Saudita","Argelia","Argentina","Armenia","Australia","Austria","Azerbaiyán","Bahamas","Bangladés","Barbados","Baréin","Belice","Benín","Bielorrusia","Birmania","Bolivia","Bosnia y Herzegovina","Botsuana","Brasil","Brunéi","Bulgaria","Burkina Faso","Burundi","Bután","Bélgica","Cabo Verde","Camboya","Camerún","Canadá","Catar","Chad","China","Chipre","Colombia","Comoras","Corea del Norte","Corea del Sur","Costa de Marfil","Costa Rica","Croacia","Cuba","Dinamarca","Dominica","Ecuador","Egipto","El Salvador","Emiratos Árabes Unidos","Eritrea","Eslovaquia","Eslovenia","España","Estados Unidos","Estonia","Esuatini","Etiopía","Filipinas","Finlandia","Fiyi","Francia","Gabón","Gambia","Georgia","Ghana","Granada","Grecia","Guatemala","Guinea","Guinea Ecuatorial","Guinea-Bisáu","Guyana","Haití","Honduras","Hungría","India","Indonesia","Irak","Irlanda","Irán","Islandia","Islas Marshall","Islas Salomón","Israel","Italia","Jamaica","Japón","Jordania","Kazajistán","Kenia","Kirguistán","Kiribati","Kuwait","Laos","Lesoto","Letonia","Liberia","Libia","Liechtenstein","Lituania","Luxemburgo","Líbano","Madagascar","Malasia","Malaui","Maldivas","Malta","Malí","Marruecos","Mauricio","Mauritania","Micronesia","Moldavia","Mongolia","Montenegro","Mozambique","México","Mónaco","Namibia","Nauru","Nepal","Nicaragua","Nigeria","Noruega","Nueva Zelanda","Níger","Omán","Pakistán","Palestina","Palaos","Panamá","Papúa Nueva Guinea","Paraguay","Países Bajos","Perú","Polonia","Kosovo","Portugal","Reino Unido","República Centroafricana","República Checa","República del Congo","República Democrática del Congo","República Dominicana","Ruanda","Rumanía","Rusia","Samoa","San Cristóbal y Nieves","San Marino","San Vicente y las Granadinas","Santa Lucía","Santo Tomé y Príncipe","Senegal","Serbia","Seychelles","Sierra Leona","Singapur","Siria","Somalia","Sri Lanka","Suazilandia","Sudáfrica","Sudán","Sudán del Sur","Suecia","Suiza","Surinam","Tailandia","Tanzania","Tayikistán","Timor Oriental","Togo","Tonga","Trinidad y Tobago","Turkmenistán","Turquía","Tuvalu","Túnez","Ucrania","Uganda","Uruguay","Uzbekistán","Vanuatu","Vaticano","Venezuela","Vietnam","Yemen","Yibuti","Zambia","Zimbabue",
+  ]
 </script>

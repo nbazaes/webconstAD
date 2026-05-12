@@ -1428,3 +1428,37 @@ def api_descarga_producto(request, token):
     descarga.save(update_fields=['descargado_en'])
 
     return HttpResponseRedirect(descarga.producto.archivo.url)
+
+
+@require_GET
+def api_mis_compras(request):
+    if not request.user.is_authenticated:
+        return _bad_request('autenticacion requerida', status=401)
+
+    ordenes = Orden.objects.filter(user=request.user).order_by('-created_at')
+    data = []
+    for orden in ordenes:
+        items = []
+        for item in orden.items.select_related('producto').all():
+            descarga = Descarga.objects.filter(
+                user=request.user, producto=item.producto
+            ).first()
+            items.append({
+                'producto_id': item.producto_id,
+                'nombre': item.producto.nombre,
+                'slug': item.producto.slug,
+                'descarga_token': descarga.token if descarga else None,
+                'imagen': item.producto.imagen.url if item.producto.imagen else None,
+                'precio': str(item.precio_al_momento),
+            })
+        data.append({
+            'id': orden.pk,
+            'estado': orden.estado,
+            'total': str(orden.total),
+            'moneda': orden.moneda,
+            'pasarela': orden.pasarela,
+            'creada': orden.created_at.isoformat(),
+            'items': items,
+        })
+
+    return JsonResponse({'ok': True, 'ordenes': data})
