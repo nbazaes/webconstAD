@@ -1245,7 +1245,7 @@ def api_flow_create_payment(request):
         return _bad_request('Flow no retorno token o url', status=502)
 
     orden.pasarela_orden_id = flow_token
-    orden.save(update_fields=['pasarela_orden_id'])
+    orden.save()
 
     carrito.items.all().delete()
 
