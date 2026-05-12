@@ -1316,16 +1316,21 @@ def api_flow_confirmation(request):
 
 
 def _parse_flow_token(request):
+    raw = ''
+    try:
+        raw = request.body.decode('utf-8', errors='replace')
+    except Exception:
+        pass
+    logger.info('Flow return raw body: %s', raw[:200])
+
     token = request.GET.get('token', '') or request.POST.get('token', '')
-    if not token:
-        try:
-            raw = request.body.decode('utf-8', errors='replace')
-            for part in raw.split('&'):
-                if part.startswith('token='):
-                    token = part.split('=', 1)[1]
+    if not token and raw:
+        for part in raw.split('&'):
+            if '=' in part:
+                k, v = part.split('=', 1)
+                if k == 'token':
+                    token = v
                     break
-        except Exception:
-            pass
     return token
 
 
@@ -1341,21 +1346,21 @@ def api_flow_return(request):
                 token = orden_db.pasarela_orden_id
             else:
                 logger.warning('Flow return: orden=%s con pasarela_orden_id vacio', orden_get)
+            if orden_db.estado == 'completada':
+                order_id = orden_db.pk
+                logger.info('Flow return: orden=%s ya completada por webhook', orden_get)
         except (Orden.DoesNotExist, ValueError):
             logger.warning('Flow return: orden=%s no encontrada', orden_get)
 
-    if not token and request.user.is_authenticated:
+    if not token and not order_id and request.user.is_authenticated:
         ultima = Orden.objects.filter(
-            user=request.user, pasarela='flow'
+            user=request.user, pasarela='flow', estado='completada'
         ).order_by('-created_at').first()
-        if ultima and ultima.pasarela_orden_id:
-            token = ultima.pasarela_orden_id
+        if ultima:
+            order_id = ultima.pk
+            logger.info('Flow return: ultima orden completada=%s', order_id)
 
-    if not token:
-        logger.warning('Flow return: no se pudo obtener token (orden_get=%s, auth=%s)',
-                       orden_get, request.user.is_authenticated)
-
-    if token:
+    if not order_id and token:
         try:
             client = FlowClient()
             status_data = client.get_status(token=token)
@@ -1364,6 +1369,7 @@ def api_flow_return(request):
             status_data = {}
 
         flow_status = status_data.get('status')
+        logger.info('Flow return: getStatus token=%s status=%s', token[:12], flow_status)
 
         if flow_status == 1:
             try:
@@ -1386,6 +1392,10 @@ def api_flow_return(request):
                         )
                     logger.info('Flow return completed: orden=%s', orden.pk)
                 order_id = orden.pk
+
+    if not order_id:
+        logger.warning('Flow return: redirecting to /cuenta (token=%s orden_get=%s)',
+                       token[:12] if token else '', orden_get)
 
     if order_id:
         redirect = f'/pago-exitoso/?orden={order_id}'
