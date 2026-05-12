@@ -17,7 +17,7 @@ class FlowWebhookCsrfExemptMiddleware:
 
     def __call__(self, request):
         if request.path_info in _WEBHOOK_CSRF_EXEMPT_PATHS:
-            setattr(request, 'csrf_processing_done', True)
+            request._dont_enforce_csrf_checks = True
         return self.get_response(request)
 
 
