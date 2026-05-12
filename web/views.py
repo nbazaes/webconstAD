@@ -5,7 +5,6 @@ import random
 from datetime import timedelta
 from pathlib import Path
 from decimal import Decimal
-from urllib.parse import urlencode
 import base64
 import logging
 
@@ -1309,8 +1308,97 @@ def api_flow_confirmation(request):
 
 
 def api_flow_return(request):
-    cuenta_url = '/cuenta/'
-    params = urlencode({'flow': 'procesando'})
-    redirect = f"{cuenta_url}?{params}"
+    token = request.POST.get('token', '') or request.GET.get('token', '')
+    order_id = None
+
+    if token:
+        try:
+            client = FlowClient()
+            status_data = client.get_status(token=token)
+        except FlowError as e:
+            logger.error('Flow return getStatus error token=%s: %s', token[:12], e)
+            status_data = {}
+
+        flow_status = status_data.get('status')
+
+        if flow_status == 1:
+            try:
+                orden = Orden.objects.get(pasarela_orden_id=token, pasarela='flow')
+            except Orden.DoesNotExist:
+                orden = None
+
+            if orden:
+                if orden.estado != 'completada':
+                    orden.estado = 'completada'
+                    orden.save()
+                    for item in orden.items.select_related('producto').all():
+                        Descarga.objects.get_or_create(
+                            user=orden.user,
+                            producto=item.producto,
+                            defaults={
+                                'token': secrets.token_urlsafe(48),
+                                'expira_en': timezone.now() + timedelta(days=365),
+                            },
+                        )
+                    logger.info('Flow return completed: orden=%s', orden.pk)
+                order_id = orden.pk
+
+    if order_id:
+        redirect = f'/pago-exitoso/?orden={order_id}'
+    else:
+        redirect = '/cuenta/?flow=procesando'
 
     return HttpResponseRedirect(redirect)
+
+
+@require_GET
+def api_flow_success(request, order_id):
+    if not request.user.is_authenticated:
+        return _bad_request('autenticacion requerida', status=401)
+
+    try:
+        orden = Orden.objects.get(pk=order_id, user=request.user, pasarela='flow', estado='completada')
+    except Orden.DoesNotExist:
+        return _bad_request('orden no encontrada', status=404)
+
+    items = []
+    for item in orden.items.select_related('producto').all():
+        producto = item.producto
+        descarga = Descarga.objects.filter(
+            user=request.user, producto=producto
+        ).first()
+        items.append({
+            'producto_id': producto.id,
+            'nombre': producto.nombre,
+            'slug': producto.slug,
+            'descarga_token': descarga.token if descarga else None,
+            'imagen': producto.imagen.url if producto.imagen else None,
+        })
+
+    return JsonResponse({
+        'ok': True,
+        'orden_id': orden.pk,
+        'total': str(orden.total),
+        'moneda': orden.moneda,
+        'creada': orden.created_at.isoformat(),
+        'items': items,
+    })
+
+
+@require_GET
+def api_descarga_producto(request, token):
+    try:
+        descarga = Descarga.objects.get(token=token)
+    except Descarga.DoesNotExist:
+        return _bad_request('token de descarga invalido', status=404)
+
+    if timezone.now() > descarga.expira_en:
+        return _bad_request('token de descarga expirado', status=410)
+
+    if not descarga.producto.archivo:
+        return _bad_request('archivo no encontrado', status=404)
+
+    descarga.descargado_en = timezone.now()
+    descarga.save(update_fields=['descargado_en'])
+
+    return HttpResponseRedirect(descarga.producto.archivo.url)

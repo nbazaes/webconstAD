@@ -1,0 +1,287 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+
+export const prerender = false
+---
+
+<BaseLayout title="Pago exitoso | Constant Archivos Digitales" page="pago-exitoso">
+  <main class="content">
+    <section class="pe-page" data-success-page>
+      <div class="pe-loading" data-pe-loading>
+        <div class="loading-spinner"></div>
+        <p>Verificando tu pago...</p>
+      </div>
+    </section>
+  </main>
+</BaseLayout>
+
+<style is:global>
+  .pe-page {
+    max-width: 720px;
+    margin: 0 auto;
+    padding-right: 0;
+  }
+
+  .pe-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 80px 20px;
+    text-align: center;
+    color: #6a5f55;
+  }
+
+  .pe-loading p {
+    margin: 0;
+    font-family: 'PT Serif', serif;
+    font-style: italic;
+  }
+
+  .pe-success {
+    animation: pe-fade-up 0.5s ease both;
+  }
+
+  @keyframes pe-fade-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .pe-header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .pe-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 16px;
+    background: #d4edda;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pe-icon svg {
+    width: 32px;
+    height: 32px;
+    color: #155724;
+  }
+
+  .pe-header h1 {
+    margin: 0;
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    color: #155724;
+  }
+
+  .pe-header p {
+    margin: 8px 0 0;
+    color: #6a5f55;
+    font-size: 1.05rem;
+  }
+
+  .pe-card {
+    background: #ffffff;
+    border: 1px solid #e2d7ce;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    margin-bottom: 24px;
+  }
+
+  .pe-card h2 {
+    margin: 0 0 20px;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    color: #243233;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f2ece7;
+  }
+
+  .pe-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px;
+    background: #fffdfb;
+    border: 1px solid #f2ece7;
+    border-radius: 12px;
+    margin-bottom: 12px;
+  }
+
+  .pe-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .pe-item__thumb {
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f0ece7;
+    flex-shrink: 0;
+  }
+
+  .pe-item__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .pe-item__info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .pe-item__name {
+    font-weight: 700;
+    color: #243233;
+    font-size: 1.05rem;
+  }
+
+  .pe-item__meta {
+    font-size: 0.85rem;
+    color: #8a7f75;
+  }
+
+  .pe-item__download {
+    flex-shrink: 0;
+  }
+
+  .pe-item__download .btn {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+  }
+
+  .pe-error {
+    text-align: center;
+    padding: 80px 20px;
+    color: #721c24;
+  }
+
+  .pe-error h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    margin: 0 0 12px;
+  }
+
+  .pe-error p {
+    font-size: 1.05rem;
+    color: #6a5f55;
+  }
+
+  .pe-error a {
+    color: #243233;
+    font-weight: 700;
+  }
+
+  @media (max-width: 600px) {
+    .pe-header h1 { font-size: 1.6rem; }
+  }
+</style>
+
+<script>
+  const successPage = document.querySelector('[data-success-page]')
+  const loadingEl = document.querySelector('[data-pe-loading]')
+  const params = new URLSearchParams(window.location.search)
+  const orderId = params.get('orden')
+
+  const backendOrigin = window.location.origin
+  const backendUrl = (path) => `${backendOrigin}${path}`
+
+  const formatPrice = (price) => {
+    if (price == null) return '$0'
+    return '$' + String(price).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  }
+
+  const renderSuccess = (data) => {
+    if (!successPage) return
+
+    const itemsHtml = (data.items || []).map((item) => {
+      const imgHtml = item.imagen
+        ? `<img src="${item.imagen}" alt="${item.nombre}" width="64" height="64" loading="lazy" />`
+        : `<div class="cart-item__thumb-placeholder"></div>`
+      const downloadHtml = item.descarga_token
+        ? `<a href="${backendUrl(`/api/descargas/${item.descarga_token}/`)}" class="btn btn-secondary pe-item__download">Descargar</a>`
+        : ''
+      return `
+        <div class="pe-item">
+          <div class="pe-item__thumb">${imgHtml}</div>
+          <div class="pe-item__info">
+            <span class="pe-item__name">${item.nombre}</span>
+            <span class="pe-item__meta">Producto digital</span>
+          </div>
+          ${downloadHtml}
+        </div>
+      `
+    }).join('')
+
+    successPage.innerHTML = `
+      <div class="pe-success">
+        <div class="pe-header">
+          <div class="pe-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <h1>Pago confirmado</h1>
+          <p>Tu pago de ${formatPrice(data.total)} fue procesado exitosamente. Tus productos están listos para descargar.</p>
+        </div>
+
+        <div class="pe-card">
+          <h2>Tus productos</h2>
+          <div class="pe-items">${itemsHtml}</div>
+        </div>
+
+        <div style="text-align:center;margin:24px 0 60px">
+          <p style="color:#6a5f55;margin:0 0 16px">Estos links expiran en 1 año. Puedes volver a descargarlos desde tu <a href="/cuenta/">cuenta</a>.</p>
+          <a href="/productos/" class="btn btn-secondary">Seguir comprando</a>
+        </div>
+      </div>
+    `
+    document.title = 'Pago exitoso | Constant Archivos Digitales'
+  }
+
+  const renderError = (message) => {
+    if (!successPage) return
+    successPage.innerHTML = `
+      <div class="pe-error">
+        <h2>No se pudo verificar el pago</h2>
+        <p>${message || 'Hubo un problema al verificar tu pago.'}</p>
+        <p><a href="/cuenta/">Ir a mi cuenta</a></p>
+      </div>
+    `
+  }
+
+  if (!orderId) {
+    renderError('No se encontró la orden de compra.')
+  } else {
+    ;(async () => {
+      try {
+        const res = await fetch(backendUrl(`/api/pagos/flow/success/${orderId}/`), {
+          credentials: 'include',
+        })
+        if (!res.ok) {
+          if (res.status === 401) {
+            window.location.href = '/cuenta/'
+            return
+          }
+          const err = await res.json().catch(() => ({}))
+          renderError(err.message || 'Orden no encontrada.')
+          return
+        }
+        const data = await res.json()
+        if (data.ok) {
+          loadingEl.hidden = true
+          renderSuccess(data)
+        } else {
+          renderError(data.message || 'Error al cargar la orden.')
+        }
+      } catch {
+        renderError('Error de conexión.')
+      }
+    })()
+  }
+</script>
