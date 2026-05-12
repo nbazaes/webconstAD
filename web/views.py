@@ -1311,6 +1311,13 @@ def api_flow_return(request):
     token = request.POST.get('token', '') or request.GET.get('token', '')
     order_id = None
 
+    if not token and request.user.is_authenticated:
+        ultima = Orden.objects.filter(
+            user=request.user, pasarela='flow'
+        ).order_by('-created_at').first()
+        if ultima and ultima.pasarela_orden_id:
+            token = ultima.pasarela_orden_id
+
     if token:
         try:
             client = FlowClient()
