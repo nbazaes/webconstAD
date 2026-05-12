@@ -1205,32 +1205,12 @@ def api_flow_create_payment(request):
         ],
     }
 
-    try:
-        client = FlowClient()
-        result = client.create_payment(
-            commerce_order=commerce_order,
-            subject=subject,
-            amount=total,
-            email=email,
-            url_confirmation=settings.FLOW_URL_CONFIRMATION,
-            url_return=settings.FLOW_URL_RETURN,
-            optional=json.dumps(optional_data),
-        )
-    except FlowError as e:
-        return _bad_request(str(e), status=400)
-
-    flow_token = result.get('token', '')
-    flow_url = result.get('url', '')
-
-    if not flow_token or not flow_url:
-        return _bad_request('Flow no retorno token o url', status=502)
-
     orden = Orden.objects.create(
         user=request.user,
         estado='pendiente',
         total=total,
         pasarela='flow',
-        pasarela_orden_id=flow_token,
+        pasarela_orden_id='',
         moneda='CLP',
     )
     for item in items:
@@ -1239,6 +1219,33 @@ def api_flow_create_payment(request):
             producto=item.producto,
             precio_al_momento=item.producto.precio or 0,
         )
+
+    url_return = settings.FLOW_URL_RETURN.rstrip('/') + f'/?orden={orden.pk}'
+
+    try:
+        client = FlowClient()
+        result = client.create_payment(
+            commerce_order=commerce_order,
+            subject=subject,
+            amount=total,
+            email=email,
+            url_confirmation=settings.FLOW_URL_CONFIRMATION,
+            url_return=url_return,
+            optional=json.dumps(optional_data),
+        )
+    except FlowError as e:
+        orden.delete()
+        return _bad_request(str(e), status=400)
+
+    flow_token = result.get('token', '')
+    flow_url = result.get('url', '')
+
+    if not flow_token or not flow_url:
+        orden.delete()
+        return _bad_request('Flow no retorno token o url', status=502)
+
+    orden.pasarela_orden_id = flow_token
+    orden.save(update_fields=['pasarela_orden_id'])
 
     carrito.items.all().delete()
 
@@ -1309,7 +1316,15 @@ def api_flow_confirmation(request):
 
 def api_flow_return(request):
     token = request.POST.get('token', '') or request.GET.get('token', '')
-    order_id = None
+    order_id = request.GET.get('orden', '')
+
+    if not token and order_id:
+        try:
+            orden_db = Orden.objects.get(pk=order_id, pasarela='flow')
+            if orden_db.pasarela_orden_id:
+                token = orden_db.pasarela_orden_id
+        except (Orden.DoesNotExist, ValueError):
+            pass
 
     if not token and request.user.is_authenticated:
         ultima = Orden.objects.filter(
