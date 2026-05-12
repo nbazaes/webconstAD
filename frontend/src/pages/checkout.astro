@@ -652,7 +652,6 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     if (!termsCheckbox?.checked) {
       if (termsError) termsError.removeAttribute('hidden')
       if (termsLabel) termsLabel.classList.add('co-terms--error')
-      window.showStyledAlert?.('Debes aceptar los términos y condiciones para continuar.', 'Aviso')
       return
     }
 
