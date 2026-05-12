@@ -7,6 +7,7 @@ logger = logging.getLogger(__name__)
 
 _WEBHOOK_CSRF_EXEMPT_PATHS = {
     '/api/pagos/flow/confirmacion/',
+    '/api/pagos/flow/retorno/',
 }
 
 
