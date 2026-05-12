@@ -1307,13 +1307,15 @@ def api_flow_confirmation(request):
         logger.warning('Flow confirmation: orden no encontrada para token=%s', token[:12])
         return JsonResponse({'ok': True})
 
-    if flow_status == 1:
+    if flow_status == 2:
         _completar_orden(orden)
-    elif flow_status == 2:
+    elif flow_status == 1:
+        logger.info('Flow payment pending: orden=%s', orden.pk)
+    elif flow_status == 3:
         orden.estado = 'rechazada'
         orden.save()
         logger.info('Flow payment rejected: orden=%s', orden.pk)
-    elif flow_status == 3:
+    elif flow_status == 4:
         orden.estado = 'cancelada'
         orden.save()
         logger.info('Flow payment cancelled: orden=%s', orden.pk)
@@ -1325,13 +1327,13 @@ def api_flow_confirmation(request):
 
 def api_flow_return(request):
     """
-    No intenta parsear el body POST que Flow envía a urlReturn
-    (no sabemos qué contiene ni si siquiera es un POST).
-    Solo usa ?orden=<id> que nosotros pusimos en la URL
-    y la orden guardada en base de datos.
+    Usa ?orden=<id> que pusimos en urlReturn para buscar la orden.
+    Si el webhook ya completó → /pago-exitoso/.
+    Si no → verifica con Flow API y redirige según estado real.
     """
     orden_get = request.GET.get('orden', '')
     order_id = None
+    status = None
 
     if orden_get:
         try:
@@ -1346,9 +1348,10 @@ def api_flow_return(request):
             elif orden.pasarela_orden_id:
                 try:
                     client = FlowClient()
-                    status = client.get_status(token=orden.pasarela_orden_id)
-                    logger.info('Flow return: getStatus orden=%s status=%s', orden_get, status.get('status'))
-                    if status.get('status') == 1:
+                    result = client.get_status(token=orden.pasarela_orden_id)
+                    status = result.get('status')
+                    logger.info('Flow return: getStatus orden=%s status=%s', orden_get, status)
+                    if status == 2:
                         _completar_orden(orden)
                         order_id = orden.pk
                 except FlowError as e:
@@ -1362,12 +1365,16 @@ def api_flow_return(request):
             order_id = ultima.pk
             logger.info('Flow return: ultima orden completada=%s', order_id)
 
-    if not order_id:
-        logger.warning('Flow return: redirecting to /cuenta (orden_get=%s)', orden_get)
-
     if order_id:
         return HttpResponseRedirect(f'/pago-exitoso/?orden={order_id}')
-    return HttpResponseRedirect('/cuenta/?flow=procesando')
+
+    estado = {
+        1: 'pendiente',
+        3: 'rechazada',
+        4: 'cancelada',
+    }.get(status, 'procesando')
+    logger.warning('Flow return: redirecting to /cuenta/?flow=%s (orden=%s)', estado, orden_get)
+    return HttpResponseRedirect(f'/cuenta/?flow={estado}')
 
 
 @require_GET
