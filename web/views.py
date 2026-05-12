@@ -1,5 +1,7 @@
 import json
 import secrets
+import time
+import random
 from datetime import timedelta
 from pathlib import Path
 from decimal import Decimal
@@ -1188,7 +1190,7 @@ def api_flow_create_payment(request):
     if total <= 0:
         return _bad_request('monto invalido')
 
-    commerce_order = str(request.user.id) + '-' + str(int(carrito.pk))
+    commerce_order = f"{request.user.id}-{carrito.pk}-{int(time.time())}-{random.randint(1000, 9999)}"
     subject = 'Compra en Constant Archivos Digitales'
     email = request.user.email
 
@@ -1216,7 +1218,7 @@ def api_flow_create_payment(request):
             optional=json.dumps(optional_data),
         )
     except FlowError as e:
-        return _bad_request(str(e), status=502)
+        return _bad_request(str(e), status=400)
 
     flow_token = result.get('token', '')
     flow_url = result.get('url', '')
