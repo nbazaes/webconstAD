@@ -1265,8 +1265,7 @@ FLOW_ORIGINS = ['sandbox.flow.cl', 'www.flow.cl']
 @require_http_methods(['POST'])
 def api_flow_confirmation(request):
     source = request.META.get('HTTP_ORIGIN', '') or request.META.get('HTTP_REFERER', '')
-    origin_ok = any(domain in source for domain in FLOW_ORIGINS)
-    if not origin_ok:
+    if source and not any(domain in source for domain in FLOW_ORIGINS):
         logger.warning('Flow confirmation: origen desconocido origin=%s referer=%s',
                        request.META.get('HTTP_ORIGIN', '')[:120],
                        request.META.get('HTTP_REFERER', '')[:120])
