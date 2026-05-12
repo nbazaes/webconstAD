@@ -471,27 +471,51 @@ import BaseLayout from '../layouts/BaseLayout.astro'
   font-size: 0.9rem;
 }
 
-.co-bank-details {
-  margin-top: 20px;
-  border: 1px solid #e2d7ce;
-  border-radius: 12px;
-  overflow: hidden;
-}
-.co-bank-summary {
-  padding: 14px 20px;
-  font-weight: 700;
-  color: #4a423d;
-  cursor: pointer;
-  background: #faf8f5;
-  user-select: none;
-}
-.co-bank-summary:hover {
-  background: #f5f0eb;
-}
-.co-bank-content {
-  padding: 20px;
-  border-top: 1px solid #e2d7ce;
-}
+  .co-bank-details {
+    margin-top: 20px;
+    border: 1px solid #e2d7ce;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .co-bank-summary {
+    padding: 14px 20px;
+    font-weight: 700;
+    color: #4a423d;
+    cursor: pointer;
+    background: #faf8f5;
+    user-select: none;
+  }
+  .co-bank-summary:hover {
+    background: #f5f0eb;
+  }
+  .co-bank-content {
+    padding: 20px;
+    border-top: 1px solid #e2d7ce;
+  }
+
+  .co-terms--error {
+    border-color: #dc3545 !important;
+    background: #fff5f5 !important;
+  }
+
+  .co-terms--error input {
+    outline: 2px solid #dc3545;
+    outline-offset: 2px;
+  }
+
+  .co-terms-error {
+    margin: 8px 0 0;
+    padding: 10px 14px;
+    background: #fff5f5;
+    border: 1px solid #f5c6cb;
+    border-radius: 8px;
+    color: #721c24;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 </style>
 
 <script>
@@ -592,9 +616,10 @@ import BaseLayout from '../layouts/BaseLayout.astro'
               <p class="co-flow-info">Tarjeta de crédito, débito o transferencia. Pago seguro vía Flow.</p>
 
               <label class="co-terms">
-                <input type="checkbox" aria-label="Acepto los términos y condiciones" />
+                <input type="checkbox" aria-label="Acepto los términos y condiciones" data-checkout-terms />
                 <span>Acepto los <a href="/terminos-de-uso/" target="_blank" rel="noreferrer">términos y condiciones</a> de la compra.</span>
               </label>
+              <p class="co-terms-error" data-checkout-terms-error hidden>Debes aceptar los términos y condiciones para continuar.</p>
 
               <details class="co-bank-details">
                 <summary class="co-bank-summary">Transferencia bancaria (manual)</summary>
@@ -617,6 +642,20 @@ import BaseLayout from '../layouts/BaseLayout.astro'
   }
 
   const startFlowPayment = async () => {
+    const termsCheckbox = document.querySelector('[data-checkout-terms]')
+    const termsError = document.querySelector('[data-checkout-terms-error]')
+    const termsLabel = document.querySelector('.co-terms')
+
+    if (termsError) termsError.setAttribute('hidden', '')
+    if (termsLabel) termsLabel.classList.remove('co-terms--error')
+
+    if (!termsCheckbox?.checked) {
+      if (termsError) termsError.removeAttribute('hidden')
+      if (termsLabel) termsLabel.classList.add('co-terms--error')
+      window.showStyledAlert?.('Debes aceptar los términos y condiciones para continuar.', 'Aviso')
+      return
+    }
+
     const flowBtn = document.querySelector('[data-checkout-flow-btn]')
     if (!flowBtn) return
     flowBtn.disabled = true
