@@ -2,6 +2,24 @@ import ipaddress
 from django.conf import settings
 from django.http import HttpResponseNotFound
 
+# Vistas exentas de CSRF (webhooks de pasarelas de pago)
+_WEBHOOK_CSRF_EXEMPT_PATHS = [
+    '/api/pagos/flow/confirmacion/',
+]
+
+
+class FlowWebhookCsrfExemptMiddleware:
+    """Exime de CSRF los endpoints de webhook de Flow.
+    Debe ejecutarse *antes* de CsrfViewMiddleware en MIDDLEWARE."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.path_info in _WEBHOOK_CSRF_EXEMPT_PATHS:
+            setattr(request, 'csrf_processing_done', True)
+        return self.get_response(request)
+
 
 class AdminTailscaleMiddleware:
     def __init__(self, get_response):
