@@ -1400,7 +1400,7 @@ def api_flow_success(request, order_id):
         return _bad_request('autenticacion requerida', status=401)
 
     try:
-        orden = Orden.objects.get(pk=order_id, user=request.user, pasarela='flow', estado='completada')
+        orden = Orden.objects.get(pk=order_id, user=request.user, pasarela='flow')
     except Orden.DoesNotExist:
         return _bad_request('orden no encontrada', status=404)
 
