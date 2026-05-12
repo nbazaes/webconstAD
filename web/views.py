@@ -1252,34 +1252,40 @@ def api_flow_create_payment(request):
     })
 
 
+FLOW_ORIGINS = ['sandbox.flow.cl', 'www.flow.cl']
+
+
 @csrf_exempt
 @require_http_methods(['POST'])
 def api_flow_confirmation(request):
-    token = request.POST.get('token', '')
+    referer = request.META.get('HTTP_REFERER', '')
+    origin_ok = any(domain in referer for domain in FLOW_ORIGINS)
+    if not origin_ok:
+        logger.warning('Flow confirmation: origen desconocido referer=%s', referer[:120])
+        return JsonResponse({'ok': True})
 
+    token = request.POST.get('token', '')
     if not token:
-        return _bad_request('token es obligatorio')
+        return JsonResponse({'ok': True})
 
     try:
         client = FlowClient()
         status_data = client.get_status(token=token)
     except FlowError as e:
         logger.error('Flow confirmation error for token=%s: %s', token[:12], e)
-        return _bad_request(str(e), status=502)
+        return JsonResponse({'ok': True})
 
     flow_status = status_data.get('status')
-    commerce_order = status_data.get('commerceOrder', '')
 
     try:
         orden = Orden.objects.get(pasarela_orden_id=token, pasarela='flow')
     except Orden.DoesNotExist:
         logger.warning('Flow confirmation: orden no encontrada para token=%s', token[:12])
-        return _bad_request('orden no encontrada', status=404)
+        return JsonResponse({'ok': True})
 
     if flow_status == 1:
         orden.estado = 'completada'
         orden.save()
-
         for item in orden.items.select_related('producto').all():
             Descarga.objects.create(
                 user=orden.user,
