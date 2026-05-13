@@ -1181,7 +1181,7 @@ def api_flow_create_payment(request):
     carrito = getattr(request.user, 'carrito', None)
     if not carrito:
         return _bad_request('carrito vacio')
-    items = list(carrito.items.select_related('producto').all())
+    items = list(carrito.items.select_related('producto__coleccion').all())
     if not items:
         return _bad_request('carrito vacio')
 
@@ -1197,12 +1197,11 @@ def api_flow_create_payment(request):
         return _bad_request('el usuario debe tener un email registrado')
 
     optional_data = {
-        'user_id': request.user.id,
-        'username': request.user.username,
-        'items': [
-            {'producto_id': item.producto_id, 'nombre': item.producto.nombre}
-            for item in items
-        ],
+        'cliente': request.user.username,
+        'productos': ', '.join(
+            f"{i.producto.coleccion.nombre} - {i.producto.nombre}" if i.producto.coleccion else i.producto.nombre
+            for i in items
+        ),
     }
 
     orden = Orden.objects.create(
