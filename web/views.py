@@ -1272,7 +1272,7 @@ def _completar_orden(orden):
             producto=item.producto,
             defaults={
                 'token': secrets.token_urlsafe(48),
-                'expira_en': timezone.now() + timedelta(days=365),
+                'expira_en': timezone.now() + timedelta(days=90),
             },
         )
     logger.info('Flow payment completed: orden=%s', orden.pk)
@@ -1398,6 +1398,7 @@ def api_flow_success(request, order_id):
             'nombre': producto.nombre,
             'slug': producto.slug,
             'descarga_token': descarga.token if descarga else None,
+            'expira_en': descarga.expira_en.isoformat() if descarga else None,
             'imagen': producto.imagen.url if producto.imagen else None,
         })
 
@@ -1448,6 +1449,7 @@ def api_mis_compras(request):
                 'nombre': item.producto.nombre,
                 'slug': item.producto.slug,
                 'descarga_token': descarga.token if descarga else None,
+                'expira_en': descarga.expira_en.isoformat() if descarga else None,
                 'imagen': item.producto.imagen.url if item.producto.imagen else None,
                 'precio': str(int(item.precio_al_momento)),
             })

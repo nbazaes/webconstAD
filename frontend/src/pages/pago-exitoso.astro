@@ -206,7 +206,16 @@ export const prerender = false
         ? `<img src="${item.imagen}" alt="${item.nombre}" width="64" height="64" loading="lazy" />`
         : `<div class="cart-item__thumb-placeholder"></div>`
       const downloadHtml = item.descarga_token
-        ? `<a href="${backendUrl(`/api/descargas/${item.descarga_token}/`)}" class="btn btn-secondary pe-item__download">Descargar</a>`
+        ? (() => {
+            const expDate = new Date(item.expira_en)
+            const now = new Date()
+            const expired = expDate <= now
+            const dateStr = expDate.toLocaleDateString('es-CL', { year: 'numeric', month: 'short', day: 'numeric' })
+            if (expired) {
+              return `<div style="text-align:center"><span class="btn btn-secondary pe-item__download" style="opacity:0.4;pointer-events:none">Expirado</span><br><span style="font-size:0.75rem;color:#8a7f75">Venció el ${dateStr}</span></div>`
+            }
+            return `<div style="text-align:center"><a href="${backendUrl('/api/descargas/' + item.descarga_token + '/')}" class="btn btn-secondary pe-item__download">Descargar</a><br><span style="font-size:0.75rem;color:#8a7f75">Vence el ${dateStr}</span></div>`
+          })()
         : ''
       return `
         <div class="pe-item">
@@ -236,7 +245,7 @@ export const prerender = false
         </div>
 
         <div style="text-align:center;margin:24px 0 60px">
-          <p style="color:#6a5f55;margin:0 0 16px">Estos links expiran en 1 año. Puedes volver a descargarlos desde tu <a href="/cuenta/">cuenta</a>.</p>
+          <p style="color:#6a5f55;margin:0 0 16px">Estos links expiran a los 3 meses de la compra. Puedes volver a descargarlos desde tu <a href="/cuenta/">cuenta</a>.</p>
           <a href="/productos/" class="btn btn-secondary">Seguir comprando</a>
         </div>
       </div>
