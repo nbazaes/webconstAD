@@ -58,6 +58,10 @@ class PerfilCliente(models.Model):
 	nombre = models.CharField(max_length=120)
 	apellido = models.CharField(max_length=120)
 	pais = models.CharField(max_length=120, blank=True)
+	flow_customer_id = models.CharField(max_length=120, blank=True)
+	flow_card_type = models.CharField(max_length=30, blank=True)
+	flow_card_last4 = models.CharField(max_length=6, blank=True)
+	flow_card_bank = models.CharField(max_length=120, blank=True)
 	stripe_customer_id = models.CharField(max_length=120, blank=True)
 	lemon_squeezy_id = models.CharField(max_length=120, blank=True)
 

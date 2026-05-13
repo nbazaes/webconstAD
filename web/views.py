@@ -3,6 +3,7 @@ import secrets
 import time
 import random
 from datetime import timedelta
+from urllib.parse import urlencode
 from pathlib import Path
 from decimal import Decimal
 import base64
@@ -41,6 +42,7 @@ from .models import (
     MensajeContacto,
     Orden,
     OrdenItem,
+    PerfilCliente,
     Producto,
     SuscriptorAnonimo,
     get_r2_storage,
@@ -1162,11 +1164,20 @@ def api_cart_checkout(request):
 
     details = getattr(settings, 'BANK_ACCOUNT_DETAILS', None) or {}
 
+    perfil = getattr(request.user, 'perfil_cliente', None)
+    tarjeta = None
+    if perfil and perfil.flow_customer_id:
+        tarjeta = {
+            'tipo': perfil.flow_card_type,
+            'ultimos_cuatro': perfil.flow_card_last4,
+        }
+
     return JsonResponse({
         'items': items_data,
         'total': total,
         'count': len(items_data),
         'details': details,
+        'tarjeta': tarjeta,
     })
 
 
@@ -1463,3 +1474,180 @@ def api_mis_compras(request):
         })
 
     return JsonResponse({'ok': True, 'ordenes': data})
+
+
+# ─── FLOW CUSTOMER (TARJETAS GUARDADAS) ──────────────────────────────────────
+
+
+@require_http_methods(['POST'])
+def api_flow_register_and_pay(request):
+    if not request.user.is_authenticated:
+        return _bad_request('autenticacion requerida', status=401)
+
+    carrito = getattr(request.user, 'carrito', None)
+    if not carrito:
+        return _bad_request('carrito vacio')
+    items = list(carrito.items.select_related('producto__coleccion').all())
+    if not items:
+        return _bad_request('carrito vacio')
+
+    total = sum(item.producto.precio or 0 for item in items)
+    if total <= 0:
+        return _bad_request('monto invalido')
+
+    email = request.user.email
+    if not email:
+        return _bad_request('el usuario debe tener un email registrado')
+
+    orden = Orden.objects.create(
+        user=request.user,
+        estado='pendiente',
+        total=total,
+        pasarela='flow',
+        pasarela_orden_id='',
+        moneda='CLP',
+    )
+    for item in items:
+        OrdenItem.objects.create(
+            orden=orden,
+            producto=item.producto,
+            precio_al_momento=item.producto.precio or 0,
+        )
+
+    url_return = settings.FLOW_URL_RETURN.rstrip('/') + f'/?orden={orden.pk}'
+    customer_id = f"user_{request.user.id}"
+
+    client = FlowClient()
+
+    try:
+        pay_result = client.create_payment(
+            commerce_order=f"{request.user.id}-{orden.pk}-{int(time.time())}-{random.randint(1000, 9999)}",
+            subject='Compra en Constant Archivos Digitales',
+            amount=total,
+            email=email,
+            url_confirmation=settings.FLOW_URL_CONFIRMATION,
+            url_return=url_return,
+            optional=json.dumps({
+                'cliente': request.user.username,
+                'productos': ', '.join(
+                    f"{i.producto.coleccion.nombre} - {i.producto.nombre}" if i.producto.coleccion else i.producto.nombre
+                    for i in items
+                ),
+            }),
+        )
+    except FlowError as e:
+        orden.delete()
+        return _bad_request(str(e), status=400)
+
+    pay_token = pay_result.get('token', '')
+    pay_url = pay_result.get('url', '')
+
+    if not pay_token or not pay_url:
+        orden.delete()
+        return _bad_request('Flow no retorno token o url', status=502)
+
+    orden.pasarela_orden_id = pay_token
+    orden.save(update_fields=['pasarela_orden_id'])
+
+    callback_params = urlencode({'orden_id': orden.pk, 'user_id': request.user.id})
+    callback_url = settings.FLOW_URL_CALLBACK_REGISTRO.rstrip('/') + '/?' + callback_params
+
+    try:
+        reg_result = client.register_customer(customer_id=customer_id, url_return=callback_url)
+    except FlowError as e:
+        carrito.items.all().delete()
+        return JsonResponse({
+            'ok': True,
+            'redirect_url': f"{pay_url}?token={pay_token}",
+            'orden_id': orden.pk,
+        })
+
+    register_url = f"{reg_result['url']}?token={reg_result['token']}"
+    carrito.items.all().delete()
+
+    return JsonResponse({
+        'ok': True,
+        'register_url': register_url,
+        'pay_url': f"{pay_url}?token={pay_token}",
+        'orden_id': orden.pk,
+    })
+
+
+@csrf_exempt
+@require_http_methods(['POST'])
+def api_flow_register_callback(request):
+    token = request.POST.get('token', '')
+    orden_id = request.GET.get('orden_id', '')
+    user_id = request.GET.get('user_id', '')
+
+    if token:
+        try:
+            client = FlowClient()
+            status_data = client.get_register_status(token=token)
+            if status_data.get('status') == '1':
+                customer_id = status_data.get('customerId', '')
+                card_type = status_data.get('creditCardType', '')
+                card_last4 = status_data.get('last4CardDigits', '')
+                card_bank = status_data.get('issuerBank', '')
+
+                perfil = PerfilCliente.objects.filter(user_id=user_id).first()
+                if perfil:
+                    perfil.flow_customer_id = customer_id
+                    perfil.flow_card_type = card_type
+                    perfil.flow_card_last4 = card_last4
+                    perfil.flow_card_bank = card_bank
+                    perfil.save()
+                    logger.info('Flow card registered: user=%s customerId=%s card=%s',
+                                user_id, customer_id, f"****{card_last4}")
+        except FlowError as e:
+            logger.error('Flow register callback error: %s', e)
+
+    if orden_id:
+        pay_url = f"/api/pagos/flow/retorno/?orden={orden_id}"
+        html = f"""<!DOCTYPE html><html><body><script>window.location.href="{pay_url}";</script></body></html>"""
+        return HttpResponse(html)
+
+    return JsonResponse({'ok': True})
+
+
+@require_GET
+def api_flow_medios_pago(request):
+    if not request.user.is_authenticated:
+        return _bad_request('autenticacion requerida', status=401)
+
+    perfil = getattr(request.user, 'perfil_cliente', None)
+    if perfil and perfil.flow_customer_id:
+        return JsonResponse({
+            'ok': True,
+            'tarjeta': {
+                'customer_id': perfil.flow_customer_id,
+                'tipo': perfil.flow_card_type,
+                'ultimos_cuatro': perfil.flow_card_last4,
+                'banco': perfil.flow_card_bank,
+            },
+        })
+    return JsonResponse({'ok': True, 'tarjeta': None})
+
+
+@require_http_methods(['POST'])
+def api_flow_unregister_card(request):
+    if not request.user.is_authenticated:
+        return _bad_request('autenticacion requerida', status=401)
+
+    perfil = getattr(request.user, 'perfil_cliente', None)
+    if not perfil or not perfil.flow_customer_id:
+        return _bad_request('no hay tarjeta registrada', status=404)
+
+    try:
+        client = FlowClient()
+        client.unregister_customer(customer_id=perfil.flow_customer_id)
+    except FlowError as e:
+        logger.error('Flow unregister error: %s', e)
+
+    perfil.flow_customer_id = ''
+    perfil.flow_card_type = ''
+    perfil.flow_card_last4 = ''
+    perfil.flow_card_bank = ''
+    perfil.save()
+
+    return JsonResponse({'ok': True})

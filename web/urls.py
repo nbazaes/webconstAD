@@ -39,4 +39,8 @@ urlpatterns = [
     path('api/pagos/flow/success/<int:order_id>/', views.api_flow_success, name='api-flow-success'),
     path('api/descargas/<str:token>/', views.api_descarga_producto, name='api-descarga-producto'),
     path('api/compras/', views.api_mis_compras, name='api-mis-compras'),
+    path('api/flow/register-and-pay/', views.api_flow_register_and_pay, name='api-flow-register-and-pay'),
+    path('api/flow/register-callback/', views.api_flow_register_callback, name='api-flow-register-callback'),
+    path('api/flow/medios-pago/', views.api_flow_medios_pago, name='api-flow-medios-pago'),
+    path('api/flow/unregister-card/', views.api_flow_unregister_card, name='api-flow-unregister-card'),
 ]

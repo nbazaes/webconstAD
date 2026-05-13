@@ -493,6 +493,35 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     border-top: 1px solid #e2d7ce;
   }
 
+  .co-save-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: #f8f3ee;
+    border: 1px solid #e2d7ce;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  .co-save-card input {
+    width: 18px;
+    height: 18px;
+    accent-color: #3a5a4a;
+  }
+
+  .co-card-saved {
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: #e6efe9;
+    border: 1px solid #c3d6cc;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #2d5a3a;
+  }
+
   .co-terms--error {
     border-color: #dc3545 !important;
     background: #fff5f5 !important;
@@ -621,6 +650,15 @@ import BaseLayout from '../layouts/BaseLayout.astro'
               </label>
               <p class="co-terms-error" data-checkout-terms-error hidden>Debes aceptar los términos y condiciones para continuar.</p>
 
+              <label class="co-save-card" data-save-card-label ${data.tarjeta ? 'hidden' : ''}>
+                <input type="checkbox" data-checkout-save-card />
+                <span>Guardar tarjeta para futuras compras</span>
+              </label>
+
+              <p class="co-card-saved" data-card-saved ${data.tarjeta ? '' : 'hidden'}>
+                Tarjeta guardada: ${data.tarjeta?.tipo || ''} ****${data.tarjeta?.ultimos_cuatro || ''}
+              </p>
+
               <details class="co-bank-details">
                 <summary class="co-bank-summary">Transferencia bancaria (manual)</summary>
                 <div class="co-bank-content">
@@ -655,22 +693,37 @@ import BaseLayout from '../layouts/BaseLayout.astro'
       return
     }
 
+    const saveCardCheckbox = document.querySelector('[data-checkout-save-card]')
+    const shouldSave = saveCardCheckbox?.checked
+
     const flowBtn = document.querySelector('[data-checkout-flow-btn]')
     if (!flowBtn) return
     flowBtn.disabled = true
     flowBtn.textContent = 'Conectando con Flow…'
 
+    const apiUrl = shouldSave
+      ? '/api/flow/register-and-pay/'
+      : '/api/pagos/flow/create-payment/'
+
     try {
-      const res = await fetch(backendUrl('/api/pagos/flow/create-payment/'), {
+      const res = await fetch(backendUrl(apiUrl), {
         method: 'POST',
         credentials: 'include',
       })
       const data = await res.json()
-      if (data.ok && data.redirect_url) {
-        flowBtn.textContent = 'Redirigiendo…'
-        window.location.href = data.redirect_url
+      if (data.ok) {
+        if (data.register_url) {
+          flowBtn.textContent = 'Redirigiendo a registro…'
+          window.location.href = data.register_url
+        } else if (data.redirect_url) {
+          flowBtn.textContent = 'Redirigiendo…'
+          window.location.href = data.redirect_url
+        } else if (data.pay_url) {
+          flowBtn.textContent = 'Redirigiendo a pago…'
+          window.location.href = data.pay_url
+        }
       } else {
-        window.showStyledAlert?.(data.message || 'Error al crear el pago.', 'Error')
+        window.showStyledAlert?.(data.message || 'Error al procesar el pago.', 'Error')
         flowBtn.disabled = false
         flowBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> Pagar con Flow'
       }

@@ -16,6 +16,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
         <aside class="cuenta-sidebar" data-cuenta-sidebar>
           <button class="cuenta-tab cuenta-tab--active" type="button" data-tab-perfil>Perfil</button>
           <button class="cuenta-tab" type="button" data-tab-compras>Mis Compras</button>
+          <button class="cuenta-tab" type="button" data-tab-medios>Medios de pago</button>
         </aside>
 
         <div class="cuenta-content">
@@ -30,6 +31,15 @@ import BaseLayout from '../layouts/BaseLayout.astro'
               <div class="co-loading" data-compras-loading>
                 <div class="loading-spinner"></div>
                 <p>Cargando tus compras...</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="cuenta-panel" data-panel-medios hidden>
+            <div class="compras-page-card" data-medios-page>
+              <div class="co-loading" data-medios-loading>
+                <div class="loading-spinner"></div>
+                <p>Cargando...</p>
               </div>
             </div>
           </section>
@@ -325,11 +335,15 @@ import BaseLayout from '../layouts/BaseLayout.astro'
   const pageLoginForm = document.querySelector('[data-page-login-form]')
   const comprasPage = document.querySelector('[data-compras-page]')
   const comprasLoading = document.querySelector('[data-compras-loading]')
+  const mediosPage = document.querySelector('[data-medios-page]')
+  const mediosLoading = document.querySelector('[data-medios-loading]')
 
   const tabPerfil = document.querySelector('[data-tab-perfil]')
   const tabCompras = document.querySelector('[data-tab-compras]')
+  const tabMedios = document.querySelector('[data-tab-medios]')
   const panelPerfil = document.querySelector('[data-panel-perfil]')
   const panelCompras = document.querySelector('[data-panel-compras]')
+  const panelMedios = document.querySelector('[data-panel-medios]')
 
   const backendOrigin = window.location.origin
   const backendUrl = (path) => `${backendOrigin}${path}`
@@ -355,21 +369,27 @@ import BaseLayout from '../layouts/BaseLayout.astro'
   // ── TAB SWITCHING ──
 
   const switchTab = (tab) => {
-    [tabPerfil, tabCompras].forEach(t => t?.classList.remove('cuenta-tab--active'))
+    [tabPerfil, tabCompras, tabMedios].forEach(t => t?.classList.remove('cuenta-tab--active'))
     tab?.classList.add('cuenta-tab--active')
 
     panelPerfil?.setAttribute('hidden', '')
     panelCompras?.setAttribute('hidden', '')
+    panelMedios?.setAttribute('hidden', '')
 
     if (tab === tabPerfil) panelPerfil?.removeAttribute('hidden')
     if (tab === tabCompras) {
       panelCompras?.removeAttribute('hidden')
       loadCompras()
     }
+    if (tab === tabMedios) {
+      panelMedios?.removeAttribute('hidden')
+      loadMedios()
+    }
   }
 
   tabPerfil?.addEventListener('click', () => switchTab(tabPerfil))
   tabCompras?.addEventListener('click', () => switchTab(tabCompras))
+  tabMedios?.addEventListener('click', () => switchTab(tabMedios))
 
   // ── PROFILE ──
 
@@ -560,6 +580,53 @@ import BaseLayout from '../layouts/BaseLayout.astro'
       }
     } catch {
       comprasPage.innerHTML = `<div class="compras-empty"><p>Error de conexión.</p></div>`
+    }
+  }
+
+  const loadMedios = async () => {
+    if (!mediosPage || !mediosLoading) return
+    mediosLoading?.removeAttribute('hidden')
+
+    try {
+      const res = await fetch(backendUrl('/api/flow/medios-pago/'), { credentials: 'include' })
+      const data = await res.json()
+      if (data.ok && data.tarjeta) {
+        const t = data.tarjeta
+        mediosPage.innerHTML = `
+          <div class="compras-empty" style="text-align:left;padding:20px 0">
+            <div class="compra-card" style="margin-bottom:16px">
+              <div class="compra-header">
+                <div class="compra-header__meta">
+                  <span class="compra-header__id">${t.tipo || ''} terminada en ${t.ultimos_cuatro || '****'}</span>
+                </div>
+              </div>
+              <div class="compra-items">
+                <p style="margin:0;color:#6a5f55">Banco: ${t.banco || '—'}</p>
+              </div>
+            </div>
+            <button class="btn btn-secondary" type="button" id="btn-eliminar-tarjeta" style="margin-top:8px">Eliminar tarjeta</button>
+          </div>
+        `
+        document.getElementById('btn-eliminar-tarjeta')?.addEventListener('click', async () => {
+          const confirmed = await (window.showStyledConfirm
+            ? window.showStyledConfirm('¿Eliminar tarjeta guardada?')
+            : Promise.resolve(confirm('¿Eliminar tarjeta guardada?')))
+          if (!confirmed) return
+          const delRes = await fetch(backendUrl('/api/flow/unregister-card/'), { method: 'POST', credentials: 'include' })
+          const delData = await delRes.json()
+          if (delData.ok) {
+            loadMedios()
+            await (window.showStyledAlert
+              ? window.showStyledAlert('Tarjeta eliminada.', 'Éxito', 'success')
+              : Promise.resolve(alert('Tarjeta eliminada.')))
+          }
+        })
+      } else {
+        mediosPage.innerHTML = `<div class="compras-empty"><p>No tienes tarjetas guardadas.</p><p style="font-size:0.9rem;color:#8a7f75;margin-top:8px">Al pagar con Flow puedes marcar "Guardar tarjeta" para agilizar futuras compras.</p></div>`
+      }
+      mediosLoading?.setAttribute('hidden', '')
+    } catch {
+      mediosPage.innerHTML = `<div class="compras-empty"><p>Error de conexión.</p></div>`
     }
   }
 

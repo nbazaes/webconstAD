@@ -133,6 +133,32 @@ class FlowClient:
         signed = self._signed_params(params)
         return self._get("/payment/getStatusByCommerceId", signed)
 
+    def register_customer(self, customer_id: str, url_return: str) -> dict[str, Any]:
+        params = {
+            "customerId": customer_id,
+            "url_return": url_return,
+        }
+        signed = self._signed_params(params)
+        logger.info("Flow register_customer: customerId=%s", customer_id)
+        data = self._post("/customer/register", signed)
+        logger.info("Flow register_customer OK")
+        return data
+
+    def get_register_status(self, token: str) -> dict[str, Any]:
+        params = {"token": token}
+        signed = self._signed_params(params)
+        data = self._get("/customer/getRegisterStatus", signed)
+        logger.info("Flow get_register_status: status=%s", data.get('status'))
+        return data
+
+    def unregister_customer(self, customer_id: str) -> dict[str, Any]:
+        params = {"customerId": customer_id}
+        signed = self._signed_params(params)
+        logger.info("Flow unregister_customer: customerId=%s", customer_id)
+        data = self._post("/customer/unRegister", signed)
+        logger.info("Flow unregister_customer OK")
+        return data
+
     def _handle_error(self, status: int, body: str, service: str) -> None:
         try:
             data = json.loads(body)

@@ -58,6 +58,7 @@ FLOW_ENVIRONMENT = os.getenv('FLOW_ENVIRONMENT', 'sandbox')
 # urlReturn recibe redirect del browser del pagador tras el pago.
 FLOW_URL_CONFIRMATION = os.getenv('FLOW_URL_CONFIRMATION', '')
 FLOW_URL_RETURN = os.getenv('FLOW_URL_RETURN', '')
+FLOW_URL_CALLBACK_REGISTRO = os.getenv('FLOW_URL_CALLBACK_REGISTRO', '')
 FLOW_REQUEST_TIMEOUT = int(os.getenv('FLOW_REQUEST_TIMEOUT', '30'))
 
 # SECURITY WARNING: don't run with debug turned on in production!
