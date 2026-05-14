@@ -10,6 +10,7 @@ from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
+from django.db.models import Count, Q
 from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
@@ -389,6 +390,7 @@ def api_products(request):
             'categoria_id': p.categoria_id,
             'coleccion': p.coleccion.nombre if p.coleccion else None,
             'coleccion_id': p.coleccion_id,
+            'coleccion_slug': p.coleccion.slug if p.coleccion else None,
         }
         for p in productos
     ]
@@ -423,6 +425,7 @@ def api_producto_detalle(request, slug):
             'categoria_id': producto.categoria_id,
             'coleccion': producto.coleccion.nombre if producto.coleccion else None,
             'coleccion_id': producto.coleccion_id,
+            'coleccion_slug': producto.coleccion.slug if producto.coleccion else None,
         }
     )
 
@@ -471,6 +474,69 @@ def api_catalog_colecciones(request):
         for c in colecciones
     ]
     return JsonResponse({'count': len(data), 'results': data})
+
+
+@require_GET
+def api_colecciones(request):
+    colecciones = (
+        Coleccion.objects
+        .annotate(
+            product_count=Count('productos', filter=Q(productos__activo=True, productos__es_gratuito=False))
+        )
+        .filter(product_count__gt=0)
+        .order_by('nombre')
+    )
+    data = [
+        {
+            'id': c.id,
+            'nombre': c.nombre,
+            'slug': c.slug,
+            'imagen': _media_redirect_url(request, c.imagen),
+            'product_count': c.product_count,
+        }
+        for c in colecciones
+    ]
+    return JsonResponse({'count': len(data), 'results': data})
+
+
+@require_GET
+def api_coleccion_productos(request, slug):
+    coleccion = get_object_or_404(Coleccion, slug=slug)
+    productos = (
+        Producto.objects
+        .filter(coleccion=coleccion, activo=True, es_gratuito=False)
+        .exclude(precio__isnull=True)
+        .order_by('nombre')
+    )
+    data = {
+        'coleccion': {
+            'id': coleccion.id,
+            'nombre': coleccion.nombre,
+            'slug': coleccion.slug,
+            'imagen': _media_redirect_url(request, coleccion.imagen),
+        },
+        'count': productos.count(),
+        'results': [
+            {
+                'id': p.id,
+                'nombre': p.nombre,
+                'slug': p.slug,
+                'descripcion': p.descripcion,
+                'descripcion_imagen': _media_redirect_url(request, p.descripcion_imagen),
+                'precio': p.precio if p.precio is not None else None,
+                'es_gratuito': p.es_gratuito,
+                'paginas': p.paginas,
+                'activo': p.activo,
+                'imagen': _media_redirect_url(request, p.imagen),
+                'preview_imagen': _media_redirect_url(request, p.preview_imagen),
+                'coleccion': coleccion.nombre,
+                'coleccion_id': p.coleccion_id,
+                'coleccion_slug': coleccion.slug,
+            }
+            for p in productos
+        ],
+    }
+    return JsonResponse(data)
 
 
 @require_GET
@@ -1075,6 +1141,7 @@ def api_cart(request):
                 'slug': item.producto.slug,
                 'precio': precio,
                 'imagen': _media_redirect_url(request, item.producto.imagen),
+                'coleccion_slug': item.producto.coleccion.slug if item.producto.coleccion else None,
             },
             'subtotal': precio,
         })
@@ -1145,6 +1212,7 @@ def api_cart_checkout(request):
                 'slug': item.producto.slug,
                 'precio': precio,
                 'imagen': _media_redirect_url(request, item.producto.imagen),
+                'coleccion_slug': item.producto.coleccion.slug if item.producto.coleccion else None,
             },
             'subtotal': precio,
         })
