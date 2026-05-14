@@ -1,0 +1,361 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro'
+import { Icon } from 'astro-icon/components'
+
+const products = []
+---
+
+<BaseLayout title="Todos los productos | Productos | Constant Archivos Digitales" page="productos">
+  <main class="content">
+    <button type="button" class="back-btn" aria-label="Volver atrás" onclick="history.back()"><Icon name="lucide:arrow-big-left" /> Volver</button>
+    <section class="products-hero">
+      <h2>Todos los productos</h2>
+      <p class="lead">Archivos para <em>imprimir</em> o trabajar <em>digitalmente</em></p>
+    </section>
+
+    <section class="products-grid" data-products-grid hidden></section>
+    <section class="products-hero text-block" data-products-empty hidden>
+      <p>Aún no hay productos de pago publicados.</p>
+    </section>
+    <section class="products-hero text-block" data-products-loading>
+      <p>Cargando productos...</p>
+    </section>
+
+    <div class="go-top-wrapper">
+      <a href="javascript:void(0)" class="btn btn-secondary go-top" onclick="window.scrollTo({top:0,behavior:'smooth'});return false">Ir arriba</a>
+    </div>
+
+    <div class="global-loading-modal" data-global-loading hidden>
+      <div class="global-loading-modal__backdrop"></div>
+      <div class="global-loading-modal__panel">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <p>Procesando...</p>
+      </div>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .product-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .product-collection {
+    font-family: 'PT Serif', serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-top: 10px;
+  }
+
+  .product-title {
+    font-family: 'PT Serif', serif;
+    font-weight: 400;
+    font-size: 1.1rem;
+  }
+
+  @media (max-width: 720px) {
+    .product-collection {
+      font-size: 1.05rem;
+    }
+
+    .product-title {
+      font-size: 1rem;
+    }
+  }
+
+  .catalog-cta {
+    border: 1px dashed #d9cfc6;
+    border-radius: 12px;
+    background: #fffaf5;
+    padding: 18px;
+    display: grid;
+    gap: 12px;
+    text-align: center;
+    align-content: center;
+    min-height: 210px;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 1rem;
+  }
+
+  .catalog-cta h3 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+
+  .catalog-cta__actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .catalog-cta__actions .btn {
+    white-space: nowrap;
+  }
+
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-family: 'PT Serif', serif;
+    color: #6a5f55;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 4px 10px;
+    margin-left: 20px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.18s ease;
+  }
+  .back-btn svg {
+    width: 36px;
+    height: 36px;
+    opacity: 0.7;
+  }
+  .back-btn:hover {
+    border-color: #d8e5dc;
+    background: rgba(216, 229, 220, 0.3);
+    transform: translateX(-2px);
+  }
+</style>
+
+<script>
+  const catalogBackendOrigin = window.location.origin
+  const catalogBackendUrl = (path) => `${catalogBackendOrigin}${path}`
+  const escapeHtml = (value) =>
+    String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;')
+  const productsGrid = document.querySelector('[data-products-grid]')
+  const emptyState = document.querySelector('[data-products-empty]')
+  const loadingState = document.querySelector('[data-products-loading]')
+  const globalLoading = document.querySelector('[data-global-loading]')
+
+  const openLoadingModal = (text = 'Procesando...') => {
+    if (!globalLoading) return
+    const p = globalLoading.querySelector('p')
+    if (p) p.textContent = text
+    globalLoading.removeAttribute('hidden')
+  }
+
+  const closeLoadingModal = () => {
+    globalLoading?.setAttribute('hidden', '')
+  }
+
+  const ensureAdminUi = async () => {
+    const response = await fetch(catalogBackendUrl('/api/auth/session/'), { credentials: 'include' })
+    if (!response.ok) return false
+    const data = await response.json()
+    return Boolean(data.authenticated && (data.user?.rol === 'admin' || data.user?.rol === 'artista' || data.user?.is_staff || data.user?.is_superuser))
+  }
+
+  const createEditModal = async (product) => {
+    const [catRes, colRes] = await Promise.all([
+      fetch(catalogBackendUrl('/api/catalog/categorias/'), { credentials: 'include' }),
+      fetch(catalogBackendUrl('/api/catalog/colecciones/'), { credentials: 'include' }),
+    ])
+    if (!catRes.ok || !colRes.ok) return
+    const catData = await catRes.json()
+    const colData = await colRes.json()
+    const categorias = (catData.results || []).filter((c) => c.es_gratuita)
+    const colecciones = colData.results || []
+
+    const modal = document.createElement('div')
+    modal.className = 'edit-modal'
+    modal.innerHTML = `
+      <div class="edit-modal__backdrop" data-close-edit></div>
+      <div class="edit-modal__panel" role="dialog" aria-modal="true">
+        <h3>Editar producto</h3>
+        <form class="auth-form" data-edit-form>
+          <label>Nombre</label><input name="nombre" type="text" value="${escapeHtml(product.nombre || '')}" required />
+          <label>Descripción</label><textarea name="descripcion" rows="3">${escapeHtml(product.descripcion || '')}</textarea>
+          <div data-edit-descripcion-imagen-wrap ${product.es_gratuito ? 'hidden' : ''} style="width:100%">
+            <label>Descripción imagen (opcional)</label><input name="descripcion_imagen" type="file" accept="image/*" style="width:100%" />
+          </div>
+          <label>Imagen preview (opcional)</label><input name="imagen" type="file" accept="image/*" />
+          <div style="width:100%">
+            <label>Preview de paginas (opcional)</label><input name="preview_imagen" type="file" accept="image/*" style="width:100%" />
+          </div>
+          <label>Archivo de descarga${product.archivo ? ` (${product.archivo.split('/').pop()})` : ''}</label><input name="archivo" type="file" />
+          <label>¿Es gratuito?</label>
+          <select name="es_gratuito" data-edit-gratis>
+            <option value="true" ${product.es_gratuito ? 'selected' : ''}>Sí</option>
+            <option value="false" ${!product.es_gratuito ? 'selected' : ''}>No</option>
+          </select>
+          <div data-edit-categoria-wrap ${product.es_gratuito ? '' : 'hidden'}>
+            <label>Categoria</label>
+            <select name="categoria_id">
+              <option value="">Sin categoria</option>
+              ${categorias.map((c) => `<option value="${c.id}" ${product.categoria_id === c.id ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`).join('')}
+            </select>
+          </div>
+          <div data-edit-coleccion-wrap ${product.es_gratuito ? 'hidden' : ''}>
+            <label>Coleccion</label>
+            <select name="coleccion_id">
+              <option value="">Sin coleccion</option>
+              ${colecciones.map((c) => `<option value="${c.id}" ${product.coleccion_id === c.id ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`).join('')}
+            </select>
+          </div>
+          <label>Paginas</label><input name="paginas" type="number" min="1" step="1" value="${product.paginas || ''}" />
+          <div data-edit-precio-wrap ${product.es_gratuito ? 'hidden' : ''}>
+            <label>Precio</label><input name="precio" type="number" min="0" step="1" value="${parseInt(product.precio) || ''}" />
+          </div>
+          <label>Activo?</label>
+          <select name="activo"><option value="true" ${product.activo ? 'selected' : ''}>Si</option><option value="false" ${!product.activo ? 'selected' : ''}>No</option></select>
+          <div class="published-actions">
+            <button class="btn" type="submit">Guardar</button>
+            <button class="btn btn-secondary" type="button" data-close-edit>Cancelar</button>
+          </div>
+        </form>
+      </div>
+    `
+
+    document.body.appendChild(modal)
+    const close = () => modal.remove()
+    modal.querySelectorAll('[data-close-edit]').forEach((el) => el.addEventListener('click', close))
+
+    const gratisSelect = modal.querySelector('[data-edit-gratis]')
+    const categoriaWrap = modal.querySelector('[data-edit-categoria-wrap]')
+    const coleccionWrap = modal.querySelector('[data-edit-coleccion-wrap]')
+    const precioWrap = modal.querySelector('[data-edit-precio-wrap]')
+    const descripcionImagenWrap = modal.querySelector('[data-edit-descripcion-imagen-wrap]')
+    const descripcionImagenField = modal.querySelector('input[name="descripcion_imagen"]')
+    const categoriaField = modal.querySelector('select[name="categoria_id"]')
+    const coleccionField = modal.querySelector('select[name="coleccion_id"]')
+    const precioField = modal.querySelector('input[name="precio"]')
+
+    const applyEditRules = () => {
+      const isFree = gratisSelect?.value === 'true'
+      if (categoriaWrap) categoriaWrap.hidden = !isFree
+      if (coleccionWrap) coleccionWrap.hidden = isFree
+      if (precioWrap) precioWrap.hidden = isFree
+      if (descripcionImagenWrap) descripcionImagenWrap.hidden = isFree
+      if (categoriaField) categoriaField.disabled = !isFree
+      if (coleccionField) coleccionField.disabled = isFree
+      if (precioField) precioField.disabled = isFree
+      if (descripcionImagenField) descripcionImagenField.disabled = isFree
+      if (isFree) {
+        if (coleccionField) coleccionField.value = ''
+        if (precioField) precioField.value = ''
+        if (descripcionImagenField) descripcionImagenField.value = ''
+      } else if (categoriaField) {
+        categoriaField.value = ''
+      }
+    }
+    gratisSelect?.addEventListener('change', applyEditRules)
+    applyEditRules()
+
+    const form = modal.querySelector('[data-edit-form]')
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault()
+      const ok = await (window.showStyledConfirm
+        ? window.showStyledConfirm(`Confirmas guardar cambios en ${product.nombre}?`)
+        : Promise.resolve(confirm(`Confirmas guardar cambios en ${product.nombre}?`)))
+      if (!ok) return
+
+      const formData = new FormData(form)
+      openLoadingModal('Guardando cambios...')
+      const response = await fetch(catalogBackendUrl(`/api/admin/productos/${product.id}/editar/`), {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      })
+      closeLoadingModal()
+      if (!response.ok) return
+      window.location.reload()
+    })
+  }
+
+  const wireAdminActions = async () => {
+    const isAdmin = await ensureAdminUi()
+    if (!isAdmin) {
+      document.querySelectorAll('[data-admin-actions]').forEach((actions) => actions.setAttribute('hidden', ''))
+      return
+    }
+
+    document.querySelectorAll('[data-admin-actions]').forEach((actions) => actions.removeAttribute('hidden'))
+    document.querySelectorAll('[data-admin-product]').forEach((card) => {
+      const product = JSON.parse(card.getAttribute('data-product-json') || '{}')
+
+      card.querySelector('[data-delete-product]')?.addEventListener('click', async () => {
+        const ok = await (window.showStyledConfirm
+          ? window.showStyledConfirm(`Confirmas eliminar ${product.nombre}?`)
+          : Promise.resolve(confirm(`Confirmas eliminar ${product.nombre}?`)))
+        if (!ok) return
+
+        openLoadingModal('Eliminando producto...')
+        const response = await fetch(catalogBackendUrl(`/api/admin/productos/${product.id}/eliminar/`), {
+          method: 'POST',
+          credentials: 'include',
+        })
+        closeLoadingModal()
+        if (!response.ok) return
+        window.location.reload()
+      })
+
+      card.querySelector('[data-edit-product]')?.addEventListener('click', () => createEditModal(product))
+    })
+  }
+
+  const renderProducts = (products) => {
+    if (!productsGrid) return
+    if (!products.length) {
+      emptyState?.removeAttribute('hidden')
+      productsGrid.setAttribute('hidden', '')
+      return
+    }
+
+    productsGrid.innerHTML = products
+      .map(
+        (product) => `
+          <article class="product" data-admin-product data-product-id="${product.id}" data-product-json='${JSON.stringify(product).replace(/'/g, '&apos;')}'>
+            <a href="/productos/coleccion/${encodeURIComponent(product.coleccion_slug || '')}/${encodeURIComponent(product.slug)}/" class="product-card" title="${escapeHtml(product.descripcion || product.nombre)}">
+              <img src="${product.imagen || '/static/web/assets/hero1.webp'}" alt="${escapeHtml(product.descripcion || product.nombre)}" width="286" height="286" loading="lazy" />
+              <br />
+              <span class="product-collection"><em>${escapeHtml(product.coleccion || 'Coleccion')}</em></span>
+              <br />
+              <span class="product-title">${escapeHtml(product.nombre)}</span>
+            </a>
+            <div class="published-actions" data-admin-actions hidden>
+              <button class="btn" type="button" data-edit-product>Editar</button>
+              <button class="btn btn-secondary" type="button" data-delete-product>Eliminar</button>
+            </div>
+          </article>
+        `
+      )
+      .join('')
+
+    productsGrid.removeAttribute('hidden')
+    wireAdminActions()
+  }
+
+  const loadProducts = async () => {
+    if (!productsGrid) return
+    loadingState?.removeAttribute('hidden')
+    emptyState?.setAttribute('hidden', '')
+    productsGrid.setAttribute('hidden', '')
+    try {
+      const response = await fetch(catalogBackendUrl('/api/productos/'))
+      if (!response.ok) throw new Error('no se pudo cargar')
+      const data = await response.json()
+      const items = (data.results || []).filter((item) => !item.es_gratuito && item.coleccion)
+      renderProducts(items)
+    } catch {
+      emptyState?.removeAttribute('hidden')
+    } finally {
+      loadingState?.setAttribute('hidden', '')
+    }
+  }
+
+  loadProducts()
+</script>

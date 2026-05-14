@@ -478,7 +478,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
         <div class="cart-item">
           <div class="cart-item__thumb">${imgHtml}</div>
           <div class="cart-item__info">
-            <a href="/productos/${item.producto.slug}/" class="cart-item__name">${item.producto.nombre}</a>
+            <a href="/productos/coleccion/${item.producto.coleccion_slug || ''}/${item.producto.slug}/" class="cart-item__name">${item.producto.nombre}</a>
             <span class="cart-item__meta">Producto digital</span>
           </div>
           <span class="cart-item__price">${formatPrice(item.producto.precio)}</span>
