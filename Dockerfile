@@ -20,15 +20,17 @@ RUN apt-get update \
     && rm -f /etc/nginx/sites-enabled/default \
     && rm -rf /var/lib/apt/lists/*
 
+RUN npm install -g pnpm
+
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
-COPY frontend/package*.json /app/frontend/
-RUN npm --prefix /app/frontend ci
+COPY frontend/package.json frontend/pnpm-lock.yaml /app/frontend/
+RUN cd /app/frontend && pnpm install --frozen-lockfile
 
 COPY . /app
 
-RUN npm --prefix /app/frontend run build
+RUN cd /app/frontend && pnpm run build
 
 RUN rm -rf /etc/nginx/conf.d/
 COPY docker/${NGINX_CONF}.template /etc/nginx/conf.d/default.conf.template
