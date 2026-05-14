@@ -39,16 +39,6 @@ const showColecciones = colecciones.length > 0
     </div>
 
     <section class="products-grid" data-product-grid hidden={!showColecciones}>
-      <div class="product">
-        <a href="/productos/todos/" class="product-link product-link--all">
-          <div class="card card--all">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
-          </div>
-        </a>
-        <a href="/productos/todos/" class="product-title">Ver todos los productos</a>
-        <span class="product-count">Explorar catálogo completo</span>
-      </div>
-
       {colecciones.map((col) => (
         <div class="product">
           <a href={`/productos/coleccion/${col.slug}/`} class="product-link">
@@ -68,6 +58,11 @@ const showColecciones = colecciones.length > 0
           </div>
         </div>
       ))}
+
+      <div class="product product--all">
+        <a href="/productos/todos/" class="product-title product-title--all">Ver todos los productos</a>
+        <span class="product-count">Explorar catálogo completo</span>
+      </div>
     </section>
 
     <section class="products-hero text-block" data-free-empty hidden={showColecciones}>
@@ -114,20 +109,6 @@ const showColecciones = colecciones.length > 0
     transform: translateY(-3px);
   }
 
-  .product-link--all {
-    border: 2px dashed #d9cfc6;
-    border-radius: 6px;
-    background: #fffdfb;
-    transition: border-color 0.2s, background 0.2s;
-  }
-  .product-link--all:hover {
-    border-color: #b5a89c;
-    background: #f8f3ee;
-  }
-  .product-link--all svg {
-    color: #8a7f75;
-  }
-
   .product-title {
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -147,15 +128,29 @@ const showColecciones = colecciones.length > 0
     font-size: 1rem;
   }
 
+  .product--all {
+    justify-content: center;
+    padding-top: 20px;
+    margin-top: 10px;
+    border-top: 1px solid #e2d7ce;
+    grid-column: 1 / -1;
+  }
+
+  .product-title--all {
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: #243233;
+    text-align: center;
+    transition: color 0.2s;
+  }
+  .product-title--all:hover {
+    color: #5a4f45;
+  }
+
   .product-count {
     font-size: 0.9rem;
     color: #6a5f55;
     margin-top: 2px;
-  }
-
-  .card--all {
-    background: transparent !important;
-    border: none !important;
   }
 
   .catalog-cta {
