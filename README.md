@@ -6,22 +6,66 @@ Web platform built for **[Constant Archivos Digitales](https://wca.nbazaes.app)*
 
 ## Stack
 
-- **Backend:** Django (REST API, authentication, admin publishing flow)
-- **Frontend:** Astro (static pages, SSG)
+- **Backend:** Django + Django REST Framework (REST API, authentication, admin panel)
+- **Frontend:** Astro with SSR (standalone server via `@astrojs/node`)
 - **Database:** PostgreSQL
+- **Storage:** Cloudflare R2 (media files and downloads)
+
+## Project structure
+
+```
+webConstAD/            # Django config (settings, urls, wsgi)
+web/                   # Main app (models, views, serializers, middleware)
+frontend/              # Astro app (pages, components, styles)
+docker/                # Nginx templates, Gunicorn config, entrypoint
+```
 
 ## Infrastructure
 
-The app is fully containerized and production-ready out of the box:
+The app is fully containerized. The frontend builds at container startup and Nginx acts as a reverse proxy:
 
-- **Docker + Docker Compose** for orchestration
-- **Nginx + Gunicorn** for serving the application
-- **SSL certificate** support included
-- Environment configuration via `.env`
+- `/` → Astro (port 3000)
+- `/api/` → Django (port 8000)
+- `/{ADMIN_URL}/` → Django admin
+
+The admin panel is restricted to the Tailscale network (`100.64.0.0/10`) for security.
+
+### Production
+
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
+### Staging
+
+```bash
+docker compose -f docker-compose.staging.yml up -d
+```
 
 ## CI/CD
 
-Includes a GitHub Actions workflow for automated deployment on push.
+Deployment is automated via SSH when tags are pushed to GitHub:
+
+- **Production:** tags `v*.*.*` (e.g. `v1.2.3`)
+- **Staging:** tags `v*-rc.*` (e.g. `v1.2.3-rc.1`)
+
+The pipeline runs `git fetch --all --tags && docker compose build --no-cache && up -d`.
+
+## Local development
+
+It's recommended to use Docker Compose to bring up the full environment together (web + database) instead of running services separately:
+
+```bash
+docker compose -f docker-compose.dev.yml up
+```
+
+This starts Django with `DEBUG=True` and PostgreSQL with local volumes, accessible on port 80.
+
+If you need to work on the frontend with hot reload:
+
+```bash
+cd frontend && pnpm dev
+```
 
 ## License
 
