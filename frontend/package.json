@@ -12,6 +12,12 @@
     "build": "astro build",
     "preview": "astro preview"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp"
+    ]
+  },
   "devDependencies": {
     "astro": "^6.2.1"
   },
