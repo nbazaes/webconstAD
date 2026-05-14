@@ -17,7 +17,7 @@ def validate_image_extension(value):
 
 def validate_file_extension(value):
     ext = os.path.splitext(value.name)[1].lower()
-    valid_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.pdf', '.zip', '.rar', '.7z']
+    valid_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.pdf', '.zip', '.rar', '.7z', '.md', '.txt', '.docx']
     if ext not in valid_extensions:
         raise ValidationError(f'Formato de archivo no soportado: {ext}')
 
@@ -112,6 +112,7 @@ class Coleccion(models.Model):
 class Producto(models.Model):
 	nombre = models.CharField(max_length=180)
 	descripcion = models.TextField(blank=True)
+	descripcion_extendida = models.TextField(blank=True)
 	descripcion_imagen = models.ImageField(upload_to='productos/descripciones/', storage=r2_public_storage, blank=True, null=True, validators=[validate_image_extension, validate_image_size])
 	precio = models.PositiveIntegerField(null=True, blank=True)
 	es_gratuito = models.BooleanField(default=False, db_index=True)

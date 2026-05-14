@@ -1242,11 +1242,17 @@ body.nav-open {
 .global-loading-modal__panel {
   position: relative;
   width: min(560px, calc(100vw - 24px));
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
   background: #fffaf5;
   border: 1px solid #e8dfd7;
   border-radius: 14px;
   padding: 20px;
   z-index: 1;
+}
+
+body.modal-open {
+  overflow: hidden;
 }
 
 .global-loading-modal__panel {

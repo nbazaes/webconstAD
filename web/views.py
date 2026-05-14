@@ -415,6 +415,7 @@ def api_producto_detalle(request, slug):
             'nombre': producto.nombre,
             'slug': producto.slug,
             'descripcion': producto.descripcion,
+            'descripcion_extendida': producto.descripcion_extendida,
             'descripcion_imagen': _media_redirect_url(request, producto.descripcion_imagen),
             'precio': producto.precio if producto.precio is not None else None,
             'es_gratuito': producto.es_gratuito,
@@ -522,6 +523,7 @@ def api_coleccion_productos(request, slug):
                 'nombre': p.nombre,
                 'slug': p.slug,
                 'descripcion': p.descripcion,
+                'descripcion_extendida': p.descripcion_extendida,
                 'descripcion_imagen': _media_redirect_url(request, p.descripcion_imagen),
                 'precio': p.precio if p.precio is not None else None,
                 'es_gratuito': p.es_gratuito,
@@ -529,6 +531,8 @@ def api_coleccion_productos(request, slug):
                 'activo': p.activo,
                 'imagen': _media_redirect_url(request, p.imagen),
                 'preview_imagen': _media_redirect_url(request, p.preview_imagen),
+                'archivo': p.archivo.url if p.archivo else None,
+                'categoria_id': p.categoria_id,
                 'coleccion': coleccion.nombre,
                 'coleccion_id': p.coleccion_id,
                 'coleccion_slug': coleccion.slug,
@@ -562,6 +566,7 @@ def api_categoria_productos(request, slug):
                 'nombre': p.nombre,
                 'slug': p.slug,
                 'descripcion': p.descripcion,
+                'descripcion_extendida': p.descripcion_extendida,
                 'descripcion_imagen': _media_redirect_url(request, p.descripcion_imagen),
                 'precio': p.precio if p.precio is not None else None,
                 'es_gratuito': p.es_gratuito,
@@ -569,6 +574,7 @@ def api_categoria_productos(request, slug):
                 'activo': p.activo,
                 'imagen': _media_redirect_url(request, p.imagen),
                 'preview_imagen': _media_redirect_url(request, p.preview_imagen),
+                'archivo': p.archivo.url if p.archivo else None,
                 'categoria_id': p.categoria_id,
                 'coleccion_id': p.coleccion_id,
             }
@@ -822,6 +828,7 @@ def api_admin_productos(request):
             'nombre': p.nombre,
             'slug': p.slug,
             'descripcion': p.descripcion,
+            'descripcion_extendida': p.descripcion_extendida,
             'descripcion_imagen': _media_redirect_url(request, p.descripcion_imagen),
             'precio': p.precio if p.precio is not None else '',
             'es_gratuito': p.es_gratuito,
@@ -850,6 +857,7 @@ def api_admin_producto_editar(request, producto_id):
 
     nombre = (request.POST.get('nombre') or producto.nombre).strip()
     descripcion = (request.POST.get('descripcion') or '').strip()
+    descripcion_extendida = (request.POST.get('descripcion_extendida') or '').strip()
     precio_raw = (request.POST.get('precio') or '').strip()
     es_gratuito = _parse_bool(request.POST.get('es_gratuito'), default=producto.es_gratuito)
     paginas_raw = (request.POST.get('paginas') or '').strip()
@@ -889,6 +897,7 @@ def api_admin_producto_editar(request, producto_id):
     producto.nombre = nombre
     producto.slug = _build_unique_slug(nombre, explicit_slug=explicit_slug, exclude_producto_id=producto.id)
     producto.descripcion = descripcion
+    producto.descripcion_extendida = descripcion_extendida
     producto.es_gratuito = es_gratuito
     producto.precio = precio
     producto.paginas = paginas
@@ -1037,6 +1046,7 @@ def api_publicar_producto(request):
     nombre = (request.POST.get('nombre') or '').strip()
     slug = (request.POST.get('slug') or '').strip()
     descripcion = (request.POST.get('descripcion') or '').strip()
+    descripcion_extendida = (request.POST.get('descripcion_extendida') or '').strip()
     precio_raw = (request.POST.get('precio') or '').strip()
     es_gratuito = _parse_bool(request.POST.get('es_gratuito'), default=False)
     paginas = request.POST.get('paginas')
@@ -1069,6 +1079,7 @@ def api_publicar_producto(request):
         nombre=nombre,
         slug=_build_unique_slug(nombre, explicit_slug=slug),
         descripcion=descripcion,
+        descripcion_extendida=descripcion_extendida,
         precio=precio,
         es_gratuito=es_gratuito,
         paginas=int(paginas) if paginas else None,

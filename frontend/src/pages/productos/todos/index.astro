@@ -179,6 +179,9 @@ const products = []
         <form class="auth-form" data-edit-form>
           <label>Nombre</label><input name="nombre" type="text" value="${escapeHtml(product.nombre || '')}" required />
           <label>Descripción</label><textarea name="descripcion" rows="3">${escapeHtml(product.descripcion || '')}</textarea>
+          <div data-edit-descripcion-extendida-wrap ${product.es_gratuito ? 'hidden' : ''}>
+            <label>Descripción extendida</label><textarea name="descripcion_extendida" rows="6">${escapeHtml(product.descripcion_extendida || '')}</textarea>
+          </div>
           <div data-edit-descripcion-imagen-wrap ${product.es_gratuito ? 'hidden' : ''} style="width:100%">
             <label>Descripción imagen (opcional)</label><input name="descripcion_imagen" type="file" accept="image/*" style="width:100%" />
           </div>
@@ -221,7 +224,11 @@ const products = []
     `
 
     document.body.appendChild(modal)
-    const close = () => modal.remove()
+    document.body.classList.add('modal-open')
+    const close = () => {
+      modal.remove()
+      document.body.classList.remove('modal-open')
+    }
     modal.querySelectorAll('[data-close-edit]').forEach((el) => el.addEventListener('click', close))
 
     const gratisSelect = modal.querySelector('[data-edit-gratis]')
@@ -230,6 +237,8 @@ const products = []
     const precioWrap = modal.querySelector('[data-edit-precio-wrap]')
     const descripcionImagenWrap = modal.querySelector('[data-edit-descripcion-imagen-wrap]')
     const descripcionImagenField = modal.querySelector('input[name="descripcion_imagen"]')
+    const descripcionExtendidaWrap = modal.querySelector('[data-edit-descripcion-extendida-wrap]')
+    const descripcionExtendidaField = modal.querySelector('textarea[name="descripcion_extendida"]')
     const categoriaField = modal.querySelector('select[name="categoria_id"]')
     const coleccionField = modal.querySelector('select[name="coleccion_id"]')
     const precioField = modal.querySelector('input[name="precio"]')
@@ -240,14 +249,17 @@ const products = []
       if (coleccionWrap) coleccionWrap.hidden = isFree
       if (precioWrap) precioWrap.hidden = isFree
       if (descripcionImagenWrap) descripcionImagenWrap.hidden = isFree
+      if (descripcionExtendidaWrap) descripcionExtendidaWrap.hidden = isFree
       if (categoriaField) categoriaField.disabled = !isFree
       if (coleccionField) coleccionField.disabled = isFree
       if (precioField) precioField.disabled = isFree
       if (descripcionImagenField) descripcionImagenField.disabled = isFree
+      if (descripcionExtendidaField) descripcionExtendidaField.disabled = isFree
       if (isFree) {
         if (coleccionField) coleccionField.value = ''
         if (precioField) precioField.value = ''
         if (descripcionImagenField) descripcionImagenField.value = ''
+        if (descripcionExtendidaField) descripcionExtendidaField.value = ''
       } else if (categoriaField) {
         categoriaField.value = ''
       }
@@ -271,7 +283,11 @@ const products = []
         body: formData,
       })
       closeLoadingModal()
-      if (!response.ok) return
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        alert(data.message || 'No se pudo editar el producto.')
+        return
+      }
       window.location.reload()
     })
   }

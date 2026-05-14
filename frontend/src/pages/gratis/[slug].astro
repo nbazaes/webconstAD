@@ -282,6 +282,17 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     descripcionTextarea.rows = 3
     descripcionTextarea.value = product.descripcion || ''
 
+    const descripcionExtendidaWrap = document.createElement('div')
+    descripcionExtendidaWrap.setAttribute('data-edit-descripcion-extendida-wrap', '')
+    descripcionExtendidaWrap.hidden = true
+    const descripcionExtendidaLabel = document.createElement('label')
+    descripcionExtendidaLabel.textContent = 'Descripcion extendida'
+    const descripcionExtendidaTextarea = document.createElement('textarea')
+    descripcionExtendidaTextarea.name = 'descripcion_extendida'
+    descripcionExtendidaTextarea.rows = 6
+    descripcionExtendidaTextarea.value = product.descripcion_extendida || ''
+    descripcionExtendidaWrap.append(descripcionExtendidaLabel, descripcionExtendidaTextarea)
+
     const imagenLabel = document.createElement('label')
     imagenLabel.textContent = 'Imagen preview (opcional)'
     const imagenInput = document.createElement('input')
@@ -403,6 +414,7 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
       nombreInput,
       descripcionLabel,
       descripcionTextarea,
+      descripcionExtendidaWrap,
       imagenLabel,
       imagenInput,
       archivoLabel,
@@ -422,12 +434,19 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
     panel.append(heading, editFormNode)
     modalEdit.append(backdrop, panel)
     document.body.appendChild(modalEdit)
-    modalEdit.querySelectorAll('[data-close-edit]').forEach((el) => el.addEventListener('click', () => modalEdit.remove()))
+    document.body.classList.add('modal-open')
+    const closeModal = () => {
+      modalEdit.remove()
+      document.body.classList.remove('modal-open')
+    }
+    modalEdit.querySelectorAll('[data-close-edit]').forEach((el) => el.addEventListener('click', closeModal))
 
     const gratisSelect = modalEdit.querySelector('[data-edit-gratis]')
     const categoriaWrap = modalEdit.querySelector('[data-edit-categoria-wrap]')
     const coleccionWrap = modalEdit.querySelector('[data-edit-coleccion-wrap]')
     const precioWrap = modalEdit.querySelector('[data-edit-precio-wrap]')
+    const descripcionExtendidaWrapField = modalEdit.querySelector('[data-edit-descripcion-extendida-wrap]')
+    const descripcionExtendidaField = modalEdit.querySelector('textarea[name="descripcion_extendida"]')
     const categoriaField = modalEdit.querySelector('select[name="categoria_id"]')
     const coleccionField = modalEdit.querySelector('select[name="coleccion_id"]')
     const precioField = modalEdit.querySelector('input[name="precio"]')
@@ -437,12 +456,15 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
       if (categoriaWrap) categoriaWrap.hidden = !isFree
       if (coleccionWrap) coleccionWrap.hidden = isFree
       if (precioWrap) precioWrap.hidden = isFree
+      if (descripcionExtendidaWrapField) descripcionExtendidaWrapField.hidden = isFree
       if (categoriaField) categoriaField.disabled = !isFree
       if (coleccionField) coleccionField.disabled = isFree
       if (precioField) precioField.disabled = isFree
+      if (descripcionExtendidaField) descripcionExtendidaField.disabled = isFree
       if (isFree) {
         if (coleccionField) coleccionField.value = ''
         if (precioField) precioField.value = ''
+        if (descripcionExtendidaField) descripcionExtendidaField.value = ''
       } else if (categoriaField) {
         categoriaField.value = ''
       }
@@ -466,7 +488,11 @@ const pageTitle = `${categoriaNombre} | Gratis | Constant Archivos Digitales`
         body: formData,
       })
       closeLoadingModal()
-      if (!response.ok) return
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        alert(data.message || 'No se pudo editar el producto.')
+        return
+      }
       window.location.reload()
     })
   }
