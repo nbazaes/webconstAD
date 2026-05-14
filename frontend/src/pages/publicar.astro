@@ -21,6 +21,11 @@ import BaseLayout from '../layouts/BaseLayout.astro'
         <label for="pub-descripcion">Descripción</label>
         <textarea id="pub-descripcion" name="descripcion" rows="4"></textarea>
 
+        <div data-descripcion-extendida-block>
+          <label for="pub-descripcion-extendida">Descripción extendida</label>
+          <textarea id="pub-descripcion-extendida" name="descripcion_extendida" rows="8" placeholder="Agrega una descripción detallada del producto (aproximadamente tres párrafos)"></textarea>
+        </div>
+
         <div data-descripcion-imagen-block style="width:100%">
           <label for="pub-descripcion-imagen">Descripción imagen (opcional)</label>
           <input id="pub-descripcion-imagen" name="descripcion_imagen" type="file" accept="image/*" style="width:100%" />
@@ -105,6 +110,8 @@ import BaseLayout from '../layouts/BaseLayout.astro'
   const previewInput = document.querySelector('#pub-preview')
   const descripcionImagenBlock = document.querySelector('[data-descripcion-imagen-block]')
   const descripcionImagenInput = document.querySelector('#pub-descripcion-imagen')
+  const descripcionExtendidaBlock = document.querySelector('[data-descripcion-extendida-block]')
+  const descripcionExtendidaInput = document.querySelector('#pub-descripcion-extendida')
   const nombreInput = document.querySelector('#pub-nombre')
   const slugInput = document.querySelector('#pub-slug')
   const publicarList = document.querySelector('[data-publicar-list]')
@@ -194,6 +201,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     if (coleccionBlock) coleccionBlock.hidden = isFree
     if (previewBlock) previewBlock.hidden = isFree
     if (descripcionImagenBlock) descripcionImagenBlock.hidden = isFree
+    if (descripcionExtendidaBlock) descripcionExtendidaBlock.hidden = isFree
 
     if (categoriaSelect) categoriaSelect.disabled = !isFree
     if (coleccionSelect) coleccionSelect.disabled = isFree
@@ -204,6 +212,10 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     if (descripcionImagenInput) {
       descripcionImagenInput.disabled = isFree
       if (isFree) descripcionImagenInput.value = ''
+    }
+    if (descripcionExtendidaInput) {
+      descripcionExtendidaInput.disabled = isFree
+      if (isFree) descripcionExtendidaInput.value = ''
     }
     if (isFree) {
       if (coleccionSelect) coleccionSelect.value = ''
@@ -257,6 +269,11 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 
           <label>Descripcion</label>
           <textarea name="descripcion" rows="3">${product.descripcion || ''}</textarea>
+
+          <div data-edit-descripcion-extendida-wrap ${product.es_gratuito ? 'hidden' : ''}>
+            <label>Descripcion extendida</label>
+            <textarea name="descripcion_extendida" rows="6">${product.descripcion_extendida || ''}</textarea>
+          </div>
 
           <label>Imagen preview (opcional)</label>
           <input name="imagen" type="file" accept="image/*" />
@@ -316,7 +333,11 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     `
 
     document.body.appendChild(modal)
-    const close = () => modal.remove()
+    document.body.classList.add('modal-open')
+    const close = () => {
+      modal.remove()
+      document.body.classList.remove('modal-open')
+    }
     modal.querySelectorAll('[data-close-edit]').forEach((el) => el.addEventListener('click', close))
 
     const gratisSelect = modal.querySelector('[data-edit-gratis]')
@@ -325,6 +346,8 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     const precioWrap = modal.querySelector('[data-edit-precio-wrap]')
     const descripcionImagenWrap = modal.querySelector('[data-edit-descripcion-imagen-wrap]')
     const descripcionImagenField = modal.querySelector('input[name="descripcion_imagen"]')
+    const descripcionExtendidaWrap = modal.querySelector('[data-edit-descripcion-extendida-wrap]')
+    const descripcionExtendidaField = modal.querySelector('textarea[name="descripcion_extendida"]')
     const categoriaField = modal.querySelector('select[name="categoria_id"]')
     const coleccionField = modal.querySelector('select[name="coleccion_id"]')
     const precioField = modal.querySelector('input[name="precio"]')
@@ -335,14 +358,17 @@ import BaseLayout from '../layouts/BaseLayout.astro'
       if (coleccionWrap) coleccionWrap.hidden = isFree
       if (precioWrap) precioWrap.hidden = isFree
       if (descripcionImagenWrap) descripcionImagenWrap.hidden = isFree
+      if (descripcionExtendidaWrap) descripcionExtendidaWrap.hidden = isFree
       if (categoriaField) categoriaField.disabled = !isFree
       if (coleccionField) coleccionField.disabled = isFree
       if (precioField) precioField.disabled = isFree
       if (descripcionImagenField) descripcionImagenField.disabled = isFree
+      if (descripcionExtendidaField) descripcionExtendidaField.disabled = isFree
       if (isFree) {
         if (coleccionField) coleccionField.value = ''
         if (precioField) precioField.value = ''
         if (descripcionImagenField) descripcionImagenField.value = ''
+        if (descripcionExtendidaField) descripcionExtendidaField.value = ''
       } else if (categoriaField) {
         categoriaField.value = ''
       }
@@ -370,7 +396,8 @@ import BaseLayout from '../layouts/BaseLayout.astro'
           body: formData,
         })
         if (!response.ok) {
-          setMessage('No se pudo editar el producto.', true)
+          const errorData = await response.json().catch(() => ({}))
+          setMessage(errorData.message || 'No se pudo editar el producto.', true)
           return
         }
 

@@ -19,6 +19,9 @@ const pageTitle = `${producto?.nombre || 'Producto'} | Productos | Constant Arch
 const formattedPrice = producto?.precio != null
   ? String(parseInt(producto.precio)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
   : null
+const extendedParagraphs = producto?.descripcion_extendida
+  ? producto.descripcion_extendida.replace(/\r\n/g, '\n').split(/\n\s*\n/).filter(Boolean).map((p) => p.trim())
+  : []
 ---
 
 <BaseLayout title={pageTitle} page="productos">
@@ -55,7 +58,17 @@ const formattedPrice = producto?.precio != null
         </section>
         <section class="product-detail" data-product-id={producto.id}>
           <ul class="product-meta-list">
-            {producto.descripcion ? <li>{producto.descripcion}</li> : null}
+            <li>
+              {producto.descripcion}
+              {extendedParagraphs.length ? (
+                <>
+                  <button type="button" class="btn-ver-mas" data-toggle-descripcion>+ Ver más</button>
+                  <div class="descripcion-extendida__content" hidden data-descripcion-content>
+                    {extendedParagraphs.map((p) => <p>{p}</p>)}
+                  </div>
+                </>
+              ) : null}
+            </li>
             {producto.paginas ? <li>{producto.paginas} pág.</li> : null}
             {formattedPrice ? <li class="product-price">${formattedPrice}</li> : null}
           </ul>
@@ -197,6 +210,8 @@ const formattedPrice = producto?.precio != null
   .product-meta-list li {
     font-size: 1.4rem;
     line-height: 1.5;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
   }
 
   .product-meta-list .product-price {
@@ -210,6 +225,38 @@ const formattedPrice = producto?.precio != null
     align-items: center;
     flex-wrap: wrap;
     margin-top: 18px;
+  }
+
+  .btn-ver-mas {
+    background: none;
+    border: none;
+    font: inherit;
+    font-size: inherit;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    display: inline;
+  }
+
+  .btn-ver-mas:hover {
+    text-decoration: underline;
+  }
+
+  .descripcion-extendida__content {
+    margin-top: 14px;
+    width: 100%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+  }
+
+  .descripcion-extendida__content p {
+    line-height: 1.7;
+    margin-bottom: 12px;
+    color: #6a5f55;
+  }
+
+  .descripcion-extendida__content p:last-child {
+    margin-bottom: 0;
   }
 
   .btn-buy {
@@ -432,15 +479,32 @@ const formattedPrice = producto?.precio != null
   const addToCartBtn = document.querySelector('[data-add-to-cart]')
   const productSection = document.querySelector('[data-product-id]')
   const productId = productSection?.dataset.productId
+  const toggleBtn = document.querySelector('[data-toggle-descripcion]')
+  const descripcionContent = document.querySelector('[data-descripcion-content]')
+
+  toggleBtn?.addEventListener('click', () => {
+    const isHidden = descripcionContent?.hasAttribute('hidden')
+    if (isHidden) {
+      descripcionContent?.removeAttribute('hidden')
+      toggleBtn.textContent = '- Ver menos'
+    } else {
+      descripcionContent?.setAttribute('hidden', '')
+      toggleBtn.textContent = '+ Ver más'
+    }
+  })
 
   const backendOrigin = window.location.origin
   const backendUrl = (path) => `${backendOrigin}${path}`
 
   const closeBuyModal = () => {
     buyModal?.setAttribute('hidden', '')
+    document.body.classList.remove('modal-open')
   }
 
-  buyButton?.addEventListener('click', () => buyModal?.removeAttribute('hidden'))
+  buyButton?.addEventListener('click', () => {
+    buyModal?.removeAttribute('hidden')
+    document.body.classList.add('modal-open')
+  })
   buyClosers.forEach((button) => button.addEventListener('click', closeBuyModal))
 
   addToCartBtn?.addEventListener('click', async () => {
