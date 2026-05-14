@@ -6,22 +6,66 @@ Plataforma web construida para **[Constant Archivos Digitales](https://wca.nbaza
 
 ## Stack
 
-- **Backend:** Django (API REST, autenticación, flujo de publicación para administradores)
-- **Frontend:** Astro (páginas estáticas, SSG)
+- **Backend:** Django + Django REST Framework (API REST, autenticación, panel admin)
+- **Frontend:** Astro con SSR (servidor standalone via `@astrojs/node`)
 - **Base de datos:** PostgreSQL
+- **Storage:** Cloudflare R2 (archivos multimedia y descargas)
+
+## Estructura del proyecto
+
+```
+webConstAD/            # Configuración Django (settings, urls, wsgi)
+web/                   # App principal (modelos, vistas, serializers, middleware)
+frontend/              # Aplicación Astro (páginas, componentes, estilos)
+docker/                # Templates Nginx, config Gunicorn, entrypoint
+```
 
 ## Infraestructura
 
-La aplicación está completamente contenedorizada y lista para producción:
+La aplicación está completamente contenedorizada. El frontend se buildea al iniciar el contenedor y Nginx actúa como reverse proxy:
 
-- **Docker + Docker Compose** para orquestación
-- **Nginx + Gunicorn** para servir la aplicación
-- Soporte para **certificado SSL**
-- Configuración de entorno mediante `.env`
+- `/` → Astro (puerto 3000)
+- `/api/` → Django (puerto 8000)
+- `/{ADMIN_URL}/` → Django admin
+
+El panel admin está restringido a la red Tailscale (`100.64.0.0/10`) por seguridad.
+
+### Producción
+
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
+### Staging
+
+```bash
+docker compose -f docker-compose.staging.yml up -d
+```
 
 ## CI/CD
 
-Incluye un workflow de GitHub Actions para despliegue automático en cada push.
+El despliegue se realiza automáticamente vía SSH al crear tags en GitHub:
+
+- **Producción:** tags `v*.*.*` (ej. `v1.2.3`)
+- **Staging:** tags `v*-rc.*` (ej. `v1.2.3-rc.1`)
+
+El pipeline ejecuta `git fetch --all --tags && docker compose build --no-cache && up -d`.
+
+## Desarrollo local
+
+Se recomienda usar Docker Compose para levantar todo el entorno junto (web + base de datos) en vez de correr los servicios por separado:
+
+```bash
+docker compose -f docker-compose.dev.yml up
+```
+
+Esto inicia Django con `DEBUG=True` y PostgreSQL con volúmenes locales, accesible en el puerto 80.
+
+Si necesitas trabajar en el frontend con hot reload:
+
+```bash
+cd frontend && pnpm dev
+```
 
 ## Licencia
 
